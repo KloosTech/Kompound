@@ -37,7 +37,10 @@ internal class ButtonColors(
     val disabledContainer: Color,
     val disabledContent: Color,
     val disabledOutline: Color?,
-)
+) {
+    /** Same colours with a different content colour (the interaction layers follow it). */
+    fun withContent(content: Color) = ButtonColors(container, content, outline, disabledContainer, disabledContent, disabledOutline)
+}
 
 internal fun buttonColors(variant: KButtonVariant, c: ColorScheme, l: KompoundStateLayer): ButtonColors {
     val disabledContent = c.onSurface.copy(alpha = l.disabledContent)

@@ -73,6 +73,6 @@ class KIconButtonTest {
         assertTrue(filled.containsColor(s.onPrimary), "icon colour")
         val standard = onNodeWithTag("standard").captureToImage()
         assertEquals(0f, standard.toPixelMap()[standard.width / 2, 6].alpha, 0.01f)
-        assertTrue(standard.containsColor(s.primary), "standard icon uses primary")
+        assertTrue(standard.containsColor(s.onSurfaceVariant), "standard icon uses onSurfaceVariant")
     }
 }
