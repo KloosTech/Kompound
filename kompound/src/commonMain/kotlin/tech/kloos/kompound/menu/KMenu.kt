@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -152,7 +153,7 @@ public fun KMenuItem(
         Modifier.selectable(selected, source, null, enabled, role, onClick)
     }
     Row(
-        modifier = modifier.hoverable(source, enabled).then(behaviour).styleable(state, KMenuDefaults.itemStyle(), style),
+        modifier = modifier.fillMaxWidth().hoverable(source, enabled).then(behaviour).styleable(state, KMenuDefaults.itemStyle(), style),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

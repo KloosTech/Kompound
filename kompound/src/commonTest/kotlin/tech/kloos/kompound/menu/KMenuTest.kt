@@ -4,7 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -62,6 +66,22 @@ class KMenuTest {
         assertEquals(Role.RadioButton, chosen.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Role))
         assertTrue(chosen.captureToImage().containsColor(s.secondaryContainer), "selected item is tinted")
         assertTrue(chosen.captureToImage().containsColor(s.onSecondaryContainer), "check mark and text use onSecondaryContainer")
+    }
+
+    @Test
+    fun itemsFillTheMenuWidthSoTheSelectedTintSpansIt() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                KMenu(true, {}, minWidth = 300.dp) {
+                    KMenuItem("Short", {}, Modifier.testTag("short"), selected = true, showCheck = true, role = Role.RadioButton)
+                    KMenuItem("A rather longer label", {}, Modifier.testTag("long"), role = Role.RadioButton)
+                }
+            }
+        }
+        val short = onNodeWithTag("short").fetchSemanticsNode().size.width
+        val long = onNodeWithTag("long").fetchSemanticsNode().size.width
+        assertEquals(long, short, "items have different widths")
+        assertTrue(short >= 300 - 2, "items narrower than the menu")
     }
 
     @Test
