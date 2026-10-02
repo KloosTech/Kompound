@@ -1,65 +1,72 @@
 package tech.kloos.kompound.catalog.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import tech.kloos.kompound.chip.KChip
 import tech.kloos.kompound.demo.BoolControl
 import tech.kloos.kompound.demo.ChoiceControl
 import tech.kloos.kompound.demo.DemoControl
 import tech.kloos.kompound.demo.FloatControl
 import tech.kloos.kompound.demo.TextControl
+import tech.kloos.kompound.segmented.KSegmentedControl
+import tech.kloos.kompound.selection.KSwitch
+import tech.kloos.kompound.slider.KSlider
+import tech.kloos.kompound.text.KText
+import tech.kloos.kompound.textfield.KTextField
 
-/** Renders the controls a demo declared through `DemoScope`, so visitors can try a component's states. */
+/** The controls a demo declared, drawn with Kompound components so visitors can try a component's states. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ControlPanel(controls: List<DemoControl>, modifier: Modifier = Modifier) {
-    if (controls.isEmpty()) return
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        HorizontalDivider()
-        Text("Controls", style = MaterialTheme.typography.titleSmall)
+internal fun ControlPanel(controls: List<DemoControl>, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (controls.isEmpty()) {
+            KText("This demo has no controls.", style = textRole(quiet = true) { it.bodyMedium })
+        }
         controls.forEach { control ->
             when (control) {
-                is TextControl -> OutlinedTextField(
-                    value = control.value,
-                    onValueChange = { control.value = it },
-                    label = { Text(control.name) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                is BoolControl -> Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(control.name, Modifier.weight(1f))
-                    Switch(checked = control.value, onCheckedChange = { control.value = it })
+                is TextControl -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ControlLabel(control.name)
+                    KTextField(control.value, { control.value = it })
                 }
-                is ChoiceControl -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(control.name, style = MaterialTheme.typography.labelMedium)
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        control.options.forEachIndexed { i, label ->
-                            FilterChip(selected = i == control.selectedIndex, onClick = { control.selectedIndex = i }, label = { Text(label) })
+                is BoolControl -> Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    ControlLabel(control.name, Modifier.weight(1f))
+                    KSwitch(control.value, { control.value = it })
+                }
+                is ChoiceControl -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ControlLabel(control.name)
+                    if (control.options.size <= 3 && control.options.all { it.length <= 12 }) {
+                        KSegmentedControl(control.options, control.selectedIndex, { control.selectedIndex = it })
+                    } else {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            control.options.forEachIndexed { i, label ->
+                                KChip(label, onClick = { control.selectedIndex = i }, selected = i == control.selectedIndex)
+                            }
                         }
                     }
                 }
                 is FloatControl -> Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(control.name, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                        Text(((control.value * 10).toInt() / 10f).toString(), style = MaterialTheme.typography.labelMedium)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        ControlLabel(control.name, Modifier.weight(1f))
+                        KText(formatNumber(control.value), style = textRole(quiet = true) { it.labelMedium })
                     }
-                    Slider(value = control.value, onValueChange = { control.value = it }, valueRange = control.range, modifier = Modifier.padding(horizontal = 4.dp))
+                    KSlider(control.value, { control.value = it }, valueRange = control.range)
                 }
             }
         }
     }
 }
+
+@Composable
+private fun ControlLabel(text: String, modifier: Modifier = Modifier) {
+    KText(text, modifier, style = textRole { it.labelLarge })
+}
+
+internal fun formatNumber(v: Float): String = if (v == v.toInt().toFloat()) v.toInt().toString() else ((v * 100).toInt() / 100f).toString()

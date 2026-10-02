@@ -4,9 +4,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.unit.dp
+import kotlin.test.assertFalse
+import tech.kloos.kompound.containsColor
 import tech.kloos.kompound.contrast
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -67,3 +76,50 @@ class KompoundThemeTest {
         }
     }
 }
+
+@OptIn(ExperimentalTestApi::class)
+class KompoundThemeRootTextTest {
+    private val dark = darkColorScheme(onBackground = Color(0xFFFFFF00), background = Color(0xFF101010))
+
+    @Test
+    fun plainTextOnThePageUsesTheThemesOnBackgroundColour() {
+        runComposeUiTest {
+            setContent {
+                KompoundTheme(colorScheme = dark) {
+                    androidx.compose.foundation.layout.Box(Modifier.testTag("page")) { tech.kloos.kompound.text.KText("MMMM") }
+                }
+            }
+            val img = onNodeWithTag("page").captureToImage()
+            assertTrue(img.containsColor(Color(0xFFFFFF00)), "plain KText should be onBackground, not black")
+        }
+    }
+
+    @Test
+    fun textInsideAStyledComponentStillUsesTheComponentsOwnColour() {
+        runComposeUiTest {
+            setContent {
+                KompoundTheme(colorScheme = lightColorScheme(onBackground = Color(0xFFFFFF00), primary = Color(0xFF0000FF), onPrimary = Color(0xFF00FF00))) {
+                    tech.kloos.kompound.buttons.KButton(onClick = {}, Modifier.testTag("btn")) { tech.kloos.kompound.text.KText("MMMM") }
+                }
+            }
+            val img = onNodeWithTag("btn").captureToImage()
+            assertTrue(img.containsColor(Color(0xFF00FF00)), "button label keeps onPrimary")
+            assertFalse(img.containsColor(Color(0xFFFFFF00)), "the root colour must not leak into the button label")
+        }
+    }
+
+    @Test
+    fun rootWrapperDoesNotChangeTheSizeOfItsContent() {
+        runComposeUiTest {
+            setContent {
+                KompoundTheme(colorScheme = dark) {
+                    androidx.compose.foundation.layout.Box(Modifier.testTag("child").then(Modifier.width(123.dp)).height(45.dp))
+                }
+            }
+            val size = onNodeWithTag("child").fetchSemanticsNode().size
+            assertEquals(123, size.width)
+            assertEquals(45, size.height)
+        }
+    }
+}
+

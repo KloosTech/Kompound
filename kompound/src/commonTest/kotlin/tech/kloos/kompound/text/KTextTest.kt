@@ -16,6 +16,12 @@ import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.runtime.remember
 import kotlin.math.abs
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import tech.kloos.kompound.containsColor
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
@@ -54,5 +60,39 @@ class KTextTest {
         val img = onNodeWithTag("p").captureToImage()
         assertTrue(img.contains(blue), "own style colour missing")
         assertTrue(!img.contains(red), "inherited colour should be overridden")
+    }
+}
+
+@OptIn(ExperimentalTestApi::class)
+class KTextChangingTextTest {
+    @Test
+    fun aTitleThatChangesKeepsTheInheritedTypography() {
+        val none = androidx.compose.foundation.layout.WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
+        runComposeUiTest {
+            var title by androidx.compose.runtime.mutableStateOf("First")
+            setContent { tech.kloos.kompound.theme.KompoundTheme { tech.kloos.kompound.scaffold.KTopBar(title, windowInsets = none) } }
+            val before = onNodeWithText("First", useUnmergedTree = true).fetchSemanticsNode().size.height
+            title = "Second"
+            waitForIdle()
+            val after = onNodeWithText("Second", useUnmergedTree = true).fetchSemanticsNode().size.height
+            assertEquals(before, after, "the title lost its title-large style when its text changed")
+            assertTrue(after > 20, "title-large is taller than body text (was $after)")
+        }
+    }
+
+    @Test
+    fun aButtonLabelThatChangesKeepsItsColour() {
+        val scheme = androidx.compose.material3.lightColorScheme(primary = Color(0xFF0000FF), onPrimary = Color(0xFF00FF00))
+        runComposeUiTest {
+            var label by androidx.compose.runtime.mutableStateOf("AAAA")
+            setContent {
+                androidx.compose.material3.MaterialTheme(scheme) {
+                    tech.kloos.kompound.buttons.KButton(onClick = {}, Modifier.testTag("b")) { KText(label) }
+                }
+            }
+            label = "MMMM"
+            waitForIdle()
+            assertTrue(onNodeWithTag("b").captureToImage().containsColor(Color(0xFF00FF00)), "label colour after the text changed")
+        }
     }
 }
