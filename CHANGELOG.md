@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added `KMarkdown` (renders headings, lists, task lists, quotes, tables, links, highlighted code blocks; selectable) and `KMarkdownField` (edit the source with live styling), plus `KText(AnnotatedString, textStyle = ...)`. The Styles API does not apply a `textStyle` to annotated text yet, hence the explicit parameter.
 - Catalog: every component has a "How to use" tab with a copyable Kotlin sample, rendered with `KCode`. New `@KompoundDemo(usage = ...)` field carried through the processor into `DemoMeta.usage`.
 - `KCode` no longer crashes inside a scrolling parent: it only scrolls vertically when its height is bounded.
 - Added `KCode`: syntax-highlighted code in a selectable text field (read-only or editable, line numbers, Kotlin/JSON/plain built in, custom `KCodeLanguage`, theme-following colours and a One Dark palette).
