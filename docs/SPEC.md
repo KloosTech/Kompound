@@ -277,3 +277,13 @@ Bug found by tests: `clickable` was inside `styleable`, shrinking the hit area t
 - Added: `KompoundTheme`/`KompoundTokens` (success/warning/info colours with WCAG-AA-checked pairs, spacing, motion, state layers), `LocalKContentColor`, `KIcon`, `KSurface` (plain and clickable), `KDivider`; `DemoScope` controls with catalog `ControlPanel`; generated `DemoSmokeTest` (every demo x light/dark/RTL/fontScale2).
 - Tests: kompound 33 + demo controls 5 + processor 17 + catalog 7 (desktop; kompound and catalog also on the iOS simulator).
 - Visual check on Android API 37: five demos auto-discovered, controls live-update demos.
+
+## 21. Wave 1 (primitives) done
+Components: `KButton` (filled, tonal, outlined, text), `KIconButton`, `KFab` (regular, extended), `KToggleButton`, `KSegmentedControl`, `KChip` (assist + filter), `KBadge` + `KBadgeDot`, `KAvatar` (initials, image slot, presence), `KCheckbox` (incl. tri-state), `KRadioButton`, `KSwitch`. All have demos with controls and pass the generated smoke test.
+Findings:
+- `animate { }` inside a Style (also within a state block) interpolates its properties in the layout/draw phase: `KSwitch` thumb, track and halo animate with no recomposition (tested).
+- Shared state: several `styleable` nodes can share one `StyleState` (halo + box + row), so one interaction source drives all layers.
+- Button family shares `ButtonBase` (hover + click/toggle outside `styleable`, C-016a); selection controls share `SelectionRow`/`HaloSlot`.
+- Test technique: distinct-hue test scheme + pixel sampling at density 1; sample solid bands, not antialiased edges; stack siblings in a `Column` so captures do not overlap.
+- Tests: 96 desktop + 96 iOS simulator (kompound + catalog), 17 processor, 5 demo controls.
+Next: Wave 2 inputs (text fields, search bar, dropdowns, date pickers, inline edit).
