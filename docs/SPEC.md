@@ -300,3 +300,16 @@ Decisions and findings:
 - Internal icons grew to six (search, close, chevron, check, calendar, edit), all in THIRD_PARTY_NOTICES.md.
 - Tests: 148 desktop + 148 iOS simulator (kompound + catalog), 17 processor, 5 demo controls. Visual check on Android API 37: dropdown popup (width, flip of chevron, scrolling) and the date dialog.
 Next: Wave 3 (dialog, bottom sheet, snackbar, tooltip, list item, progress, top bar/scaffolds, empty/error states).
+
+## 23. Wave 3 (surfaces and feedback) done
+Components: `KLinearProgress`, `KCircularProgress`, `KButton(loading = true)`, `KListItem`, `KEmptyState`, `KErrorState`, `KTopBar`, `KScaffold`, `KSnackbar` + `KSnackbarHost` + `KSnackbarHostState`, `KTooltip`, `KDialog` + `KAlertDialog`, `KBottomSheet`.
+Findings and decisions:
+- Indeterminate animations (`rememberInfiniteTransition`) are read in layout/draw lambdas, so they never recompose; the generated smoke test drives the clock by hand (`autoAdvance = false`) so animated demos cannot hang it.
+- The standard (text-variant) `KIconButton` is `onSurfaceVariant` like Material 3, not `primary`.
+- Insets stay explicit (C-055): `KTopBar(windowInsets = statusBars)`, `KScaffold(contentWindowInsets = none)`, full-screen `KDialog(contentWindowInsets = safeDrawing)`, `KBottomSheet(contentWindowInsets = navigationBars)`.
+- `KSnackbarHostState.showSnackbar` is a queued, cancellable suspend call returning Dismissed/ActionPerformed; messages with an action default to the long (10s) duration.
+- `KTooltip` shows on hover (after a delay) or long press (hides itself); it is a visual supplement, the anchor needs its own accessibility description.
+- Dialogs use the common `Dialog` window with our own scrim so the surface can swallow clicks; `decorFitsSystemWindows` is Android-only and therefore not used.
+- `KBottomSheet` is adaptive (C-056): Material 3 `ModalBottomSheet` below `dialogFromWidth` (600dp), `KDialog` above, same API. M3 caps the sheet at 640dp and centres it; the sheet container colour is a parameter because M3 draws it.
+- Tests: 216 desktop + 216 iOS simulator (kompound + catalog), 17 processor, 5 demo controls. Visual check on Android API 37: bottom sheet (handle, heading, close, scrolling list, footer).
+- Open: screen-reader pass (TalkBack/VoiceOver, C-068), `KColorPicker`, Wave 4 items (rich text editor, signature pad, expandable text).

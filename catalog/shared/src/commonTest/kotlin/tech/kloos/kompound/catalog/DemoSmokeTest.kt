@@ -44,6 +44,8 @@ class DemoSmokeTest {
         for (entry in KompoundAllDemos.entries) {
             for (config in configs) {
                 runComposeUiTest {
+                    // Demos may run infinite animations (spinners): drive the clock by hand, never wait for idle.
+                    mainClock.autoAdvance = false
                     setContent {
                         val density = LocalDensity.current
                         CompositionLocalProvider(
@@ -57,7 +59,7 @@ class DemoSmokeTest {
                             }
                         }
                     }
-                    waitForIdle()
+                    repeat(3) { mainClock.advanceTimeByFrame() }
                     try {
                         onNodeWithTag("demo").assertExists()
                     } catch (e: AssertionError) {

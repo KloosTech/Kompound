@@ -46,13 +46,24 @@ public fun KIconButton(
     ButtonBase(
         modifier = modifier, styleState = styleState, defaultStyle = KIconButtonDefaults.style(variant), style = style,
         enabled = enabled, interactionSource = source, role = Role.Button,
-        iconColor = KButtonDefaults.contentColor(variant, enabled), contentDescription = contentDescription,
+        iconColor = KIconButtonDefaults.contentColor(variant, enabled), contentDescription = contentDescription,
         onClick = onClick, toggle = null, content = icon,
     )
 }
 
+/** Like [buttonColors], but the standard (text) icon button is `onSurfaceVariant`, as in Material 3. */
+private fun iconButtonColors(variant: KButtonVariant, scheme: androidx.compose.material3.ColorScheme, layers: tech.kloos.kompound.theme.KompoundStateLayer): ButtonColors =
+    buttonColors(variant, scheme, layers).let { if (variant == KButtonVariant.Text) it.withContent(scheme.onSurfaceVariant) else it }
+
 /** Defaults for [KIconButton]. */
 public object KIconButtonDefaults {
+    /** The colour the icon gets for [variant]; icons read it through `LocalKContentColor`. */
+    @Composable
+    public fun contentColor(variant: KButtonVariant, enabled: Boolean = true): androidx.compose.ui.graphics.Color {
+        val colors = iconButtonColors(variant, MaterialTheme.colorScheme, KompoundTheme.tokens.stateLayer)
+        return if (enabled) colors.content else colors.disabledContent
+    }
+
     /** Base style: 40dp circle with 4dp external padding, which makes the 48dp touch target. */
     @Composable
     public fun style(variant: KButtonVariant = KButtonVariant.Text): Style {
@@ -61,7 +72,7 @@ public object KIconButtonDefaults {
         val layers = KompoundTheme.tokens.stateLayer
         return remember(variant, scheme, type, layers) {
             Style(
-                buttonStyle(buttonColors(variant, scheme, layers), layers, type, CircleShape, 40.dp, 40.dp, 0.dp, 0.dp),
+                buttonStyle(iconButtonColors(variant, scheme, layers), layers, type, CircleShape, 40.dp, 40.dp, 0.dp, 0.dp),
                 Style { externalPadding(4.dp) },
             )
         }

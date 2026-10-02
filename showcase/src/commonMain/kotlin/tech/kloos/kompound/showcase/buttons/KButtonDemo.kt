@@ -28,15 +28,16 @@ fun DemoScope.KButtonDemo() {
     val variant = choiceControl("Variant", KButtonVariant.entries)
     val label = textControl("Label", "Button")
     val enabled = boolControl("Enabled", true)
+    val loading = boolControl("Loading", false)
     val leadingIcon = boolControl("Leading icon", false)
     val trailingIcon = boolControl("Trailing icon", false)
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        KButton(onClick = {}, variant = variant, enabled = enabled) {
+        KButton(onClick = {}, variant = variant, enabled = enabled, loading = loading) {
             if (leadingIcon) KIcon(DemoIcons.Star, contentDescription = null)
             KText(label, Modifier.padding(horizontal = if (leadingIcon || trailingIcon) 8.dp else 0.dp))
             if (trailingIcon) KIcon(DemoIcons.Check, contentDescription = null)
         }
         KText("All variants")
-        KButtonVariant.entries.forEach { v -> KButton(onClick = {}, variant = v, enabled = enabled) { KText(v.name) } }
+        KButtonVariant.entries.forEach { v -> KButton(onClick = {}, variant = v, enabled = enabled, loading = loading) { KText(v.name) } }
     }
 }

@@ -32,6 +32,7 @@ internal fun ButtonBase(
     defaultStyle: Style,
     style: Style,
     enabled: Boolean,
+    clickEnabled: Boolean = enabled,
     interactionSource: MutableInteractionSource,
     role: Role,
     iconColor: Color,
@@ -43,9 +44,9 @@ internal fun ButtonBase(
     var m = modifier.hoverable(interactionSource, enabled)
     if (contentDescription != null) m = m.semantics { this.contentDescription = contentDescription }
     m = if (toggle != null) {
-        m.toggleable(toggle.checked, interactionSource, null, enabled, role, toggle.onChange)
+        m.toggleable(toggle.checked, interactionSource, null, clickEnabled, role, toggle.onChange)
     } else {
-        m.clickable(interactionSource = interactionSource, indication = null, enabled = enabled, role = role, onClick = onClick!!)
+        m.clickable(interactionSource = interactionSource, indication = null, enabled = clickEnabled, role = role, onClick = onClick!!)
     }
     Row(
         modifier = m.styleable(styleState, defaultStyle, style),
