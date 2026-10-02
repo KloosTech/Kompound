@@ -16,6 +16,19 @@ import tech.kloos.kompound.date.KDateField
 import tech.kloos.kompound.date.KDateRangeField
 import tech.kloos.kompound.demo.DemoScope
 
+private const val Usage_date_field = """import tech.kloos.kompound.date.KDateField
+
+// Dates are epoch milliseconds at UTC midnight, null means no date.
+var birthday by remember { mutableStateOf<Long?>(null) }
+
+KDateField(
+    value = birthday,
+    onValueChange = { birthday = it },
+    label = "Birthday",
+    placeholder = "Pick a date",
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "date.field",
     title = "KDateField",
@@ -23,6 +36,7 @@ import tech.kloos.kompound.demo.DemoScope
     category = KompoundCategory.Inputs,
     tags = ["date", "calendar", "picker", "form", "time"],
     since = "0.1.0",
+    usage = Usage_date_field,
 )
 @Composable
 fun DemoScope.KDateFieldDemo() {
@@ -39,6 +53,19 @@ fun DemoScope.KDateFieldDemo() {
     }
 }
 
+private const val Usage_date_range = """import tech.kloos.kompound.date.KDateRangeField
+
+var start by remember { mutableStateOf<Long?>(null) }
+var end by remember { mutableStateOf<Long?>(null) }
+
+KDateRangeField(
+    start = start,
+    end = end,
+    onRangeChange = { s, e -> start = s; end = e },
+    label = "Stay",
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "date.range",
     title = "KDateRangeField",
@@ -46,6 +73,7 @@ fun DemoScope.KDateFieldDemo() {
     category = KompoundCategory.Inputs,
     tags = ["date", "range", "calendar", "picker", "form", "period"],
     since = "0.1.0",
+    usage = Usage_date_range,
 )
 @Composable
 fun DemoScope.KDateRangeFieldDemo() {

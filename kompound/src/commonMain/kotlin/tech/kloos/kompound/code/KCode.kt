@@ -3,6 +3,7 @@ package tech.kloos.kompound.code
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.style.Style
@@ -40,8 +41,9 @@ import tech.kloos.kompound.text.KText
  * copied); pass [onCodeChange] to make it an editor. The highlighting is a visual transformation, so the
  * caret, selection and IME work as in any text field, and the text itself is never changed.
  *
- * Long lines scroll horizontally and the view scrolls vertically when the caller limits its height
- * (`Modifier.heightIn(max = ...)`). Line numbers count logical lines.
+ * Long lines scroll horizontally. When the caller limits the height (`Modifier.heightIn(max = ...)`) the view
+ * scrolls vertically; in an unbounded parent, such as a scrolling column, it shows all lines. Line numbers
+ * count logical lines.
  *
  * @param code The text to show.
  * @param modifier Modifier applied to the outermost node.
@@ -65,31 +67,36 @@ public fun KCode(
     val styleState = rememberUpdatedStyleState(null) {}
     val textStyle = KCodeDefaults.textStyle(colors)
     val transformation = remember(language, colors) { HighlightTransformation(language, colors) }
-    Row(
-        modifier = modifier.styleable(styleState, KCodeDefaults.style(colors), style),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        // One vertical scroll for gutter and text so they stay aligned.
-        val vertical = rememberScrollState()
-        if (showLineNumbers) {
-            val lines = code.count { it == '\n' } + 1
-            val width = lines.toString().length
-            KText(
-                (1..lines).joinToString("\n") { it.toString().padStart(width) },
-                Modifier.verticalScroll(vertical),
-                style = Style { textStyle(textStyle.copy(color = colors.gutter)) },
-            )
-        }
-        Box(Modifier.weight(1f).horizontalScroll(rememberScrollState()).verticalScroll(vertical)) {
-            BasicTextField(
-                value = code,
-                onValueChange = { onCodeChange?.invoke(it) },
-                readOnly = onCodeChange == null,
-                textStyle = textStyle,
-                cursorBrush = SolidColor(colors.plain),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
-                visualTransformation = transformation,
-            )
+    BoxWithConstraints(modifier) {
+        // Only scroll vertically when the caller bounded the height; inside a scrolling parent the code shows in full.
+        val boundedHeight = constraints.hasBoundedHeight
+        Row(
+            modifier = Modifier.styleable(styleState, KCodeDefaults.style(colors), style),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // One vertical scroll for gutter and text so they stay aligned.
+            val vertical = rememberScrollState()
+            fun Modifier.scrollsVertically() = if (boundedHeight) verticalScroll(vertical) else this
+            if (showLineNumbers) {
+                val lines = code.count { it == '\n' } + 1
+                val width = lines.toString().length
+                KText(
+                    (1..lines).joinToString("\n") { it.toString().padStart(width) },
+                    Modifier.scrollsVertically(),
+                    style = Style { textStyle(textStyle.copy(color = colors.gutter)) },
+                )
+            }
+            Box(Modifier.weight(1f).horizontalScroll(rememberScrollState()).scrollsVertically()) {
+                BasicTextField(
+                    value = code,
+                    onValueChange = { onCodeChange?.invoke(it) },
+                    readOnly = onCodeChange == null,
+                    textStyle = textStyle,
+                    cursorBrush = SolidColor(colors.plain),
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+                    visualTransformation = transformation,
+                )
+            }
         }
     }
 }

@@ -29,6 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.badge.KBadge
+import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.buttons.KButtonVariant
+import tech.kloos.kompound.code.KCode
 import tech.kloos.kompound.badge.KBadgeEmphasis
 import tech.kloos.kompound.badge.KBadgeTone
 import tech.kloos.kompound.demo.DemoControls
@@ -41,10 +44,13 @@ import tech.kloos.kompound.text.KText
 /** Backgrounds the preview can be shown on, to judge a component on light, tinted and inverse surfaces. */
 internal enum class Stage { Surface, Page, Tinted, Inverse }
 
+/** Tabs of the detail pane; "How to use" only exists for demos that provide a usage sample. */
+private enum class DetailTab(val label: String) { Preview("Preview"), Usage("How to use") }
+
 /** Header, live preview and controls of one component. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun DetailPane(entry: DemoEntry?, componentCount: Int, modifier: Modifier = Modifier) {
+internal fun DetailPane(entry: DemoEntry?, componentCount: Int, modifier: Modifier = Modifier, onCopy: (String) -> Unit = {}) {
     if (entry == null) {
         KEmptyState(
             title = "Select a component",
@@ -55,13 +61,22 @@ internal fun DetailPane(entry: DemoEntry?, componentCount: Int, modifier: Modifi
     }
     val controls = remember(entry.qualifiedId) { DemoControls() }
     var stage by remember(entry.qualifiedId) { mutableStateOf(Stage.Surface) }
+    var tab by remember(entry.qualifiedId) { mutableStateOf(DetailTab.Preview) }
+    val hasUsage = entry.meta.usage.isNotBlank()
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoColumns = maxWidth >= 980.dp
         val compact = maxWidth < 600.dp
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 24.dp)) {
             Column(Modifier.widthIn(max = 1200.dp).fillMaxWidth().align(Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Header(entry)
-                if (twoColumns) {
+                if (hasUsage) {
+                    Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                        KSegmentedControl(DetailTab.entries.map { it.label }, tab.ordinal, { tab = DetailTab.entries[it] })
+                    }
+                }
+                if (tab == DetailTab.Usage && hasUsage) {
+                    UsageCard(entry.meta.usage, onCopy)
+                } else if (twoColumns) {
                     Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Top) {
                         PreviewCard(entry, controls, stage, { stage = it }, Modifier.weight(1f), compact = false)
                         ControlsCard(controls, Modifier.widthIn(min = 320.dp, max = 360.dp))
@@ -113,6 +128,20 @@ private fun PreviewCard(entry: DemoEntry, controls: DemoControls, stage: Stage, 
         KSurface(Modifier.fillMaxWidth(), style = stageStyle(stage)) {
             Column(Modifier.fillMaxWidth().heightIn(min = 240.dp), verticalArrangement = Arrangement.Center) { controls.content() }
         }
+    }
+}
+
+@Composable
+private fun UsageCard(usage: String, onCopy: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                KText("How to use", style = textRole(weight = FontWeight.SemiBold) { it.titleMedium })
+                KText("Copy it into a composable inside KompoundTheme; your IDE adds the remaining imports.", style = textRole(quiet = true) { it.bodyMedium })
+            }
+            KButton(onClick = { onCopy(usage) }, variant = KButtonVariant.Tonal) { KText("Copy") }
+        }
+        KCode(usage, Modifier.fillMaxWidth())
     }
 }
 

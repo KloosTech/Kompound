@@ -14,6 +14,13 @@ import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 import androidx.compose.foundation.style.Style
 
+private const val Usage_button_fab = """import tech.kloos.kompound.buttons.KFab
+import tech.kloos.kompound.icon.KIcon
+
+KFab(onClick = { create() }, contentDescription = "New item") {
+    KIcon(Icons.Rounded.Add, contentDescription = null)
+}"""
+
 @KompoundDemo(
     id = "button.fab",
     title = "KFab",
@@ -21,6 +28,7 @@ import androidx.compose.foundation.style.Style
     category = KompoundCategory.Buttons,
     tags = ["button", "fab", "floating", "action"],
     since = "0.1.0",
+    usage = Usage_button_fab,
 )
 @Composable
 fun DemoScope.KFabDemo() {

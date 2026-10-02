@@ -31,6 +31,7 @@ private class Demo(
     val status: String,
     val platforms: List<String>,
     val aliases: List<String>,
+    val usage: String,
     val withScope: Boolean,
 )
 
@@ -91,7 +92,7 @@ internal class KompoundProcessor(private val env: SymbolProcessorEnvironment) : 
         val tags = list("tags").map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct()
 
         return Demo(fn, id, title, description, str("category").ifBlank { "Utilities" }, tags, str("since"),
-            str("status").ifBlank { "Stable" }, list("platforms"), list("aliases"), withScope = receiver != null)
+            str("status").ifBlank { "Stable" }, list("platforms"), list("aliases"), str("usage"), withScope = receiver != null)
     }
 
     private fun render(moduleId: String, demos: List<Demo>): String {
@@ -108,6 +109,7 @@ internal class KompoundProcessor(private val env: SymbolProcessorEnvironment) : 
             |                id = ${q(d.id)}, title = ${q(d.title)}, description = ${q(d.description)},
             |                category = ${q(d.category)}, tags = ${l(d.tags)}, since = ${q(d.since)},
             |                status = ${q(d.status)}, platforms = ${l(d.platforms)}, aliases = ${l(d.aliases)},
+            |                usage = ${q(d.usage)},
             |            ),
             |            content = { $call },
             |        ),""".trimMargin()

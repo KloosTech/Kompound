@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Catalog: every component has a "How to use" tab with a copyable Kotlin sample, rendered with `KCode`. New `@KompoundDemo(usage = ...)` field carried through the processor into `DemoMeta.usage`.
+- `KCode` no longer crashes inside a scrolling parent: it only scrolls vertically when its height is bounded.
 - Added `KCode`: syntax-highlighted code in a selectable text field (read-only or editable, line numbers, Kotlin/JSON/plain built in, custom `KCodeLanguage`, theme-following colours and a One Dark palette).
 - Catalog release: only the newest `catalog-v*` GitHub Release is kept, the APK gets an increasing version code, and `scripts/create-android-keystore.sh` sets up the signing key so Obtainium can update the app.
 - `KButton` effects (`KButtonEffects`): click shadow (on by default for filled and tonal), bounce, fade, colour morph, shape morph and sparkles; toggles in the KButton demo.

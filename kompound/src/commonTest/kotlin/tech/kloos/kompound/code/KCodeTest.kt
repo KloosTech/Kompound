@@ -1,5 +1,8 @@
 package tech.kloos.kompound.code
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -19,6 +22,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.runComposeUiTest
 import tech.kloos.kompound.containsColor
 import tech.kloos.kompound.contrast
@@ -167,6 +171,26 @@ class KCodeTest {
         onNode(hasSetTextAction()).performTextInput("main")
         waitForIdle()
         assertTrue(code.contains("main"), "typed text missing: '$code'")
+    }
+
+    @Test
+    fun worksInsideAScrollingColumnWithoutBoundedHeight() = runComposeUiTest {
+        setContent {
+            MaterialTheme(scheme) {
+                androidx.compose.foundation.layout.Column(Modifier.verticalScroll(rememberScrollState())) {
+                    KCode("a\nb\nc", Modifier.testTag("c"), colors = colors)
+                }
+            }
+        }
+        onNodeWithTag("c").assertExists()
+    }
+
+    @Test
+    fun scrollsVerticallyWhenTheHeightIsLimited() = runComposeUiTest {
+        setContent {
+            MaterialTheme(scheme) { KCode((1..60).joinToString("\n") { "val v$it = $it" }, Modifier.testTag("c").heightIn(max = 100.dp), colors = colors) }
+        }
+        assertTrue(onNodeWithTag("c").fetchSemanticsNode().size.height <= 100)
     }
 
     private fun androidx.compose.ui.test.ComposeUiTest.onNodeWithTextExact(text: String) =

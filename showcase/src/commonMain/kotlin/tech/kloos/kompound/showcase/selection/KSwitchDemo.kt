@@ -15,6 +15,17 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.selection.KSwitch
 import tech.kloos.kompound.text.KText
 
+private const val Usage_switch_basic = """import tech.kloos.kompound.selection.KSwitch
+import tech.kloos.kompound.text.KText
+
+var notifications by remember { mutableStateOf(true) }
+
+KSwitch(
+    checked = notifications,
+    onCheckedChange = { notifications = it },
+    label = { KText("Notifications") },
+)"""
+
 @KompoundDemo(
     id = "switch.basic",
     title = "KSwitch",
@@ -22,6 +33,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["switch", "toggle", "on off", "setting", "form"],
     since = "0.1.0",
+    usage = Usage_switch_basic,
 )
 @Composable
 fun DemoScope.KSwitchDemo() {

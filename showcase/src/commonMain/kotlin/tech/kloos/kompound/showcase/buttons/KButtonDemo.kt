@@ -16,6 +16,28 @@ import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 
+private const val Usage_button_primary = """import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.buttons.KButtonEffects
+import tech.kloos.kompound.buttons.KButtonVariant
+import tech.kloos.kompound.icon.KIcon
+import tech.kloos.kompound.text.KText
+
+// The simplest button: the content slot takes KText and KIcon.
+KButton(onClick = { save() }) {
+    KText("Save")
+}
+
+// Other looks, a spinner while work runs, and optional press effects.
+KButton(
+    onClick = { save() },
+    variant = KButtonVariant.Tonal,   // Filled, Tonal, Outlined or Text
+    loading = isSaving,               // spinner instead of the content; the size stays, clicks are ignored
+    effects = KButtonEffects(bounce = true, sparkles = true),
+) {
+    KIcon(Icons.Rounded.Star, contentDescription = null)
+    KText("Save", Modifier.padding(start = 8.dp))
+}"""
+
 @KompoundDemo(
     id = "button.primary",
     title = "KButton",
@@ -23,6 +45,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Buttons,
     tags = ["button", "action", "cta", "styles", "outlined", "tonal", "animation", "bounce", "sparkles", "shadow", "morph"],
     since = "0.1.0",
+    usage = Usage_button_primary,
 )
 @Composable
 fun DemoScope.KButtonDemo() {

@@ -43,6 +43,23 @@ private const val JsonSample = """{
   "license": null
 }"""
 
+private const val Usage_code_view = """import tech.kloos.kompound.code.KCode
+import tech.kloos.kompound.code.KCodeColors
+import tech.kloos.kompound.code.KCodeLanguage
+
+// Read-only, selectable and highlighted.
+KCode(code = "val greeting = \"Hello\"", language = KCodeLanguage.Kotlin)
+
+// Editable: pass onCodeChange. Json, Plain or your own KCodeLanguage also work.
+var json by remember { mutableStateOf("{ \"name\": \"Kompound\" }") }
+KCode(
+    code = json,
+    onCodeChange = { json = it },
+    language = KCodeLanguage.Json,
+    showLineNumbers = false,
+    colors = KCodeColors.OneDark,
+)"""
+
 @KompoundDemo(
     id = "code.view",
     title = "KCode",
@@ -51,6 +68,7 @@ private const val JsonSample = """{
     tags = ["code", "syntax", "highlight", "editor", "monospace", "text field", "json", "kotlin"],
     since = "0.1.0",
     status = "Beta",
+    usage = Usage_code_view,
 )
 @Composable
 fun DemoScope.KCodeDemo() {

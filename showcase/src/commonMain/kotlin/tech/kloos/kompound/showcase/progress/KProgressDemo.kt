@@ -15,6 +15,14 @@ import tech.kloos.kompound.progress.KCircularProgress
 import tech.kloos.kompound.progress.KLinearProgress
 import tech.kloos.kompound.text.KText
 
+private const val Usage_progress_indicators = """import tech.kloos.kompound.progress.KCircularProgress
+import tech.kloos.kompound.progress.KLinearProgress
+
+// A value between 0f and 1f is determinate; null spins or slides until the work is done.
+KLinearProgress(progress = 0.4f, modifier = Modifier.fillMaxWidth())
+KLinearProgress(progress = null, modifier = Modifier.fillMaxWidth())
+KCircularProgress(progress = null)"""
+
 @KompoundDemo(
     id = "progress.indicators",
     title = "KLinearProgress and KCircularProgress",
@@ -22,6 +30,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Feedback,
     tags = ["progress", "loading", "spinner", "indicator", "bar"],
     since = "0.1.0",
+    usage = Usage_progress_indicators,
 )
 @Composable
 fun DemoScope.KProgressDemo() {

@@ -11,6 +11,16 @@ import tech.kloos.kompound.state.KEmptyState
 import tech.kloos.kompound.state.KErrorState
 import tech.kloos.kompound.text.KText
 
+private const val Usage_state_empty = """import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.state.KEmptyState
+import tech.kloos.kompound.text.KText
+
+KEmptyState(
+    title = "No messages yet",
+    description = "New conversations show up here.",
+    action = { KButton(onClick = { compose() }) { KText("Write one") } },
+)"""
+
 @KompoundDemo(
     id = "state.empty",
     title = "KEmptyState",
@@ -18,6 +28,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Feedback,
     tags = ["empty", "state", "placeholder", "no results", "zero"],
     since = "0.1.0",
+    usage = Usage_state_empty,
 )
 @Composable
 fun DemoScope.KEmptyStateDemo() {
@@ -33,6 +44,14 @@ fun DemoScope.KEmptyStateDemo() {
     )
 }
 
+private const val Usage_state_error = """import tech.kloos.kompound.state.KErrorState
+
+KErrorState(
+    title = "Could not load your files",
+    description = "Check your connection and try again.",
+    onRetry = { reload() },
+)"""
+
 @KompoundDemo(
     id = "state.error",
     title = "KErrorState",
@@ -40,6 +59,7 @@ fun DemoScope.KEmptyStateDemo() {
     category = KompoundCategory.Feedback,
     tags = ["error", "state", "retry", "failure", "offline"],
     since = "0.1.0",
+    usage = Usage_state_error,
 )
 @Composable
 fun DemoScope.KErrorStateDemo() {

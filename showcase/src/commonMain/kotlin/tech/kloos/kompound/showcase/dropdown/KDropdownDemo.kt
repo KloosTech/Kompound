@@ -18,6 +18,21 @@ import tech.kloos.kompound.dropdown.KMultiDropdown
 
 private val Fruits = listOf("Apple", "Banana", "Cherry", "Dragon fruit", "Elderberry", "Fig", "Grape")
 
+private const val Usage_dropdown_single = """import tech.kloos.kompound.dropdown.KDropdown
+
+val fruits = listOf("Apple", "Banana", "Cherry")
+var fruit by remember { mutableStateOf<String?>(null) }
+
+// Works with any type; optionLabel turns an option into its text.
+KDropdown(
+    options = fruits,
+    selected = fruit,
+    onSelect = { fruit = it },
+    label = "Fruit",
+    placeholder = "Choose one",
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "dropdown.single",
     title = "KDropdown",
@@ -25,6 +40,7 @@ private val Fruits = listOf("Apple", "Banana", "Cherry", "Dragon fruit", "Elderb
     category = KompoundCategory.Inputs,
     tags = ["dropdown", "select", "choice", "picker", "form"],
     since = "0.1.0",
+    usage = Usage_dropdown_single,
 )
 @Composable
 fun DemoScope.KDropdownDemo() {
@@ -42,6 +58,20 @@ fun DemoScope.KDropdownDemo() {
     }
 }
 
+private const val Usage_dropdown_multi = """import tech.kloos.kompound.dropdown.KMultiDropdown
+
+val fruits = listOf("Apple", "Banana", "Cherry")
+var selected by remember { mutableStateOf(setOf<String>()) }
+
+KMultiDropdown(
+    options = fruits,
+    selected = selected,
+    onSelectionChange = { selected = it },
+    label = "Fruit",
+    placeholder = "Choose any",
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "dropdown.multi",
     title = "KMultiDropdown",
@@ -49,6 +79,7 @@ fun DemoScope.KDropdownDemo() {
     category = KompoundCategory.Inputs,
     tags = ["dropdown", "multi", "select", "choice", "form", "checkbox"],
     since = "0.1.0",
+    usage = Usage_dropdown_multi,
 )
 @Composable
 fun DemoScope.KMultiDropdownDemo() {

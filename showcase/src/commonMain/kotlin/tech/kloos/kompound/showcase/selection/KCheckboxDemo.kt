@@ -16,6 +16,17 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.selection.KCheckbox
 import tech.kloos.kompound.text.KText
 
+private const val Usage_checkbox_basic = """import tech.kloos.kompound.selection.KCheckbox
+import tech.kloos.kompound.text.KText
+
+var accepted by remember { mutableStateOf(false) }
+
+KCheckbox(
+    checked = accepted,
+    onCheckedChange = { accepted = it },
+    label = { KText("I accept the terms") },
+)"""
+
 @KompoundDemo(
     id = "checkbox.basic",
     title = "KCheckbox",
@@ -23,6 +34,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["checkbox", "check", "form", "select", "tri-state"],
     since = "0.1.0",
+    usage = Usage_checkbox_basic,
 )
 @Composable
 fun DemoScope.KCheckboxDemo() {

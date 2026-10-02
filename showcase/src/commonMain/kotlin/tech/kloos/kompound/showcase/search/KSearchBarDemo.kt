@@ -18,6 +18,18 @@ import tech.kloos.kompound.search.KSearchBar
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 
+private const val Usage_search_bar = """import tech.kloos.kompound.search.KSearchBar
+
+var query by remember { mutableStateOf("") }
+
+KSearchBar(
+    query = query,
+    onQueryChange = { query = it },     // fires on every keystroke
+    onSearch = { runSearch(it) },       // fires on the keyboard's search action
+    placeholder = "Search components",
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "search.bar",
     title = "KSearchBar",
@@ -25,6 +37,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["search", "query", "filter", "input"],
     since = "0.1.0",
+    usage = Usage_search_bar,
 )
 @Composable
 fun DemoScope.KSearchBarDemo() {

@@ -23,6 +23,17 @@ import tech.kloos.kompound.surface.KSurface
 import tech.kloos.kompound.text.KText
 import tech.kloos.kompound.theme.KompoundTheme
 
+private const val Usage_theme_tokens = """import tech.kloos.kompound.theme.KompoundTheme
+
+// Wrap your app once. Colours, shapes and type come from the Material 3 ColorScheme you pass.
+KompoundTheme(colorScheme = darkColorScheme(primary = Color(0xFF7C4DFF))) {
+    App()
+}
+
+// Inside the theme, read Kompound's extra tokens.
+val hover = KompoundTheme.tokens.stateLayer.hovered
+val spacing = KompoundTheme.tokens.spacing"""
+
 @KompoundDemo(
     id = "theme.tokens",
     title = "KompoundTheme tokens",
@@ -30,6 +41,7 @@ import tech.kloos.kompound.theme.KompoundTheme
     category = KompoundCategory.Foundations,
     tags = ["theme", "tokens", "color", "spacing", "dark mode"],
     since = "0.1.0",
+    usage = Usage_theme_tokens,
 )
 @Composable
 fun DemoScope.KompoundThemeDemo() {

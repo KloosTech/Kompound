@@ -16,6 +16,17 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.inline.KInlineEdit
 import tech.kloos.kompound.text.KText
 
+private const val Usage_inline_edit = """import tech.kloos.kompound.inline.KInlineEdit
+
+var title by remember { mutableStateOf("Quarterly report") }
+
+// Shows the text; the pencil switches to a field with save and cancel. validate returns an error or null.
+KInlineEdit(
+    value = title,
+    onValueChange = { title = it },     // called when the user saves
+    validate = { if (it.isBlank()) "A title is required" else null },
+)"""
+
 @KompoundDemo(
     id = "inline.edit",
     title = "KInlineEdit",
@@ -23,6 +34,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["inline", "edit", "rename", "text", "form"],
     since = "0.1.0",
+    usage = Usage_inline_edit,
 )
 @Composable
 fun DemoScope.KInlineEditDemo() {

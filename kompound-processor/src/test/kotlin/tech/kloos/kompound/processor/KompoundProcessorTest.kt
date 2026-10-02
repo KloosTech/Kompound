@@ -55,6 +55,14 @@ class KompoundProcessorTest {
     }
 
     @Test
+    fun usageSampleIsCarriedIntoTheRegistryEscaped() {
+        val result = compile(demo(extra = ", usage = \"\"\"KButton(onClick = {}) { KText(\"Hi \${'$'}x\") }\"\"\""))
+        assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
+        val src = result.registry()
+        assertTrue("usage = \"KButton(onClick = {}) { KText(\\\"Hi \\\$x\\\") }\"" in src, src)
+    }
+
+    @Test
     fun registryCompilesAndListsAllEntries() {
         // Not loaded reflectively: without the Compose compiler plugin composable lambdas have a different runtime type.
         val result = compile(demo(), demo(fn = "ChipDemo", id = "chip.basic"), moduleId = "m")

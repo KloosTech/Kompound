@@ -14,6 +14,19 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.showcase.DemoIcons
 
+private const val Usage_button_icon = """import tech.kloos.kompound.buttons.KButtonVariant
+import tech.kloos.kompound.buttons.KIconButton
+import tech.kloos.kompound.icon.KIcon
+
+// contentDescription is required: an icon button has no visible label.
+KIconButton(onClick = { openSettings() }, contentDescription = "Settings") {
+    KIcon(Icons.Rounded.Settings, contentDescription = null)
+}
+
+KIconButton(onClick = { openSettings() }, contentDescription = "Settings", variant = KButtonVariant.Tonal) {
+    KIcon(Icons.Rounded.Settings, contentDescription = null)
+}"""
+
 @KompoundDemo(
     id = "button.icon",
     title = "KIconButton",
@@ -21,6 +34,7 @@ import tech.kloos.kompound.showcase.DemoIcons
     category = KompoundCategory.Buttons,
     tags = ["button", "icon", "action"],
     since = "0.1.0",
+    usage = Usage_button_icon,
 )
 @Composable
 fun DemoScope.KIconButtonDemo() {

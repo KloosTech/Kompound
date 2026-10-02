@@ -16,6 +16,15 @@ import tech.kloos.kompound.avatar.KAvatarStatus
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.text.KText
 
+private const val Usage_avatar_basic = """import tech.kloos.kompound.avatar.KAvatar
+import tech.kloos.kompound.avatar.KAvatarSize
+import tech.kloos.kompound.avatar.KAvatarStatus
+
+// Initials from the name; pass image = { ... } to draw a picture instead.
+KAvatar(name = "Ada Lovelace")
+
+KAvatar(name = "Grace Hopper", size = KAvatarSize.Large, status = KAvatarStatus.Online)"""
+
 @KompoundDemo(
     id = "avatar.basic",
     title = "KAvatar",
@@ -23,6 +32,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Display,
     tags = ["avatar", "user", "profile", "presence", "initials"],
     since = "0.1.0",
+    usage = Usage_avatar_basic,
 )
 @Composable
 fun DemoScope.KAvatarDemo() {

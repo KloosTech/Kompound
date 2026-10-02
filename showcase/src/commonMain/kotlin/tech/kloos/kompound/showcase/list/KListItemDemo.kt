@@ -17,6 +17,19 @@ import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.list.KListItem
 import tech.kloos.kompound.showcase.DemoIcons
 
+private const val Usage_list_item = """import tech.kloos.kompound.avatar.KAvatar
+import tech.kloos.kompound.badge.KBadge
+import tech.kloos.kompound.list.KListItem
+
+KListItem(
+    headline = "Ada Lovelace",
+    supporting = "Analyst",
+    overline = "Team",
+    leading = { KAvatar(name = "Ada Lovelace") },
+    trailing = { KBadge("2") },
+    onClick = { openProfile() },
+)"""
+
 @KompoundDemo(
     id = "list.item",
     title = "KListItem",
@@ -24,6 +37,7 @@ import tech.kloos.kompound.showcase.DemoIcons
     category = KompoundCategory.Display,
     tags = ["list", "row", "item", "selection", "cell"],
     since = "0.1.0",
+    usage = Usage_list_item,
 )
 @Composable
 fun DemoScope.KListItemDemo() {

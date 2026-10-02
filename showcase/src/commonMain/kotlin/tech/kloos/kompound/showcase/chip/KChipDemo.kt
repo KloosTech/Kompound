@@ -19,6 +19,20 @@ import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 
+private const val Usage_chip_basic = """import tech.kloos.kompound.chip.KChip
+import tech.kloos.kompound.icon.KIcon
+
+// Filter chip: pass selected, the caller owns the state.
+var onlyFree by remember { mutableStateOf(false) }
+KChip(label = "Free", onClick = { onlyFree = !onlyFree }, selected = onlyFree)
+
+// Assist chip (no selected) with a leading icon slot; icons never change the chip's height.
+KChip(
+    label = "Add to calendar",
+    onClick = { addToCalendar() },
+    leading = { KIcon(Icons.Rounded.Add, contentDescription = null) },
+)"""
+
 @KompoundDemo(
     id = "chip.basic",
     title = "KChip",
@@ -26,6 +40,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["chip", "filter", "tag", "input", "assist"],
     since = "0.1.0",
+    usage = Usage_chip_basic,
 )
 @Composable
 fun DemoScope.KChipDemo() {

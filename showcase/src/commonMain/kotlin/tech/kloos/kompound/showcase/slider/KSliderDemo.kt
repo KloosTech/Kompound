@@ -16,6 +16,18 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.slider.KSlider
 import tech.kloos.kompound.text.KText
 
+private const val Usage_slider_basic = """import tech.kloos.kompound.slider.KSlider
+
+var volume by remember { mutableFloatStateOf(40f) }
+
+KSlider(
+    value = volume,
+    onValueChange = { volume = it },
+    valueRange = 0f..100f,
+    steps = 9,                                  // 10 discrete positions
+    onValueChangeFinished = { saveVolume(volume) },
+)"""
+
 @KompoundDemo(
     id = "slider.basic",
     title = "KSlider",
@@ -23,6 +35,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["slider", "range", "number", "input", "drag"],
     since = "0.1.0",
+    usage = Usage_slider_basic,
 )
 @Composable
 fun DemoScope.KSliderDemo() {

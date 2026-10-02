@@ -17,6 +17,18 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.divider.KDivider
 import tech.kloos.kompound.text.KText
 
+private const val Usage_divider_basic = """import androidx.compose.foundation.gestures.Orientation
+import tech.kloos.kompound.divider.KDivider
+
+KDivider()
+
+// A vertical divider needs a height from its parent.
+Row(Modifier.height(24.dp)) {
+    KText("One")
+    KDivider(orientation = Orientation.Vertical)
+    KText("Two")
+}"""
+
 @KompoundDemo(
     id = "divider.basic",
     title = "KDivider",
@@ -24,6 +36,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Layout,
     tags = ["divider", "separator", "line"],
     since = "0.1.0",
+    usage = Usage_divider_basic,
 )
 @Composable
 fun DemoScope.KDividerDemo() {
