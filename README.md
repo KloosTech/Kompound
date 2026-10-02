@@ -13,7 +13,7 @@ inside the style, and read their colours from your Material 3 theme.
 
 ## Try it
 
-**[Live catalog in your browser](https://kloostech.github.io/Kompound/)** (Kotlin/Wasm; needs a recent Chrome, Edge, Firefox or Safari).
+**[Live catalog in your browser](https://kompound.kloos.tech/)** (Kotlin/Wasm; needs a recent Chrome, Edge, Firefox or Safari).
 It lists every component with search, category and tag filters, and interactive controls for each component's states.
 The same catalog runs as an Android app, an iOS app and a desktop app; build them yourself (see [Build from source](#build-from-source))
 or grab the Android APK and desktop installers from the [Releases](https://github.com/KloosTech/Kompound/releases) page.
