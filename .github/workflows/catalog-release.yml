@@ -1,7 +1,9 @@
 name: Release (catalog)
 
 # Builds the CATALOG apps (Android APK, desktop installers) and attaches them to a GitHub Release.
-# Trigger: push a tag like catalog-v1.0.0 (or catalog-v1.0.0-beta01). Independent of library releases (v* tags).
+# Triggers: a push to main builds the Android APK and publishes it as catalog-v<VERSION_NAME>-build.<run> so Obtainium
+# sees every merge; pushing a tag like catalog-v1.0.0 (or running the workflow by hand) also builds the desktop
+# installers. Independent of library releases (v* tags).
 # The web catalog needs no release: catalog-web.yml deploys it to GitHub Pages on every push to main.
 # Only the newest catalog release is kept: after publishing, older catalog-v* releases and their tags are deleted.
 # The APK must be signed with the same key every time (ANDROID_* secrets) or Android/Obtainium cannot update it.
@@ -9,7 +11,15 @@ name: Release (catalog)
 
 on:
   push:
+    branches: [main]
     tags: ['catalog-v*']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/catalog-web.yml'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
     inputs:
       version:
@@ -21,14 +31,35 @@ permissions:
 
 env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false
-  # tag for pushes, catalog-v<input> for manual runs; the shell strips the catalog-v prefix
-  TAG: ${{ inputs.version && format('catalog-v{0}', inputs.version) || github.ref_name }}
-  VERSION: ${{ inputs.version && format('catalog-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
+  meta:
+    name: Release tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.t.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: t
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then TAG="catalog-v$INPUT_VERSION"
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then TAG="$GITHUB_REF_NAME"
+          else
+            BASE=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2 | sed 's/-.*//')
+            TAG="catalog-v${BASE}-build.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG"
+
   android:
     name: Catalog APK
+    needs: meta
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.meta.outputs.tag }}
+      VERSION: ${{ needs.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -64,6 +95,12 @@ jobs:
 
   desktop:
     name: Catalog desktop (${{ matrix.os }})
+    needs: meta
+    # Installers only for tagged or manual releases; merges to main publish just the APK.
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+    env:
+      TAG: ${{ needs.meta.outputs.tag }}
+      VERSION: ${{ needs.meta.outputs.tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,8 +124,11 @@ jobs:
           if-no-files-found: error
 
   github-release:
-    needs: [android, desktop]
+    needs: [meta, android, desktop]
+    if: ${{ !cancelled() && needs.android.result == 'success' && (needs.desktop.result == 'success' || needs.desktop.result == 'skipped') }}
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.meta.outputs.tag }}
     steps:
       - uses: actions/download-artifact@v4
         with: { path: artifacts }
@@ -97,6 +137,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           name: Kompound Catalog ${{ env.TAG }}
           generate_release_notes: true
           # Always a regular release: only one is kept, and Obtainium skips pre-releases by default.
