@@ -68,7 +68,7 @@ jobs:
           cd catalog/iosApp
           xcodegen generate
           xcodebuild -project KompoundCatalogApp.xcodeproj -scheme KompoundCatalogApp \
-            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' ARCHS=arm64 build
 
   consumer-sample:
     name: Consumer sample (published artifacts)
