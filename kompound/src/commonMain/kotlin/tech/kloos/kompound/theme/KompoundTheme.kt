@@ -1,6 +1,10 @@
 package tech.kloos.kompound.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.style.MutableStyleState
+import androidx.compose.foundation.style.Style
+import androidx.compose.foundation.style.styleable
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -12,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import tech.kloos.kompound.KompoundStyles
 
@@ -26,8 +31,9 @@ public val LocalKContentColor: androidx.compose.runtime.ProvidableCompositionLoc
     compositionLocalOf { Color.Unspecified }
 
 /**
- * Wraps `MaterialTheme` (the token source) and provides [KompoundTokens]. Optional: components fall back
- * to the ambient M3 theme and light tokens when it is absent.
+ * Wraps `MaterialTheme` (the token source), provides [KompoundTokens] and a root text style, so plain `KText`
+ * on the page uses the theme's text colour. Wrap your app in it (recommended, essential for dark mode); without it
+ * components still work from the ambient M3 theme and light tokens, but `KText` outside a styled component is black.
  */
 @Composable
 public fun KompoundTheme(
@@ -39,7 +45,18 @@ public fun KompoundTheme(
 ) {
     remember { KompoundStyles.ensureEnabled() }
     MaterialTheme(colorScheme = colorScheme, typography = typography, shapes = shapes) {
-        CompositionLocalProvider(LocalKompoundTokens provides tokens, content = content)
+        // Root style: text with no styled parent (a plain KText on the page) inherits the theme's text colour and
+        // typography instead of falling back to black, which is invisible in dark mode.
+        val state = remember { MutableStyleState(null) }
+        val base = remember(colorScheme, typography) {
+            Style {
+                contentColor(colorScheme.onBackground)
+                textStyle(typography.bodyMedium.copy(color = colorScheme.onBackground))
+            }
+        }
+        CompositionLocalProvider(LocalKompoundTokens provides tokens) {
+            Box(Modifier.styleable(state, base), propagateMinConstraints = true) { content() }
+        }
     }
 }
 
