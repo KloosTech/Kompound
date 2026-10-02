@@ -119,6 +119,15 @@ class KDateFieldTest {
     }
 
     @Test
+    fun rangeDialogHeadlineShowsTheRangeOnOneLineAndUpdatesWithTheSelection() = runComposeUiTest {
+        setContent { MaterialTheme(s) { KDateRangeField(march15, null, { _, _ -> }, Modifier.testTag("r")) } }
+        onNodeWithTag("r").performClick()
+        waitForIdle()
+        // Field shows only the start; the dialog headline shows start and an open end.
+        onNodeWithText("2024-03-15 – …", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
     fun rangeFieldWithOnlyAStartShowsJustThatDate() = runComposeUiTest {
         setContent { MaterialTheme(s) { KDateRangeField(march15, null, { _, _ -> }, placeholder = "Range") } }
         onNodeWithText("2024-03-15", useUnmergedTree = true).assertExists()

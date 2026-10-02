@@ -33,6 +33,7 @@ import tech.kloos.kompound.theme.KompoundTheme
  * @param loading While true a spinner replaces the content (the button keeps its size) and clicks are ignored,
  * without the disabled look: use it while the action the button started is running.
  * @param interactionSource Feeds pressed/hovered/focused state into the style.
+ * @param effects Optional feedback effects such as the click shadow, bounce or sparkles; see [KButtonEffects].
  * @param content Button content.
  */
 @Composable
@@ -44,16 +45,25 @@ public fun KButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     interactionSource: MutableInteractionSource? = null,
+    effects: KButtonEffects = KButtonEffects.Default,
     content: @Composable RowScope.() -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val source = interactionSource ?: remember { MutableInteractionSource() }
     val styleState = rememberUpdatedStyleState(source) { it.isEnabled = enabled }
+    val scheme = MaterialTheme.colorScheme
+    val layers = KompoundTheme.tokens.stateLayer
+    val effectsStyle = remember(effects, variant, scheme, layers) {
+        effectsStyle(effects, variant, buttonColors(variant, scheme, layers), scheme, layers)
+    }
+    val sparkleState = if (effects.sparkles) remember { SparkleState() } else null
+    val sparkleColors = remember(scheme, variant) { listOf(scheme.tertiary, scheme.primary, scheme.secondary, scheme.tertiaryContainer) }
     ButtonBase(
-        modifier = modifier, styleState = styleState, defaultStyle = KButtonDefaults.style(variant), style = style,
+        modifier = modifier.sparkles(sparkleState, sparkleColors).bounce(effects.bounce, source), styleState = styleState,
+        defaultStyle = KButtonDefaults.style(variant), style = style, effectsStyle = effectsStyle,
         enabled = enabled, clickEnabled = enabled && !loading, interactionSource = source, role = Role.Button,
         iconColor = KButtonDefaults.contentColor(variant, enabled), contentDescription = null,
-        onClick = onClick, toggle = null,
+        onClick = { sparkleState?.fire(); onClick() }, toggle = null,
         content = {
             if (loading) {
                 // The content stays in layout (invisible) so the button does not change size.

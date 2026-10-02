@@ -90,6 +90,23 @@ class KChipTest {
     }
 
     @Test
+    fun iconsNeverChangeTheChipHeight() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                Column {
+                    KChip("Label", onClick = {}, Modifier.testTag("plain"))
+                    KChip("Label", onClick = {}, Modifier.testTag("lead"), leading = { KIcon(SquareIcon, null) })
+                    KChip("Label", onClick = {}, Modifier.testTag("both"), selected = true,
+                        leading = { KIcon(SquareIcon, null) }, trailing = { KIcon(SquareIcon, null) })
+                }
+            }
+        }
+        val plain = onNodeWithTag("plain").fetchSemanticsNode().size.height
+        assertEquals(plain, onNodeWithTag("lead").fetchSemanticsNode().size.height, "leading icon")
+        assertEquals(plain, onNodeWithTag("both").fetchSemanticsNode().size.height, "both icons")
+    }
+
+    @Test
     fun longLabelsStopAtTheMaximumWidth() = runComposeUiTest {
         setContent { MaterialTheme(s) { KChip("W".repeat(120), onClick = {}, Modifier.testTag("c")) } }
         assertTrue(onNodeWithTag("c").fetchSemanticsNode().size.width <= 250)

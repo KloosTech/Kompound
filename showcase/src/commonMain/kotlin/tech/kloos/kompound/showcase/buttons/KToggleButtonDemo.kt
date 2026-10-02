@@ -14,6 +14,15 @@ import tech.kloos.kompound.buttons.KToggleButton
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.text.KText
 
+private const val Usage_button_toggle = """import tech.kloos.kompound.buttons.KToggleButton
+import tech.kloos.kompound.text.KText
+
+var bookmarked by remember { mutableStateOf(false) }
+
+KToggleButton(checked = bookmarked, onCheckedChange = { bookmarked = it }) {
+    KText(if (bookmarked) "Bookmarked" else "Bookmark")
+}"""
+
 @KompoundDemo(
     id = "button.toggle",
     title = "KToggleButton",
@@ -21,6 +30,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Buttons,
     tags = ["button", "toggle", "switch", "state"],
     since = "0.1.0",
+    usage = Usage_button_toggle,
 )
 @Composable
 fun DemoScope.KToggleButtonDemo() {

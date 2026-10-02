@@ -18,6 +18,29 @@ import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.surface.KSurface
 import tech.kloos.kompound.text.KText
 
+private const val Usage_surface_basic = """import androidx.compose.foundation.style.Style
+import androidx.compose.foundation.style.contentPadding
+import tech.kloos.kompound.surface.KSurface
+import tech.kloos.kompound.text.KText
+
+// A themed container.
+KSurface {
+    KText("Plain surface")
+}
+
+// Clickable, with your own look through the Styles API. Read theme values outside the Style block.
+val container = MaterialTheme.colorScheme.primaryContainer
+KSurface(
+    onClick = { open() },
+    style = Style {
+        background(container)
+        shape(RoundedCornerShape(16.dp))
+        contentPadding(16.dp)
+    },
+) {
+    KText("Tap me")
+}"""
+
 @KompoundDemo(
     id = "surface.basic",
     title = "KSurface",
@@ -25,6 +48,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Layout,
     tags = ["surface", "container", "card", "background"],
     since = "0.1.0",
+    usage = Usage_surface_basic,
 )
 @Composable
 fun DemoScope.KSurfaceDemo() {

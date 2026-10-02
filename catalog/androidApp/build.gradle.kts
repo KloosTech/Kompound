@@ -11,7 +11,8 @@ android {
         applicationId = "tech.kloos.kompound.catalog"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
+        // CI passes the workflow run number so every release is newer than the last (Android refuses downgrades).
+        versionCode = providers.gradleProperty("VERSION_CODE").map(String::toInt).getOrElse(1)
         versionName = providers.gradleProperty("VERSION_NAME").get().substringBefore('-')
     }
     // Release signing comes from env (set by the release workflow when secrets exist); otherwise debug-signed.

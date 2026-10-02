@@ -50,6 +50,15 @@ class CatalogScreenshots {
     }
 
     @Test
+    fun desktopHowToUse() = runDesktopComposeUiTest(1440, 900) {
+        setContent { KompoundCatalog(initialSettings = ThemeSettings(mode = ThemeMode.Dark)) }
+        waitForIdle()
+        onNodeWithText("How to use").performClick()
+        waitForIdle()
+        save("desktop-how-to-use")
+    }
+
+    @Test
     fun desktopTealRound() = runDesktopComposeUiTest(1440, 900) {
         setContent { KompoundCatalog(initialSettings = ThemeSettings(mode = ThemeMode.Light)) }
         waitForIdle()

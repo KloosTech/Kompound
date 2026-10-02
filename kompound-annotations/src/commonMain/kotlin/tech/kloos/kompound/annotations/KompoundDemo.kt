@@ -13,6 +13,8 @@ package tech.kloos.kompound.annotations
  * @property status One of [KompoundStatus].
  * @property platforms Platforms the demo supports; defaults to all.
  * @property aliases Former ids, kept so old deep links still resolve.
+ * @property usage Kotlin sample shown on the catalog's "How to use" tab: imports first, then a minimal example.
+ * Keep it in a `const val` next to the demo.
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.SOURCE)
@@ -26,6 +28,7 @@ public annotation class KompoundDemo(
     val status: String = KompoundStatus.Stable,
     val platforms: Array<String> = [],
     val aliases: Array<String> = [],
+    val usage: String = "",
 )
 
 public object KompoundCategory {

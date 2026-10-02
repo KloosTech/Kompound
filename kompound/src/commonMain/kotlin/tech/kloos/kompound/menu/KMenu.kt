@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -125,6 +125,7 @@ public fun KMenu(
  * [Role.Checkbox] for choices.
  * @param leading Optional slot before the text, usually a `KIcon`.
  * @param trailing Optional slot after the text.
+ * @param supportingText Optional second line under the text, in the quieter supporting colour.
  * @param style Overrides merged over [KMenuDefaults.itemStyle].
  */
 @Composable
@@ -138,6 +139,7 @@ public fun KMenuItem(
     role: Role = Role.Button,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    supportingText: String? = null,
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -152,14 +154,17 @@ public fun KMenuItem(
         Modifier.selectable(selected, source, null, enabled, role, onClick)
     }
     Row(
-        modifier = modifier.hoverable(source, enabled).then(behaviour).styleable(state, KMenuDefaults.itemStyle(), style),
+        modifier = modifier.fillMaxWidth().hoverable(source, enabled).then(behaviour).styleable(state, KMenuDefaults.itemStyle(), style),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CompositionLocalProvider(LocalKContentColor provides KMenuDefaults.contentColor(enabled, selected)) {
             leading?.invoke()
-            KText(text, Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.weight(1f))
+            // Takes all free width, so the check mark and the trailing slot sit at the end of the row.
+            Column(Modifier.weight(1f)) {
+                KText(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (supportingText != null) KText(supportingText, maxLines = 1, overflow = TextOverflow.Ellipsis, style = KMenuDefaults.supportingStyle())
+            }
             if (showCheck && selected) KIcon(KompoundIcons.Check, contentDescription = null)
             trailing?.invoke()
         }
@@ -216,6 +221,14 @@ public object KMenuDefaults {
                 }
             }
         }
+    }
+
+    /** Style of an item's supporting text: `bodySmall` in `onSurfaceVariant`. */
+    @Composable
+    public fun supportingStyle(): Style {
+        val c = MaterialTheme.colorScheme
+        val type = MaterialTheme.typography
+        return remember(c, type) { Style { contentColor(c.onSurfaceVariant); textStyle(type.bodySmall.copy(color = c.onSurfaceVariant)) } }
     }
 
     /** The colour text and icons in an item get; icons read it through `LocalKContentColor`. */

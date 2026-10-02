@@ -42,6 +42,27 @@ class CatalogUiTest {
     }
 
     @Test
+    fun everyDemoHasAUsageSampleWithImports() {
+        val missing = tech.kloos.kompound.catalog.KompoundAllDemos.entries
+            .filter { "import tech.kloos.kompound" !in it.meta.usage || it.meta.usage.lines().size < 4 }
+            .map { it.meta.id }
+        assertTrue(missing.isEmpty(), "demos without a usable usage sample: $missing")
+    }
+
+    @Test
+    fun howToUseTabShowsTheSampleAndPreviewBringsTheControlsBack() = runComposeUiTest {
+        wide()
+        waitForIdle()
+        onNodeWithText("How to use", useUnmergedTree = true).performClick()
+        waitForIdle()
+        onNodeWithText("Copy", useUnmergedTree = true).assertExists()
+        onNodeWithText("Controls", useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithText("Preview", useUnmergedTree = true).performClick()
+        waitForIdle()
+        onNodeWithText("Controls", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
     fun searchNarrowsTheListAndNoResultsOffersToClear() = runComposeUiTest {
         wide()
         waitForIdle()
@@ -60,7 +81,7 @@ class CatalogUiTest {
         waitForIdle()
         onNodeWithContentDescription("Filter by category").performClick()
         waitForIdle()
-        onNodeWithText("Overlays", substring = true).performClick()
+        onNodeWithText("Overlays", substring = true).performScrollTo().performClick()   // the menu scrolls once there are many categories
         waitForIdle()
         onNodeWithText("OVERLAYS", useUnmergedTree = true).assertExists()
         onNodeWithText("BUTTONS", useUnmergedTree = true).assertDoesNotExist()
@@ -87,7 +108,8 @@ class CatalogUiTest {
     fun editingAControlChangesThePreview() = runComposeUiTest {
         wide()
         waitForIdle()
-        // the first component (KButton) is selected on a wide window
+        onNodeWithText("KButton", useUnmergedTree = true).performClick()   // the list starts with another component
+        waitForIdle()
         // the Label control is a text field whose value is "Button"; changing it re-labels the previewed button
         onNode(hasSetTextAction() and androidx.compose.ui.test.hasText("Button")).performTextReplacement("Launch")
         waitForIdle()

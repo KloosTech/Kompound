@@ -19,6 +19,38 @@ import tech.kloos.kompound.dialog.KAlertDialog
 import tech.kloos.kompound.dialog.KDialog
 import tech.kloos.kompound.text.KText
 
+private const val Usage_dialog_basic = """import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.buttons.KButtonVariant
+import tech.kloos.kompound.dialog.KAlertDialog
+import tech.kloos.kompound.dialog.KDialog
+import tech.kloos.kompound.text.KText
+
+var showDelete by remember { mutableStateOf(false) }
+
+// Confirmation in one call.
+if (showDelete) {
+    KAlertDialog(
+        onDismissRequest = { showDelete = false },
+        title = "Delete file?",
+        message = "This cannot be undone.",
+        confirmText = "Delete",
+        onConfirm = { delete(); showDelete = false },
+        dismissText = "Cancel",
+    )
+}
+
+// Free content with your own actions.
+var showInfo by remember { mutableStateOf(false) }
+if (showInfo) {
+    KDialog(
+        onDismissRequest = { showInfo = false },
+        title = "About",
+        actions = { KButton(onClick = { showInfo = false }, variant = KButtonVariant.Text) { KText("Close") } },
+    ) {
+        KText("Kompound 0.1.0")
+    }
+}"""
+
 @KompoundDemo(
     id = "dialog.basic",
     title = "KDialog and KAlertDialog",
@@ -26,6 +58,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Overlays,
     tags = ["dialog", "modal", "alert", "confirm", "popup", "overlay"],
     since = "0.1.0",
+    usage = Usage_dialog_basic,
 )
 @Composable
 fun DemoScope.KDialogDemo() {

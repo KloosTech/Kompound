@@ -19,6 +19,15 @@ import tech.kloos.kompound.badge.KBadgeTone
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.text.KText
 
+private const val Usage_badge_basic = """import tech.kloos.kompound.badge.KBadge
+import tech.kloos.kompound.badge.KBadgeDot
+import tech.kloos.kompound.badge.KBadgeEmphasis
+import tech.kloos.kompound.badge.KBadgeTone
+
+KBadge("3")                                                   // strong error badge, like a counter
+KBadge("Stable", tone = KBadgeTone.Success, emphasis = KBadgeEmphasis.Subtle)
+KBadgeDot(tone = KBadgeTone.Info, contentDescription = "New")"""
+
 @KompoundDemo(
     id = "badge.basic",
     title = "KBadge",
@@ -26,6 +35,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Display,
     tags = ["badge", "status", "count", "label", "tag"],
     since = "0.1.0",
+    usage = Usage_badge_basic,
 )
 @Composable
 fun DemoScope.KBadgeDemo() {

@@ -1,10 +1,14 @@
 package tech.kloos.kompound.date
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.style.Style
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DateRangePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDateRangePickerState
@@ -14,7 +18,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.buttons.KButton
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.internal.KompoundIcons
@@ -118,7 +126,33 @@ public fun KDateRangeField(
                 onDismissRequest = { open = false },
                 confirmButton = { DialogButton(confirmText) { onRangeChange(state.selectedStartDateMillis, state.selectedEndDateMillis); open = false } },
                 dismissButton = { DialogButton(dismissText) { open = false } },
-            ) { DateRangePicker(state = state, modifier = Modifier.fillMaxWidth()) }
+            ) {
+                // The calendar is a lazy list: without a bounded height it runs under the dialog buttons.
+                val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+                DateRangePicker(
+                    state = state,
+                    modifier = Modifier.fillMaxWidth().height((windowHeight - 200.dp).coerceIn(320.dp, 480.dp)),
+                    title = {
+                        DateRangePickerDefaults.DateRangePickerTitle(
+                            displayMode = state.displayMode,
+                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 20.dp),
+                        )
+                    },
+                    headline = {
+                        // The dialog is its own window: it does not inherit the theme's root text style.
+                        val headlineStyle = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+                        // One line, ellipsised, instead of M3's wrapping "26.10.20 / 26" headline.
+                        KText(
+                            (state.selectedStartDateMillis?.let(formatDate) ?: "…") + rangeSeparator +
+                                (state.selectedEndDateMillis?.let(formatDate) ?: "…"),
+                            Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = Style { textStyle(headlineStyle) },
+                        )
+                    },
+                )
+            }
         }
     }
 }

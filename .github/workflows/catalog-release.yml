@@ -3,7 +3,9 @@ name: Release (catalog)
 # Builds the CATALOG apps (Android APK, desktop installers) and attaches them to a GitHub Release.
 # Trigger: push a tag like catalog-v1.0.0 (or catalog-v1.0.0-beta01). Independent of library releases (v* tags).
 # The web catalog needs no release: catalog-web.yml deploys it to GitHub Pages on every push to main.
-# Signing skips gracefully without secrets. See docs/RELEASING.md.
+# Only the newest catalog release is kept: after publishing, older catalog-v* releases and their tags are deleted.
+# The APK must be signed with the same key every time (ANDROID_* secrets) or Android/Obtainium cannot update it.
+# See docs/RELEASING.md.
 
 on:
   push:
@@ -43,7 +45,7 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
             echo "SIGNED=true" >> "$GITHUB_ENV"
           else
-            echo "::notice::No Android keystore secret, APK will be debug-signed (-unsigned suffix)"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: the APK is debug-signed and CANNOT be updated in place (run scripts/create-android-keystore.sh)"
             echo "SIGNED=false" >> "$GITHUB_ENV"
           fi
       - name: Build release APK
@@ -51,7 +53,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew :catalog:androidApp:assembleRelease -PVERSION_NAME="${VERSION#catalog-v}" --stacktrace
+        run: ./gradlew :catalog:androidApp:assembleRelease -PVERSION_NAME="${VERSION#catalog-v}" -PVERSION_CODE="${{ github.run_number }}" --stacktrace
       - name: Name artifact
         run: |
           mkdir -p out
@@ -97,5 +99,14 @@ jobs:
           tag_name: ${{ env.TAG }}
           name: Kompound Catalog ${{ env.TAG }}
           generate_release_notes: true
-          prerelease: ${{ contains(env.TAG, '-') }}
+          # Always a regular release: only one is kept, and Obtainium skips pre-releases by default.
+          prerelease: false
+          make_latest: false
           files: artifacts/**/*
+      - name: Keep only the newest catalog release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '.[].tagName' \
+            | grep '^catalog-v' | grep -vxF "$TAG" \
+            | xargs -r -I{} gh release delete {} --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes

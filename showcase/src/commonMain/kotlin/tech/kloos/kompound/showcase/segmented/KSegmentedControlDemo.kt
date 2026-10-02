@@ -13,6 +13,17 @@ import tech.kloos.kompound.annotations.KompoundDemo
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.segmented.KSegmentedControl
 
+private const val Usage_segmented_control = """import tech.kloos.kompound.segmented.KSegmentedControl
+
+val ranges = listOf("Day", "Week", "Month")
+var selected by remember { mutableIntStateOf(1) }
+
+KSegmentedControl(
+    options = ranges,
+    selectedIndex = selected,
+    onSelectedIndexChange = { selected = it },
+)"""
+
 @KompoundDemo(
     id = "segmented.control",
     title = "KSegmentedControl",
@@ -20,6 +31,7 @@ import tech.kloos.kompound.segmented.KSegmentedControl
     category = KompoundCategory.Inputs,
     tags = ["segmented", "tabs", "choice", "radio", "switcher"],
     since = "0.1.0",
+    usage = Usage_segmented_control,
 )
 @Composable
 fun DemoScope.KSegmentedControlDemo() {

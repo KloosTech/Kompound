@@ -15,6 +15,8 @@ public class DemoMeta(
     public val status: String,
     public val platforms: List<String>,
     public val aliases: List<String>,
+    /** Kotlin usage sample for the "How to use" tab; empty when the demo has none. */
+    public val usage: String = "",
 )
 
 /** One demo. [qualifiedId] is `<moduleId>/<id>` and unique across the catalog. */

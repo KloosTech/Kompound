@@ -45,7 +45,23 @@ Versions are independent: library `v0.4.0` can ship next to catalog `catalog-v1.
 git tag -a catalog-v1.0.0 -m "Catalog 1.0.0" && git push origin catalog-v1.0.0
 ```
 
-The Android APK is debug-signed and named `-unsigned` until the keystore secrets exist; desktop installers are unsigned and not notarised until the Apple secrets exist. Nothing else is needed: no Central secrets are used by this workflow.
+(or *Run workflow* on `catalog-release.yml` with a version). The workflow builds the Android APK and the desktop installers (dmg, msi, deb), attaches them to a GitHub Release named `Kompound Catalog catalog-vX.Y.Z`, and then **deletes every older `catalog-v*` release and tag**, so the Releases tab always holds exactly one catalog build. Library releases (`v*`) are untouched.
+
+### One-time: signing key (needed for updates)
+
+Android only installs an update when it is signed with the same key as the installed app, and a debug-signed CI build gets a different key every run. Create the key once:
+
+```bash
+./scripts/create-android-keystore.sh        # needs keytool, openssl and a logged-in gh
+```
+
+It generates the keystore in `~/.kompound/`, sets the four `ANDROID_*` secrets on the repo and prints nothing secret. **Back up the keystore and the password file**; if they are lost, installed apps must be uninstalled before a new key works. The version code is the workflow run number, so each release is newer than the previous one. Without the secrets the APK is debug-signed, named `-unsigned`, and the run shows a warning.
+
+Desktop installers are unsigned and not notarised until the Apple secrets exist.
+
+### Auto-updating the Android app with Obtainium
+
+In [Obtainium](https://obtainium.imranr.dev/) add the app with the source `https://github.com/KloosTech/Kompound`. Because the library's `v*` releases live in the same repo (notes only, no APK), set *Filter release titles by regular expression* to `Catalog`. Only the APK matches the APK filter; the desktop installers are ignored. Obtainium then installs each new catalog release as an update. If it keeps offering an update right after installing, the release tag (`catalog-v1.0.0`) and the app's version name (`1.0.0`) are being compared literally; Obtainium's version-detection options for the app fix that.
 
 ## Local equivalents
 

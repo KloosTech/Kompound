@@ -26,6 +26,23 @@ import tech.kloos.kompound.snackbar.KSnackbarHostState
 import tech.kloos.kompound.snackbar.KSnackbarTone
 import tech.kloos.kompound.text.KText
 
+private const val Usage_snackbar_basic = """import tech.kloos.kompound.snackbar.KSnackbarHost
+import tech.kloos.kompound.snackbar.KSnackbarHostState
+import tech.kloos.kompound.snackbar.KSnackbarResult
+import tech.kloos.kompound.snackbar.KSnackbarTone
+
+val snackbars = remember { KSnackbarHostState() }
+val scope = rememberCoroutineScope()
+
+// Place the host where messages should appear, usually KScaffold(snackbarHost = ...).
+KSnackbarHost(snackbars)
+
+// showSnackbar suspends until the message is gone and tells you whether the action was used.
+scope.launch {
+    val result = snackbars.showSnackbar("Item deleted", actionLabel = "Undo", tone = KSnackbarTone.Success)
+    if (result == KSnackbarResult.ActionPerformed) restore()
+}"""
+
 @KompoundDemo(
     id = "snackbar.basic",
     title = "KSnackbar",
@@ -33,6 +50,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Feedback,
     tags = ["snackbar", "toast", "message", "notification", "flash"],
     since = "0.1.0",
+    usage = Usage_snackbar_basic,
 )
 @Composable
 fun DemoScope.KSnackbarDemo() {

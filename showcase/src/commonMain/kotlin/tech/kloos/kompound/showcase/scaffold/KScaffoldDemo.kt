@@ -21,6 +21,31 @@ import tech.kloos.kompound.scaffold.KTopBar
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 
+private const val Usage_scaffold_screen = """import tech.kloos.kompound.buttons.KFab
+import tech.kloos.kompound.buttons.KIconButton
+import tech.kloos.kompound.icon.KIcon
+import tech.kloos.kompound.scaffold.KScaffold
+import tech.kloos.kompound.scaffold.KTopBar
+import tech.kloos.kompound.snackbar.KSnackbarHost
+import tech.kloos.kompound.snackbar.KSnackbarHostState
+
+val snackbars = remember { KSnackbarHostState() }
+
+KScaffold(
+    topBar = {
+        KTopBar(
+            title = "Inbox",
+            navigation = { KIconButton(onClick = { back() }, contentDescription = "Back") { KIcon(Icons.Rounded.Star, null) } },
+        )
+    },
+    floatingActionButton = { KFab(onClick = { compose() }, contentDescription = "Write") { KIcon(Icons.Rounded.Add, null) } },
+    snackbarHost = { KSnackbarHost(snackbars) },
+) { padding ->
+    Column(Modifier.padding(padding)) {
+        KText("Content")
+    }
+}"""
+
 @KompoundDemo(
     id = "scaffold.screen",
     title = "KTopBar and KScaffold",
@@ -28,6 +53,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Layout,
     tags = ["scaffold", "top bar", "app bar", "screen", "layout", "toolbar"],
     since = "0.1.0",
+    usage = Usage_scaffold_screen,
 )
 @Composable
 fun DemoScope.KScaffoldDemo() {

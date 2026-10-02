@@ -18,6 +18,18 @@ import tech.kloos.kompound.text.KText
 import tech.kloos.kompound.tooltip.KTooltip
 import tech.kloos.kompound.tooltip.KTooltipPlacement
 
+private const val Usage_tooltip_basic = """import tech.kloos.kompound.buttons.KIconButton
+import tech.kloos.kompound.icon.KIcon
+import tech.kloos.kompound.tooltip.KTooltip
+import tech.kloos.kompound.tooltip.KTooltipPlacement
+
+// Shows on hover (desktop) or long press (touch).
+KTooltip(text = "Delete", placement = KTooltipPlacement.Below) {
+    KIconButton(onClick = { delete() }, contentDescription = "Delete") {
+        KIcon(Icons.Rounded.Star, contentDescription = null)
+    }
+}"""
+
 @KompoundDemo(
     id = "tooltip.basic",
     title = "KTooltip",
@@ -25,6 +37,7 @@ import tech.kloos.kompound.tooltip.KTooltipPlacement
     category = KompoundCategory.Overlays,
     tags = ["tooltip", "hint", "hover", "popup", "label"],
     since = "0.1.0",
+    usage = Usage_tooltip_basic,
 )
 @Composable
 fun DemoScope.KTooltipDemo() {

@@ -16,6 +16,22 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.selection.KRadioButton
 import tech.kloos.kompound.text.KText
 
+private const val Usage_radio_basic = """import tech.kloos.kompound.selection.KRadioButton
+import tech.kloos.kompound.text.KText
+
+val sizes = listOf("Small", "Medium", "Large")
+var selected by remember { mutableStateOf("Medium") }
+
+Column {
+    sizes.forEach { size ->
+        KRadioButton(
+            selected = size == selected,
+            onClick = { selected = size },
+            label = { KText(size) },
+        )
+    }
+}"""
+
 @KompoundDemo(
     id = "radio.basic",
     title = "KRadioButton",
@@ -23,6 +39,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Inputs,
     tags = ["radio", "choice", "form", "select", "option"],
     since = "0.1.0",
+    usage = Usage_radio_basic,
 )
 @Composable
 fun DemoScope.KRadioButtonDemo() {

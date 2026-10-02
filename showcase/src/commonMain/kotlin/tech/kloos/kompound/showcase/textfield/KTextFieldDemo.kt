@@ -18,6 +18,21 @@ import tech.kloos.kompound.textfield.KNumberField
 import tech.kloos.kompound.textfield.KTextArea
 import tech.kloos.kompound.textfield.KTextField
 
+private const val Usage_textfield_basic = """import tech.kloos.kompound.textfield.KTextField
+
+var email by remember { mutableStateOf("") }
+val invalid = email.isNotEmpty() && '@' !in email
+
+KTextField(
+    value = email,
+    onValueChange = { email = it },
+    label = "Email",
+    placeholder = "name@example.com",
+    supportingText = if (invalid) "Enter a valid address" else null,
+    isError = invalid,
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "textfield.basic",
     title = "KTextField",
@@ -25,6 +40,7 @@ import tech.kloos.kompound.textfield.KTextField
     category = KompoundCategory.Inputs,
     tags = ["text", "field", "input", "form", "outlined"],
     since = "0.1.0",
+    usage = Usage_textfield_basic,
 )
 @Composable
 fun DemoScope.KTextFieldDemo() {
@@ -51,6 +67,20 @@ fun DemoScope.KTextFieldDemo() {
     }
 }
 
+private const val Usage_textfield_area = """import tech.kloos.kompound.textfield.KTextArea
+
+var notes by remember { mutableStateOf("") }
+
+KTextArea(
+    value = notes,
+    onValueChange = { notes = it },
+    label = "Notes",
+    minLines = 3,
+    maxLines = 8,
+    maxLength = 280,
+    modifier = Modifier.fillMaxWidth(),
+)"""
+
 @KompoundDemo(
     id = "textfield.area",
     title = "KTextArea",
@@ -58,6 +88,7 @@ fun DemoScope.KTextFieldDemo() {
     category = KompoundCategory.Inputs,
     tags = ["text", "area", "multiline", "input", "form"],
     since = "0.1.0",
+    usage = Usage_textfield_area,
 )
 @Composable
 fun DemoScope.KTextAreaDemo() {
@@ -68,6 +99,21 @@ fun DemoScope.KTextAreaDemo() {
     }
 }
 
+private const val Usage_textfield_number = """import tech.kloos.kompound.textfield.KNumberField
+
+// The value is a String so partial input such as "-" or "1." stays editable; parse it where you need it.
+var amount by remember { mutableStateOf("") }
+
+KNumberField(
+    value = amount,
+    onValueChange = { amount = it },
+    label = "Amount",
+    allowDecimal = true,
+    allowNegative = false,
+    modifier = Modifier.fillMaxWidth(),
+)
+val parsed: Double? = amount.toDoubleOrNull()"""
+
 @KompoundDemo(
     id = "textfield.number",
     title = "KNumberField",
@@ -75,6 +121,7 @@ fun DemoScope.KTextAreaDemo() {
     category = KompoundCategory.Inputs,
     tags = ["number", "numeric", "input", "form", "decimal"],
     since = "0.1.0",
+    usage = Usage_textfield_number,
 )
 @Composable
 fun DemoScope.KNumberFieldDemo() {

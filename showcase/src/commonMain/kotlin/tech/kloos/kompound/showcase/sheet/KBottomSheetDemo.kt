@@ -26,6 +26,21 @@ private enum class Mode(val label: String, val dialogFromWidth: Dp) {
     Dialog("Always dialog", 1.dp),
 }
 
+private const val Usage_sheet_bottom = """import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.sheet.KBottomSheet
+import tech.kloos.kompound.text.KText
+
+var open by remember { mutableStateOf(false) }
+
+KButton(onClick = { open = true }) { KText("Share") }
+
+// A sheet on phones, a centred dialog on wide windows.
+if (open) {
+    KBottomSheet(onDismissRequest = { open = false }, title = "Share", showCloseButton = true) {
+        KText("Anyone with the link can view.")
+    }
+}"""
+
 @KompoundDemo(
     id = "sheet.bottom",
     title = "KBottomSheet",
@@ -33,6 +48,7 @@ private enum class Mode(val label: String, val dialogFromWidth: Dp) {
     category = KompoundCategory.Overlays,
     tags = ["bottom sheet", "sheet", "modal", "adaptive", "overlay", "drawer"],
     since = "0.1.0",
+    usage = Usage_sheet_bottom,
 )
 @Composable
 fun DemoScope.KBottomSheetDemo() {

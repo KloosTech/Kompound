@@ -66,6 +66,10 @@ internal fun CatalogShell(state: CatalogState, settings: ThemeSettings, dark: Bo
     val snackbar = remember { KSnackbarHostState() }
     val scope = rememberCoroutineScope()
     val clipboard = LocalClipboardManager.current
+    val copyUsage: (String) -> Unit = { code ->
+        clipboard.setText(AnnotatedString(code))
+        scope.launch { snackbar.showSnackbar("Usage sample copied to the clipboard") }
+    }
     val uriHandler = LocalUriHandler.current
     val scheme = MaterialTheme.colorScheme
 
@@ -129,7 +133,7 @@ internal fun CatalogShell(state: CatalogState, settings: ThemeSettings, dark: Bo
                         Column(Modifier.weight(1f).fillMaxHeight()) {
                             KTopBar(title = detailTitle, actions = topBarActions)
                             KDivider()
-                            DetailPane(state.selected, state.entries.size, Modifier.weight(1f))
+                            DetailPane(state.selected, state.entries.size, Modifier.weight(1f), onCopy = copyUsage)
                         }
                         if (showTheme) {
                             KDivider(orientation = Orientation.Vertical)
@@ -145,7 +149,7 @@ internal fun CatalogShell(state: CatalogState, settings: ThemeSettings, dark: Bo
                         }
                     }
                 } else if (state.selected != null) {
-                    DetailPane(state.selected, state.entries.size)
+                    DetailPane(state.selected, state.entries.size, onCopy = copyUsage)
                 } else {
                     Sidebar(state, onSelect = { state.selectedId = it.qualifiedId }, onOpenTags = { showTags = true }, showHeader = false)
                 }

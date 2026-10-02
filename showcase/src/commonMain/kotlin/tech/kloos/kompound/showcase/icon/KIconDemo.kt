@@ -17,6 +17,14 @@ import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.theme.KompoundTheme
 
+private const val Usage_icon_basic = """import tech.kloos.kompound.icon.KIcon
+
+// Any ImageVector. Without tint it takes the colour of its container (a button, a list item, ...).
+KIcon(Icons.Rounded.Star, contentDescription = "Favourite")
+
+// Decorative icons next to text use null.
+KIcon(Icons.Rounded.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary)"""
+
 @KompoundDemo(
     id = "icon.basic",
     title = "KIcon",
@@ -24,6 +32,7 @@ import tech.kloos.kompound.theme.KompoundTheme
     category = KompoundCategory.Display,
     tags = ["icon", "image", "tint"],
     since = "0.1.0",
+    usage = Usage_icon_basic,
 )
 @Composable
 fun DemoScope.KIconDemo() {

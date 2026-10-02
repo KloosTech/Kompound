@@ -15,6 +15,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.runtime.remember
 import kotlin.math.abs
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import tech.kloos.kompound.containsColor
@@ -94,5 +98,24 @@ class KTextChangingTextTest {
             waitForIdle()
             assertTrue(onNodeWithTag("b").captureToImage().containsColor(Color(0xFF00FF00)), "label colour after the text changed")
         }
+    }
+
+    @Test
+    fun annotatedTextTakesTheExplicitTextStyleAndKeepsItsSpans() = runComposeUiTest {
+        val styled = androidx.compose.ui.text.buildAnnotatedString {
+            append("Aa ")
+            withStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)) { append("bold") }
+        }
+        setContent {
+            MaterialTheme {
+                androidx.compose.foundation.layout.Column {
+                    KText(styled, Modifier.testTag("big"), textStyle = androidx.compose.ui.text.TextStyle(fontSize = 40.sp))
+                    KText(styled, Modifier.testTag("small"))
+                }
+            }
+        }
+        assertTrue(onNodeWithTag("big").fetchSemanticsNode().size.height > onNodeWithTag("small").fetchSemanticsNode().size.height * 2)
+        val shown = onNodeWithTag("big").fetchSemanticsNode().config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)!!.single()
+        assertTrue(shown.spanStyles.any { it.item.fontWeight == androidx.compose.ui.text.font.FontWeight.Bold })
     }
 }

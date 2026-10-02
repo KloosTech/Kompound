@@ -20,6 +20,22 @@ import tech.kloos.kompound.menu.KMenuItem
 import tech.kloos.kompound.showcase.DemoIcons
 import tech.kloos.kompound.text.KText
 
+private const val Usage_menu_basic = """import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.menu.KMenu
+import tech.kloos.kompound.menu.KMenuItem
+import tech.kloos.kompound.text.KText
+
+var expanded by remember { mutableStateOf(false) }
+
+// The menu opens relative to its parent, so put both in one Box.
+Box {
+    KButton(onClick = { expanded = true }) { KText("Actions") }
+    KMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        KMenuItem("Rename", onClick = { rename(); expanded = false })
+        KMenuItem("Delete", onClick = { delete(); expanded = false })
+    }
+}"""
+
 @KompoundDemo(
     id = "menu.basic",
     title = "KMenu",
@@ -27,6 +43,7 @@ import tech.kloos.kompound.text.KText
     category = KompoundCategory.Overlays,
     tags = ["menu", "popup", "dropdown", "actions", "context"],
     since = "0.1.0",
+    usage = Usage_menu_basic,
 )
 @Composable
 fun DemoScope.KMenuDemo() {
