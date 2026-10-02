@@ -31,6 +31,7 @@ internal fun ButtonBase(
     styleState: StyleState,
     defaultStyle: Style,
     style: Style,
+    effectsStyle: Style = Style,
     enabled: Boolean,
     clickEnabled: Boolean = enabled,
     interactionSource: MutableInteractionSource,
@@ -49,7 +50,7 @@ internal fun ButtonBase(
         m.clickable(interactionSource = interactionSource, indication = null, enabled = clickEnabled, role = role, onClick = onClick!!)
     }
     Row(
-        modifier = m.styleable(styleState, defaultStyle, style),
+        modifier = m.styleable(styleState, defaultStyle, effectsStyle, style),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {

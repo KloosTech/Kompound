@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.annotations.KompoundCategory
 import tech.kloos.kompound.annotations.KompoundDemo
 import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.buttons.KButtonEffects
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.icon.KIcon
@@ -18,9 +19,9 @@ import tech.kloos.kompound.text.KText
 @KompoundDemo(
     id = "button.primary",
     title = "KButton",
-    description = "Filled, tonal, outlined and text buttons styled through the Compose Styles API.",
+    description = "Filled, tonal, outlined and text buttons with optional press effects: click shadow, bounce, fade, colour and shape morph, sparkles.",
     category = KompoundCategory.Buttons,
-    tags = ["button", "action", "cta", "styles", "outlined", "tonal"],
+    tags = ["button", "action", "cta", "styles", "outlined", "tonal", "animation", "bounce", "sparkles", "shadow", "morph"],
     since = "0.1.0",
 )
 @Composable
@@ -31,13 +32,21 @@ fun DemoScope.KButtonDemo() {
     val loading = boolControl("Loading", false)
     val leadingIcon = boolControl("Leading icon", false)
     val trailingIcon = boolControl("Trailing icon", false)
+    val effects = KButtonEffects(
+        clickShadow = boolControl("Click shadow", true),
+        bounce = boolControl("Bounce", false),
+        fade = boolControl("Fade", false),
+        colorMorph = boolControl("Colour morph", false),
+        shapeMorph = boolControl("Shape morph", false),
+        sparkles = boolControl("Sparkles", false),
+    )
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        KButton(onClick = {}, variant = variant, enabled = enabled, loading = loading) {
+        KButton(onClick = {}, variant = variant, enabled = enabled, loading = loading, effects = effects) {
             if (leadingIcon) KIcon(DemoIcons.Star, contentDescription = null)
             KText(label, Modifier.padding(horizontal = if (leadingIcon || trailingIcon) 8.dp else 0.dp))
             if (trailingIcon) KIcon(DemoIcons.Check, contentDescription = null)
         }
         KText("All variants")
-        KButtonVariant.entries.forEach { v -> KButton(onClick = {}, variant = v, enabled = enabled, loading = loading) { KText(v.name) } }
+        KButtonVariant.entries.forEach { v -> KButton(onClick = {}, variant = v, enabled = enabled, loading = loading, effects = effects) { KText(v.name) } }
     }
 }
