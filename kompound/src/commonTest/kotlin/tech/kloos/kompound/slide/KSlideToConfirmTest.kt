@@ -26,6 +26,10 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -130,5 +134,24 @@ class KSlideToConfirmTest {
         onNodeWithTag("s").performTouchInput { swipe(Offset(width - 30f, height / 2f), Offset(10f, height / 2f), durationMillis = 300) }
         mainClock.advanceTimeBy(3_000)
         assertEquals(1, confirms)
+    }
+
+    @Test
+    fun aNewDragDuringTheSpringBackNeverLeavesTheHandleStuckHalfway() = runComposeUiTest {
+        var confirms = 0
+        show({ confirms++ })
+        mainClock.autoAdvance = false
+        repeat(6) { i ->
+            onNodeWithTag("s").performTouchInput { swipe(Offset(30f, height / 2f), Offset(110f + i * 15f, height / 2f), durationMillis = 80) }
+            mainClock.advanceTimeBy(40L + i * 25L)     // the next drag starts while the previous one is still springing back
+        }
+        mainClock.advanceTimeBy(5_000)
+        assertEquals(0, confirms)
+        val image = onNodeWithTag("s").captureToImage().toPixelMap()
+        // handle at the start (primary), nothing filled to the right of it
+        assertTrue(image[30, image.height / 2].let { abs(it.red - scheme.primary.red) < 0.1f && abs(it.blue - scheme.primary.blue) < 0.1f }, "handle is not back at the start")
+        val atRest = image[120, 8]   // above the label text, right of where the handle rests
+        val track = scheme.primary.copy(alpha = 0.12f).compositeOver(scheme.surface)
+        assertTrue(abs(atRest.red - track.red) < 0.06f && abs(atRest.blue - track.blue) < 0.06f, "fill left behind: $atRest")
     }
 }
