@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.semantics.Role
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.IntSize
 import tech.kloos.kompound.buttons.ButtonTestScheme
 import tech.kloos.kompound.containsColor
 import kotlin.test.Test
+import kotlin.math.abs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -82,6 +84,22 @@ class KMenuTest {
         val long = onNodeWithTag("long").fetchSemanticsNode().size.width
         assertEquals(long, short, "items have different widths")
         assertTrue(short >= 300 - 2, "items narrower than the menu")
+    }
+
+    @Test
+    fun checkMarkSitsAtTheEndOfTheRow() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                KMenu(true, {}, minWidth = 300.dp) {
+                    KMenuItem("Short", {}, Modifier.testTag("item"), selected = true, showCheck = true, role = Role.RadioButton)
+                }
+            }
+        }
+        val image = onNodeWithTag("item").captureToImage().toPixelMap()
+        val ink = s.onSecondaryContainer
+        fun isInk(x: Int, y: Int) = image[x, y].let { abs(it.red - ink.red) < 0.05f && abs(it.green - ink.green) < 0.05f && abs(it.blue - ink.blue) < 0.05f }
+        val lastInkColumn = (image.width - 1 downTo 0).first { x -> (0 until image.height).any { y -> isInk(x, y) } }
+        assertTrue(lastInkColumn > image.width - 40, "check mark ends at x=$lastInkColumn of ${image.width}")
     }
 
     @Test

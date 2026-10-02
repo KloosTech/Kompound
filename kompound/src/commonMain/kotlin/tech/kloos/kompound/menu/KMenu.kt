@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
@@ -159,8 +158,8 @@ public fun KMenuItem(
     ) {
         CompositionLocalProvider(LocalKContentColor provides KMenuDefaults.contentColor(enabled, selected)) {
             leading?.invoke()
-            KText(text, Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.weight(1f))
+            // Takes all free width, so the check mark and the trailing slot sit at the end of the row.
+            KText(text, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (showCheck && selected) KIcon(KompoundIcons.Check, contentDescription = null)
             trailing?.invoke()
         }
