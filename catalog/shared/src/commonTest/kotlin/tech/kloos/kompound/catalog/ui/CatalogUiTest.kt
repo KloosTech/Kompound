@@ -81,7 +81,7 @@ class CatalogUiTest {
         waitForIdle()
         onNodeWithContentDescription("Filter by category").performClick()
         waitForIdle()
-        onNodeWithText("Overlays", substring = true).performClick()
+        onNodeWithText("Overlays", substring = true).performScrollTo().performClick()   // the menu scrolls once there are many categories
         waitForIdle()
         onNodeWithText("OVERLAYS", useUnmergedTree = true).assertExists()
         onNodeWithText("BUTTONS", useUnmergedTree = true).assertDoesNotExist()
@@ -108,7 +108,8 @@ class CatalogUiTest {
     fun editingAControlChangesThePreview() = runComposeUiTest {
         wide()
         waitForIdle()
-        // the first component (KButton) is selected on a wide window
+        onNodeWithText("KButton", useUnmergedTree = true).performClick()   // the list starts with another component
+        waitForIdle()
         // the Label control is a text field whose value is "Button"; changing it re-labels the previewed button
         onNode(hasSetTextAction() and androidx.compose.ui.test.hasText("Button")).performTextReplacement("Launch")
         waitForIdle()
