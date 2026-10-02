@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+jobs:
+  jvm:
+    name: Android, Desktop, Web (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: zulu, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK 37
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+      - name: Test, compile, assemble
+        run: >
+          ./gradlew
+          :kompound-processor:test
+          :kompound:desktopTest
+          :catalog:shared:desktopTest
+          compileAndroidMain
+          compileKotlinWasmJs
+          :catalog:androidApp:assembleDebug
+          :catalog:webApp:wasmJsBrowserDistribution
+          --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports
+          path: "**/build/reports/tests"
+
+  apple:
+    name: iOS (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: zulu, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      - name: iOS tests and link
+        run: >
+          ./gradlew
+          :kompound:iosSimulatorArm64Test
+          :catalog:shared:iosSimulatorArm64Test
+          compileKotlinIosArm64
+          --stacktrace
+      - name: Build iOS catalog app (simulator)
+        run: |
+          brew install xcodegen
+          cd catalog/iosApp
+          xcodegen generate
+          xcodebuild -project KompoundCatalogApp.xcodeproj -scheme KompoundCatalogApp \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build
+
+  consumer-sample:
+    name: Consumer sample (published artifacts)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: zulu, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      - name: Publish to mavenLocal
+        run: ./gradlew publishToMavenLocalAll --stacktrace
+      - name: Build sample against it
+        working-directory: samples/consumer
+        run: ./gradlew desktopTest iosSimulatorArm64Test --stacktrace
