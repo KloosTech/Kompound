@@ -141,7 +141,7 @@ Decision recorded in `docs/adr/0001-styling.md` after S4.
 - **C-080** Allowed dependencies in `:kompound`: Kotlin stdlib, Compose Multiplatform (runtime, foundation, ui, material3, animation, resources), `kompound-annotations`. Anything else requires a spec change. `[build]` (dependency allowlist task)
 - **C-081** Resources via Compose Resources only (`composeResources/`), package `tech.kloos.kompound.resources`; resource names prefixed `kompound_`. `[build]`
 - **C-082** Strings user-visible by default come from resources and are localisable; consumer can override via param. At minimum `values/` (en); RTL tested. `[lint]`
-- **C-083** Icons: components accept icons as slots (`ImageVector`, `Painter` or a composable); Kompound ships no icon set beyond a few internal vectors it needs itself (chevron, check, close), written as code, never `material-icons-extended`. Icons use `KIcon`; its tint falls back to `LocalKContentColor`, which components provide (icons do not inherit Style `contentColor`, see ADR 0001 addendum). `[build]`
+- **C-083** Icons: components accept icons as slots (`ImageVector`, `Painter` or a composable); Kompound ships no icon set beyond a few internal vectors it needs itself (search, clear, chevron, check, calendar), written as code, never `material-icons-extended`. Icons use `KIcon`; its tint falls back to `LocalKContentColor`, which components provide (icons do not inherit Style `contentColor`, see ADR 0001 addendum). `[build]`
 - **C-084** Third-party assets (fonts, icons, images) carry Apache-2.0-compatible licence, recorded in `THIRD_PARTY_NOTICES.md` with source and licence. `[review]`
 
 ## 9. Demo (required for catalog listing)
