@@ -4,7 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.style.Style
 import androidx.compose.foundation.style.contentPadding
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.text.KText
@@ -36,7 +39,7 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * - [selected] `null`: an assist/suggestion chip, clickable, announced as a button.
  * - [selected] `true`/`false`: a filter chip, toggleable, announced with its checked state.
  *
- * Icons are slots ([leading], [trailing]); they pick up the chip's content colour. Long labels end in an
+ * Icons are slots ([leading], [trailing]) of [KChipDefaults.IconSize]; they pick up the chip's content colour and never change the chip's height. Long labels end in an
  * ellipsis once the chip reaches its maximum width (250dp by default, changeable through [style]).
  *
  * @param label Text of the chip.
@@ -79,15 +82,24 @@ public fun KChip(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CompositionLocalProvider(LocalKContentColor provides KChipDefaults.contentColor(selected == true, enabled)) {
-            leading?.invoke()
+            leading?.let { IconSlot(it) }
             KText(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            trailing?.invoke()
+            trailing?.let { IconSlot(it) }
         }
     }
 }
 
+/** Fixed-size box so an icon never makes the chip taller than a text-only chip; larger content is clipped to it. */
+@Composable
+private fun IconSlot(content: @Composable () -> Unit) {
+    Box(Modifier.size(KChipDefaults.IconSize), contentAlignment = Alignment.Center) { content() }
+}
+
 /** Defaults for [KChip]. */
 public object KChipDefaults {
+    /** Size of the [KChip] `leading`/`trailing` slots; content larger than this is constrained to it. */
+    public val IconSize: Dp = 18.dp
+
     /** Base style: 32dp outlined chip; `secondaryContainer` and no outline when selected. */
     @Composable
     public fun style(): Style {
