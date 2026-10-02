@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added `KCode`: syntax-highlighted code in a selectable text field (read-only or editable, line numbers, Kotlin/JSON/plain built in, custom `KCodeLanguage`, theme-following colours and a One Dark palette).
 - Catalog release: only the newest `catalog-v*` GitHub Release is kept, the APK gets an increasing version code, and `scripts/create-android-keystore.sh` sets up the signing key so Obtainium can update the app.
 - `KButton` effects (`KButtonEffects`): click shadow (on by default for filled and tonal), bounce, fade, colour morph, shape morph and sparkles; toggles in the KButton demo.
 - Catalog redesign: adaptive shell with sidebar, category menu and tag filter behind icon buttons, preview stages, live theme designer (hue, saturation, roundness, text size, presets, "Get code"), built with Kompound's own components.
