@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added `Modifier.dashedBorder`, `KKeyValue`/`KMetric` and `KStepList`. Ported from the Snettbox dashedBorder, KeyValue/ValueWithUnit and firmware update steps.
 - Added `KSlideToConfirm` (drag-to-confirm control; keyboard and screen readers confirm directly; RTL aware). Ported from the Snettbox Swipe. `KStrengthMeter` now fills the available width.
 - Added `KPasswordField` (masked field with eye toggle and optional strength meter) and `KStrengthMeter`. Ported from the Snettbox PasswordField.
 - Added `KProgressButton`: a button that is its own progress bar (fill sweeps behind a label that stays readable on both sides). Ported from the Snettbox ProgressFillButton.
