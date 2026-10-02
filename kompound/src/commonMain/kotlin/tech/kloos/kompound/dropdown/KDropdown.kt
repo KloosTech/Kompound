@@ -1,44 +1,21 @@
 package tech.kloos.kompound.dropdown
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.style.Style
-import androidx.compose.foundation.style.rememberUpdatedStyleState
 import androidx.compose.foundation.style.selected
-import androidx.compose.foundation.style.styleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import tech.kloos.kompound.KompoundStyles
-import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.internal.KompoundIcons
 import tech.kloos.kompound.menu.KMenu
 import tech.kloos.kompound.menu.KMenuItem
-import tech.kloos.kompound.text.KText
-import tech.kloos.kompound.textfield.ErrorKey
 import tech.kloos.kompound.textfield.KTextFieldDefaults
-import tech.kloos.kompound.theme.LocalKContentColor
+import tech.kloos.kompound.textfield.PickerField
 
 /**
  * Dropdown for choosing one option. Looks like [tech.kloos.kompound.textfield.KTextField] with a chevron;
@@ -73,18 +50,20 @@ public fun <T> KDropdown(
     menuStyle: Style = Style,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    DropdownField(
+    PickerField(
         modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText,
-        isError = isError, enabled = enabled, style = style, menuStyle = menuStyle,
+        isError = isError, enabled = enabled, style = Style(KDropdownDefaults.style(), style),
         displayText = selected?.let(optionLabel).orEmpty(),
-        expanded = expanded, onExpandedChange = { expanded = it },
-    ) {
-        options.forEach { option ->
-            KMenuItem(
-                text = optionLabel(option),
-                onClick = { onSelect(option); expanded = false },
-                selected = option == selected, showCheck = true, role = Role.RadioButton,
-            )
+        open = expanded, onClick = { expanded = !expanded }, icon = KompoundIcons.ChevronDown, role = Role.DropdownList,
+    ) { triggerWidth ->
+        KMenu(expanded, onDismissRequest = { expanded = false }, minWidth = triggerWidth, style = menuStyle) {
+            options.forEach { option ->
+                KMenuItem(
+                    text = optionLabel(option),
+                    onClick = { onSelect(option); expanded = false },
+                    selected = option == selected, showCheck = true, role = Role.RadioButton,
+                )
+            }
         }
     }
 }
@@ -115,82 +94,21 @@ public fun <T> KMultiDropdown(
     menuStyle: Style = Style,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    DropdownField(
+    PickerField(
         modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText,
-        isError = isError, enabled = enabled, style = style, menuStyle = menuStyle,
+        isError = isError, enabled = enabled, style = Style(KDropdownDefaults.style(), style),
         displayText = if (selected.isEmpty()) "" else summary(options.filter { it in selected }.map(optionLabel)),
-        expanded = expanded, onExpandedChange = { expanded = it },
-    ) {
-        options.forEach { option ->
-            val isSelected = option in selected
-            KMenuItem(
-                text = optionLabel(option),
-                onClick = { onSelectionChange(if (isSelected) selected - option else selected + option) },
-                selected = isSelected, showCheck = true, role = Role.Checkbox,
-            )
-        }
-    }
-}
-
-@Composable
-private fun DropdownField(
-    modifier: Modifier,
-    label: String?,
-    placeholder: String?,
-    supportingText: String?,
-    isError: Boolean,
-    enabled: Boolean,
-    style: Style,
-    menuStyle: Style,
-    displayText: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    menuContent: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
-) {
-    remember { KompoundStyles.ensureEnabled() }
-    val source = remember { MutableInteractionSource() }
-    val state = rememberUpdatedStyleState(source) {
-        it.isEnabled = enabled
-        it.isSelected = expanded
-        it.set(ErrorKey, isError)
-    }
-    val density = LocalDensity.current
-    var triggerWidth by remember { mutableStateOf(0) }
-    val iconColor = KTextFieldDefaults.iconColor(isError, enabled)
-
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (label != null) KText(label, style = KTextFieldDefaults.labelStyle(isError, enabled))
-        Box {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onSizeChanged { triggerWidth = it.width }
-                    .semantics { if (label != null) contentDescription = label }
-                    .hoverable(source, enabled)
-                    .clickable(interactionSource = source, indication = null, enabled = enabled, role = Role.DropdownList) { onExpandedChange(!expanded) }
-                    .styleable(state, KDropdownDefaults.style(), style),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (displayText.isEmpty() && placeholder != null) {
-                    KText(placeholder, Modifier.weight(1f), style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                } else {
-                    KText(displayText, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                CompositionLocalProvider(LocalKContentColor provides iconColor) {
-                    KIcon(KompoundIcons.ChevronDown, contentDescription = null, Modifier.rotate(if (expanded) 180f else 0f))
-                }
+        open = expanded, onClick = { expanded = !expanded }, icon = KompoundIcons.ChevronDown, role = Role.DropdownList,
+    ) { triggerWidth ->
+        KMenu(expanded, onDismissRequest = { expanded = false }, minWidth = triggerWidth, style = menuStyle) {
+            options.forEach { option ->
+                val isSelected = option in selected
+                KMenuItem(
+                    text = optionLabel(option),
+                    onClick = { onSelectionChange(if (isSelected) selected - option else selected + option) },
+                    selected = isSelected, showCheck = true, role = Role.Checkbox,
+                )
             }
-            KMenu(
-                expanded = expanded,
-                onDismissRequest = { onExpandedChange(false) },
-                minWidth = with(density) { triggerWidth.toDp() },
-                style = menuStyle,
-                content = menuContent,
-            )
-        }
-        if (supportingText != null) {
-            KText(supportingText, Modifier.padding(horizontal = 16.dp), style = KTextFieldDefaults.supportingStyle(isError, enabled))
         }
     }
 }
