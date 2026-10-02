@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Catalog redesign: adaptive shell with sidebar, category menu and tag filter behind icon buttons, preview stages, live theme designer (hue, saturation, roundness, text size, presets, "Get code"), built with Kompound's own components.
+- Added `KSlider`.
+- Fixed: `KompoundTheme` sets a root text style so plain `KText` follows the theme (dark mode).
+- Fixed: `KText` kept the inherited style only for the first text; now survives text changes.
 - Wave 3: `KLinearProgress`, `KCircularProgress`, `KButton` loading state, `KListItem`, `KEmptyState`, `KErrorState`, `KTopBar`, `KScaffold`, `KSnackbar`, `KTooltip`, `KDialog`, `KAlertDialog`, `KBottomSheet`.
 - Changed: the standard icon button now uses `onSurfaceVariant`.
 - CI: library (`v*` tags) and catalog apps (`catalog-v*` tags) are released by separate workflows.
