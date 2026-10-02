@@ -36,3 +36,6 @@ build/
 .gradle/
 xcuserdata/
 *.xcworkspace/xcuserdata/
+
+# Local-only notes (reference analysis of a third-party app; never commit)
+docs/internal/

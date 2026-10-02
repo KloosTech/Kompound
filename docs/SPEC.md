@@ -271,3 +271,9 @@ Bug found by tests: `clickable` was inside `styleable`, shrinking the hit area t
 - Consumer sample (`samples/consumer`) builds against published artifacts and discovers its own demo via the Gradle plugin; tests pass on desktop and iOS simulator.
 - Workflows (actionlint clean): `ci.yml` (ubuntu + macOS + consumer sample), `catalog-web.yml` (Pages), `release.yml` (Central, APK, desktop dmg/msi/deb, GitHub Release; jobs skip without secrets). PR template added. See `docs/RELEASING.md`.
 - Not done yet: Dokka/javadoc, ABI validator, detekt + compose-rules, `newComponent` scaffold task, running the workflows on GitHub (needs the repo push).
+
+## 20. Wave 0 (foundation) done
+- Decisions: colour tokens = M3 roles + small extension set; icons passed as slots (no icon set); overlays adaptive by window size.
+- Added: `KompoundTheme`/`KompoundTokens` (success/warning/info colours with WCAG-AA-checked pairs, spacing, motion, state layers), `LocalKContentColor`, `KIcon`, `KSurface` (plain and clickable), `KDivider`; `DemoScope` controls with catalog `ControlPanel`; generated `DemoSmokeTest` (every demo x light/dark/RTL/fontScale2).
+- Tests: kompound 33 + demo controls 5 + processor 17 + catalog 7 (desktop; kompound and catalog also on the iOS simulator).
+- Visual check on Android API 37: five demos auto-discovered, controls live-update demos.

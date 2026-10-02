@@ -35,7 +35,7 @@ import tech.kloos.kompound.catalog.apply
 import tech.kloos.kompound.catalog.facets
 import tech.kloos.kompound.catalog.find
 import tech.kloos.kompound.demo.DemoEntry
-import tech.kloos.kompound.demo.DemoScope
+import tech.kloos.kompound.demo.DemoControls
 
 private val WideBreakpoint = 720.dp
 
@@ -131,8 +131,6 @@ private fun ChipRow(label: String, options: Set<String>, selected: Set<String>, 
     }
 }
 
-private object Scope : DemoScope
-
 @Composable
 private fun DetailPane(entry: DemoEntry?, onBack: (() -> Unit)?, modifier: Modifier) {
     Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -146,7 +144,10 @@ private fun DetailPane(entry: DemoEntry?, onBack: (() -> Unit)?, modifier: Modif
         Text("${entry.meta.category} · ${entry.meta.status} · since ${entry.meta.since.ifEmpty { "-" }}",
             style = MaterialTheme.typography.labelMedium)
         HorizontalDivider()
+        // One control scope per demo: switching demos starts with fresh controls.
+        val controls = remember(entry.qualifiedId) { DemoControls() }
         val content = entry.content
-        Box(Modifier.fillMaxWidth()) { Scope.content() }
+        Box(Modifier.fillMaxWidth()) { controls.content() }
+        ControlPanel(controls.controls)
     }
 }

@@ -53,7 +53,7 @@ Layers, highest priority wins:
 1. **Per-call `style` parameter**: every visual component has `style: Style = KButtonDefaults.style()`. Consumer-provided style is merged **over** the default (`default.then(consumer)` semantics; consumer wins on conflict, unspecified properties inherit).
 2. **Subtree style provider**: `CompositionLocal` per component family (`LocalKButtonStyle`) so an app restyles all buttons in a subtree.
 3. **`<Component>Defaults.style()`**: reads tokens, returns the base `Style`. Variants are separate functions (`KButtonDefaults.filledStyle()`, `.outlinedStyle()`, `.textStyle()`) that **compose** from a shared base via `then`.
-4. **Tokens**: `KompoundTheme` supplies tokens. **M3's `ColorScheme`, `Typography`, `Shapes` are the token source** (so apps already themed with M3 work unchanged); Kompound adds only tokens M3 lacks (spacing scale, motion, extra semantic colours, state-layer opacities). No parallel colour system.
+4. **Tokens**: `KompoundTheme` supplies tokens (decided: M3 roles plus a small extension set, no parallel colour system: `KompoundColors` success/warning/info with containers, `KompoundSpacing`, `KompoundMotion`, `KompoundStateLayer`). **M3's `ColorScheme`, `Typography`, `Shapes` are the token source** (so apps already themed with M3 work unchanged); Kompound adds only tokens M3 lacks (spacing scale, motion, extra semantic colours, state-layer opacities). No parallel colour system.
 
 Component bodies are built from **foundation** primitives + `Modifier.styleable`, not from M3 `Button`/`Card`. M3 is a **token and theming dependency**, not a widget dependency. (This refines the earlier "M3 as foundation" decision: M3 stays the design-token foundation; widgets use the Styles API. Reason: wrapped M3 widgets cannot be restyled to the same depth and bring their own indication/animation machinery.) Where Styles API lacks a needed property, fall back to a documented modifier inside the component, never to a public parameter that leaks it.
 
@@ -113,6 +113,7 @@ Decision recorded in `docs/adr/0001-styling.md` after S4.
 - **C-052** Platform adaptation (e.g. scrollbar on desktop, haptics on mobile, cursor icon on desktop) isolated behind `internal expect` helpers with sensible no-op fallback. `[review]`
 - **C-053** Keyboard: all interactive components fully operable by keyboard (Tab, Shift+Tab, Space/Enter, arrows where role demands) on Desktop. `[test]`
 - **C-054** Text input components: IME actions, autofill hints, `KeyboardOptions`, paste/selection work on all targets; no assumptions about soft keyboard presence. `[test]` (manual checklist for iOS)
+- **C-056** Overlay components adapt to window size: dialogs and sheets use a bottom sheet on compact widths and a centred dialog (or side sheet) on medium and larger widths, desktop and web included; one component, one API, adaptive implementation. `[review]`
 - **C-055** Safe-area / window insets: components never consume insets implicitly; edge-to-edge handled by consumer or explicit `windowInsets` parameter. `[review]`
 
 ## 6. Accessibility
@@ -140,7 +141,7 @@ Decision recorded in `docs/adr/0001-styling.md` after S4.
 - **C-080** Allowed dependencies in `:kompound`: Kotlin stdlib, Compose Multiplatform (runtime, foundation, ui, material3, animation, resources), `kompound-annotations`. Anything else requires a spec change. `[build]` (dependency allowlist task)
 - **C-081** Resources via Compose Resources only (`composeResources/`), package `tech.kloos.kompound.resources`; resource names prefixed `kompound_`. `[build]`
 - **C-082** Strings user-visible by default come from resources and are localisable; consumer can override via param. At minimum `values/` (en); RTL tested. `[lint]`
-- **C-083** Icons: own vector `ImageVector` (code, no XML) or Compose Resources vectors; **do not** depend on `material-icons-extended` (huge) unless allowlisted. `[build]`
+- **C-083** Icons: components accept icons as slots (`ImageVector`, `Painter` or a composable); Kompound ships no icon set beyond a few internal vectors it needs itself (chevron, check, close), written as code, never `material-icons-extended`. Icons use `KIcon`; its tint falls back to `LocalKContentColor`, which components provide (icons do not inherit Style `contentColor`, see ADR 0001 addendum). `[build]`
 - **C-084** Third-party assets (fonts, icons, images) carry Apache-2.0-compatible licence, recorded in `THIRD_PARTY_NOTICES.md` with source and licence. `[review]`
 
 ## 9. Demo (required for catalog listing)
@@ -227,3 +228,6 @@ Minimum for **every** component:
 3. Localisation scope beyond English.
 
 Resolved: prefix `K` (C-001); `kompound-annotations` is published (consumers can annotate own demos).
+
+## 17. Foundation components (Wave 0)
+`KompoundTheme` + tokens, `KIcon`, `KSurface`, `KDivider` are the base for later components. `DemoScope` controls (`textControl`, `boolControl`, `choiceControl`, `floatControl`) let every demo expose its states; the catalog renders them and the generated smoke test renders every demo under light, dark, RTL and 200% font scale (C-095).

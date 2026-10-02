@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.annotations.KompoundCategory
 import tech.kloos.kompound.annotations.KompoundDemo
 import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.demo.DemoScope
 
 @KompoundDemo(
     id = "button.primary",
@@ -20,9 +21,11 @@ import tech.kloos.kompound.buttons.KButton
     since = "0.1.0",
 )
 @Composable
-fun KButtonDemo() {
+fun DemoScope.KButtonDemo() {
+    val label = textControl("Label", "Default")
+    val enabled = boolControl("Enabled", true)
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        KButton(onClick = {}) { Text("Default") }
-        KButton(onClick = {}, enabled = false) { Text("Disabled") }
+        KButton(onClick = {}, enabled = enabled) { Text(label) }
+        KButton(onClick = {}, enabled = false) { Text("Always disabled") }
     }
 }
