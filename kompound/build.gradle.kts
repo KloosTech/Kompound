@@ -11,6 +11,7 @@ kotlin {
             api(compose.ui)
             // M3 is the design-token source only (ColorScheme / Typography / Shapes), see ADR 0001.
             api(compose.material3)
+            implementation(compose.animation)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))

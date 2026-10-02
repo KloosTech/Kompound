@@ -17,9 +17,6 @@ public class DemoMeta(
     public val aliases: List<String>,
 )
 
-/** Receiver for demo functions that want interactive controls (grows in phase 2). */
-public interface DemoScope
-
 /** One demo. [qualifiedId] is `<moduleId>/<id>` and unique across the catalog. */
 @Immutable
 public class DemoEntry(

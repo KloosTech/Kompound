@@ -271,3 +271,32 @@ Bug found by tests: `clickable` was inside `styleable`, shrinking the hit area t
 - Consumer sample (`samples/consumer`) builds against published artifacts and discovers its own demo via the Gradle plugin; tests pass on desktop and iOS simulator.
 - Workflows (actionlint clean): `ci.yml` (ubuntu + macOS + consumer sample), `catalog-web.yml` (Pages), `release.yml` (Central, APK, desktop dmg/msi/deb, GitHub Release; jobs skip without secrets). PR template added. See `docs/RELEASING.md`.
 - Not done yet: Dokka/javadoc, ABI validator, detekt + compose-rules, `newComponent` scaffold task, running the workflows on GitHub (needs the repo push).
+
+## 20. Wave 0 (foundation) done
+- Decisions: colour tokens = M3 roles + small extension set; icons passed as slots (no icon set); overlays adaptive by window size.
+- Added: `KompoundTheme`/`KompoundTokens` (success/warning/info colours with WCAG-AA-checked pairs, spacing, motion, state layers), `LocalKContentColor`, `KIcon`, `KSurface` (plain and clickable), `KDivider`; `DemoScope` controls with catalog `ControlPanel`; generated `DemoSmokeTest` (every demo x light/dark/RTL/fontScale2).
+- Tests: kompound 33 + demo controls 5 + processor 17 + catalog 7 (desktop; kompound and catalog also on the iOS simulator).
+- Visual check on Android API 37: five demos auto-discovered, controls live-update demos.
+
+## 21. Wave 1 (primitives) done
+Components: `KButton` (filled, tonal, outlined, text), `KIconButton`, `KFab` (regular, extended), `KToggleButton`, `KSegmentedControl`, `KChip` (assist + filter), `KBadge` + `KBadgeDot`, `KAvatar` (initials, image slot, presence), `KCheckbox` (incl. tri-state), `KRadioButton`, `KSwitch`. All have demos with controls and pass the generated smoke test.
+Findings:
+- `animate { }` inside a Style (also within a state block) interpolates its properties in the layout/draw phase: `KSwitch` thumb, track and halo animate with no recomposition (tested).
+- Shared state: several `styleable` nodes can share one `StyleState` (halo + box + row), so one interaction source drives all layers.
+- Button family shares `ButtonBase` (hover + click/toggle outside `styleable`, C-016a); selection controls share `SelectionRow`/`HaloSlot`.
+- Test technique: distinct-hue test scheme + pixel sampling at density 1; sample solid bands, not antialiased edges; stack siblings in a `Column` so captures do not overlap.
+- Tests: 96 desktop + 96 iOS simulator (kompound + catalog), 17 processor, 5 demo controls.
+Next: Wave 2 inputs (text fields, search bar, dropdowns, date pickers, inline edit).
+
+## 22. Wave 2 (inputs) done
+Components: `KTextField`, `KTextArea`, `KNumberField`, `KSearchBar`, `KMenu` + `KMenuItem`, `KDropdown`, `KMultiDropdown`, `KDateField`, `KDateRangeField`, `KInlineEdit`.
+Decisions and findings:
+- Text input uses foundation `BasicTextField` (value API). The label sits above the field (no floating label animation). Typed text cannot inherit Style text properties, so `KTextFieldDefaults.textStyle(enabled)` passes it explicitly.
+- Custom Style state works: `StyleStateKey<Boolean>` set via `MutableStyleState.set` gives an `error { }` block; used by text fields, dropdowns and date fields. Several `styleable` nodes can share one `StyleState`.
+- `PickerField` (text-field-looking trigger that opens a menu or dialog) is shared by dropdowns and date fields; they stay "selected" (primary outline) while open.
+- `KMenu` uses `Popup` with a custom position provider (below the anchor, flips above when it does not fit, clamped to the window; pure function with unit tests). Up/Down move focus, Escape/back/outside click dismiss.
+- Date fields wrap Material 3's `DatePicker`/`DateRangePicker` for calendar logic (a calendar from scratch would need `kotlinx-datetime`, which the dependency allowlist forbids). Dates are UTC-midnight epoch millis; formatting is a pure-Kotlin ISO formatter (`KDateFormat.iso`, tested incl. leap day and pre-1970) that callers can replace. Replace the M3 dialog with a Kompound dialog when `KDialog` exists (Wave 3).
+- `KInlineEdit` deliberately has no save-on-blur: focus moving to the save/cancel buttons would save before a cancel click registers.
+- Internal icons grew to six (search, close, chevron, check, calendar, edit), all in THIRD_PARTY_NOTICES.md.
+- Tests: 148 desktop + 148 iOS simulator (kompound + catalog), 17 processor, 5 demo controls. Visual check on Android API 37: dropdown popup (width, flip of chevron, scrolling) and the date dialog.
+Next: Wave 3 (dialog, bottom sheet, snackbar, tooltip, list item, progress, top bar/scaffolds, empty/error states).

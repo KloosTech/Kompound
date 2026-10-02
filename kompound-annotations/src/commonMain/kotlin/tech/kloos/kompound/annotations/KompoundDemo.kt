@@ -29,6 +29,7 @@ public annotation class KompoundDemo(
 )
 
 public object KompoundCategory {
+    public const val Foundations: String = "Foundations"
     public const val Inputs: String = "Inputs"
     public const val Buttons: String = "Buttons"
     public const val Display: String = "Display"
