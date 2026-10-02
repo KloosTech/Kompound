@@ -141,6 +141,7 @@ public fun KStrengthMeter(
     val filled = level.coerceIn(0, count)
     Column(
         modifier
+            .fillMaxWidth()
             .height(KStrengthMeterDefaults.Height)
             .semantics {
                 if (description != null) contentDescription = description
