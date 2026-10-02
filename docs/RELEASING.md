@@ -39,7 +39,11 @@ Versions are independent: library `v0.4.0` can ship next to catalog `catalog-v1.
 2. Pre-releases (`-alphaNN`, `-betaNN`, `-rcNN`) are a good first step: `git tag -a v0.2.0-alpha01 -m "..." && git push origin v0.2.0-alpha01`. The job uploads to Central **without releasing**; inspect the deployment in the portal (central.sonatype.com, Publish, Deployments) and click *Publish* or *Drop*. Central versions are immutable once released.
 3. Stable releases: tag `vX.Y.Z`. To release to Central automatically, run the workflow manually (*Run workflow*) with `auto_release` enabled.
 
-## Releasing the catalog apps (milestones only)
+## Catalog releases
+
+**Every merge to `main` that changes code** publishes the Android APK as a release named `catalog-v<VERSION_NAME>-build.<run>` (for example `catalog-v0.1.0-build.42`), so Obtainium sees each merge. Only the newest catalog release is kept. **Milestones** (below) additionally build the desktop installers.
+
+## Releasing the catalog apps with desktop installers (milestones)
 
 ```bash
 git tag -a catalog-v1.0.0 -m "Catalog 1.0.0" && git push origin catalog-v1.0.0
