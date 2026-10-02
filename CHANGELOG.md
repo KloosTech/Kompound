@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Catalog (phones): the system back gesture leaves a component's detail view for the list instead of closing the app.
 - Catalog: every merge to `main` publishes the Android APK as a GitHub Release (`catalog-v<version>-build.<run>`), replacing the previous one, so Obtainium updates automatically; tags still add the desktop installers.
 - Added `Modifier.dashedBorder`, `KKeyValue`/`KMetric` and `KStepList`. Ported from the Snettbox dashedBorder, KeyValue/ValueWithUnit and firmware update steps.
 - Added `KSlideToConfirm` (drag-to-confirm control; keyboard and screen readers confirm directly; RTL aware). Ported from the Snettbox Swipe. `KStrengthMeter` now fills the available width.

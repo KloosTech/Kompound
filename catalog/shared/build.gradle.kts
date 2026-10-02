@@ -19,6 +19,7 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
+            implementation(libs.compose.ui.backhandler)   // system back gesture: detail view -> list
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
