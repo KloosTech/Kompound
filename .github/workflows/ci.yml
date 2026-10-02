@@ -1,9 +1,24 @@
 name: CI
 
 on:
+  # Skips docs and release-workflow-only changes: they cannot affect the build.
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/catalog-release.yml'
+      - '.github/pull_request_template.md'
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/catalog-release.yml'
+      - '.github/pull_request_template.md'
 
 concurrency:
   group: ci-${{ github.ref }}

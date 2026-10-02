@@ -6,6 +6,13 @@ name: Catalog (web)
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/catalog-release.yml'
+      - '.github/pull_request_template.md'
   workflow_dispatch:
 
 permissions:
