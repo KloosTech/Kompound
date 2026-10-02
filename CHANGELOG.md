@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added `KProgressButton`: a button that is its own progress bar (fill sweeps behind a label that stays readable on both sides). Ported from the Snettbox ProgressFillButton.
 - Added `Modifier.shake(KShakeState)` with `KShakeSpec` presets (error, nod, wobble): draw-only, so layout and touch area stay put. Ported from the Snettbox Shaker.
 - Added `KAccordion` / `KExpandable` (foldable sections, exclusive mode, saveable state, expand/collapse accessibility actions). Ported from the Snettbox Accordion.
 - Added `KActionMenu` (icon button with a menu of actions: supporting text, attention dots, check marks, unfolding groups, dividers) and `KMenuItem(supportingText = ...)`. Ported from the Snettbox ActionMenu.
