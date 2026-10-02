@@ -19,6 +19,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.text.KText
@@ -87,6 +89,124 @@ class KButtonEffectsTest {
         press()
         assertTrue(host().at(edge.x, edge.y).near(Color.White, 0.1f), "button did not shrink")
         assertEquals(b, bounds(), "layout bounds must not change")
+    }
+
+    @Test
+    fun bounceReturnsToFullSizeAfterQuickTaps() = runComposeUiTest {
+        show(KButtonEffects.None.copy(bounce = true))
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        for (hold in listOf(0L, 16L, 40L, 90L, 200L)) {
+            val press = PressInteraction.Press(Offset.Zero)
+            runOnIdle { source.tryEmit(press) }
+            mainClock.advanceTimeBy(hold)
+            runOnIdle { source.tryEmit(PressInteraction.Release(press)) }
+            waitForIdle()
+            mainClock.advanceTimeBy(1500)
+            assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.1f), "stuck small after a ${hold}ms tap")
+        }
+    }
+
+    @Test
+    fun bounceSurvivesInterruptedAndCancelledPresses() = runComposeUiTest {
+        show(KButtonEffects.None.copy(bounce = true))
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        val random = kotlin.random.Random(7)
+        repeat(60) { round ->
+            val press = PressInteraction.Press(Offset.Zero)
+            runOnIdle { source.tryEmit(press) }
+            mainClock.advanceTimeBy(random.nextLong(0, 250))
+            runOnIdle { source.tryEmit(if (random.nextBoolean()) PressInteraction.Release(press) else PressInteraction.Cancel(press)) }
+            // Next press may start while the return animation is still running.
+            mainClock.advanceTimeBy(random.nextLong(0, 300))
+            if (round % 6 == 5) {
+                waitForIdle()
+                mainClock.advanceTimeBy(2000)
+                assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.1f), "stuck small in round $round")
+            }
+        }
+    }
+
+    @Test
+    fun bounceWithRealPointerNearTheEdge() = runComposeUiTest {
+        var clicks = 0
+        show(KButtonEffects.None.copy(bounce = true)) { clicks++ }
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        for ((i, x) in listOf(2f, 6f, 12f, b.width / 2).withIndex()) {
+            onNodeWithTag("b").performTouchInput { down(Offset(x, 20f)); advanceEventTime(120); up() }
+            waitForIdle()
+            mainClock.advanceTimeBy(1500)
+            assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.15f), "stuck small after touch at x=$x (clicks $clicks, step $i)")
+        }
+    }
+
+    @Test
+    fun bounceFuzzWithMouseHoverAndFrames() = runComposeUiTest {
+        show(KButtonEffects.None.copy(bounce = true))
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        val random = kotlin.random.Random(11)
+        fun frames(ms: Long) { var t = 0L; while (t < ms) { mainClock.advanceTimeBy(16); t += 16 } }
+        repeat(80) { round ->
+            val x = listOf(1f, 3f, 20f, 52f, 100f, 103f)[random.nextInt(6)]
+            onNodeWithTag("b").performMouseInput { moveTo(Offset(x, 20f)); press() }
+            frames(random.nextLong(0, 200))
+            onNodeWithTag("b").performMouseInput {
+                if (random.nextInt(4) == 0) moveTo(Offset(x + 300f, 20f))
+                release()
+            }
+            frames(random.nextLong(0, 300))
+            if (round % 8 == 7) {
+                onNodeWithTag("b").performMouseInput { moveTo(Offset(-50f, -50f)) }
+                frames(2000)
+                assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.15f), "stuck small in round $round")
+            }
+        }
+    }
+
+    @Test
+    fun bounceFuzzWithTinyIntervals() = runComposeUiTest {
+        show(KButtonEffects.None.copy(bounce = true))
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        val random = kotlin.random.Random(3)
+        repeat(400) { round ->
+            val press = PressInteraction.Press(Offset.Zero)
+            runOnIdle { source.tryEmit(press) }
+            mainClock.advanceTimeBy(random.nextLong(0, 40))
+            runOnIdle { source.tryEmit(PressInteraction.Release(press)) }
+            mainClock.advanceTimeBy(random.nextLong(0, 40))
+            if (round % 20 == 19) {
+                waitForIdle()
+                mainClock.advanceTimeBy(3000)
+                assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.15f), "stuck small in round $round")
+            }
+        }
+    }
+
+    @Test
+    fun bounceFuzzPressAndReleaseInTheSameFrame() = runComposeUiTest {
+        show(KButtonEffects.None.copy(bounce = true))
+        val b = bounds()
+        val edge = Offset(b.left + 2f, b.center.y)
+        val random = kotlin.random.Random(5)
+        repeat(300) { round ->
+            val press = PressInteraction.Press(Offset.Zero)
+            runOnIdle {
+                source.tryEmit(press)
+                if (random.nextBoolean()) source.tryEmit(PressInteraction.Release(press))
+            }
+            mainClock.advanceTimeBy(random.nextLong(0, 60))
+            runOnIdle { source.tryEmit(PressInteraction.Release(press)) }
+            mainClock.advanceTimeBy(random.nextLong(0, 60))
+            if (round % 15 == 14) {
+                waitForIdle()
+                mainClock.advanceTimeBy(3000)
+                assertTrue(host().at(edge.x, edge.y).near(scheme.primary, 0.15f), "stuck small in round $round")
+            }
+        }
     }
 
     @Test

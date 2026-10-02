@@ -5,12 +5,13 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.style.Style
 import androidx.compose.foundation.style.animate
 import androidx.compose.foundation.style.hovered
 import androidx.compose.foundation.style.pressed
-import androidx.compose.foundation.style.scale
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -46,7 +48,7 @@ import kotlin.random.Random
  * drawing layer), so a `style` passed to the button still wins.
  *
  * @property clickShadow A soft coloured shadow under the pressed button (filled and tonal looks only).
- * @property bounce The button shrinks while pressed and springs back with an overshoot.
+ * @property bounce The button shrinks while pressed and springs back with an overshoot (draw only; the hit area does not change).
  * @property fade The button dims while pressed.
  * @property colorMorph Colours animate smoothly to the tertiary accent while pressed and fade back on release.
  * @property shapeMorph The corners animate from fully round to a small radius while pressed.
@@ -91,7 +93,6 @@ internal fun effectsStyle(
             if (effects.clickShadow && filled) {
                 animate(tween(120)) { dropShadow(Shadow(radius = 14.dp, color = glow, spread = 1.dp, offset = DpOffset(0.dp, 4.dp))) }
             }
-            if (effects.bounce) animate(spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)) { scale(0.9f) }
             if (effects.fade) animate(tween(140)) { alpha(0.6f) }
             if (effects.colorMorph) {
                 animate(tween(260)) {
@@ -101,6 +102,25 @@ internal fun effectsStyle(
             }
             if (effects.shapeMorph) animate(spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMediumLow)) { shape(RoundedCornerShape(10.dp)) }
         }
+    }
+}
+
+/**
+ * Springy press feedback. Owns its animation (target = "is pressed now") instead of animating a style property:
+ * a retriggered press only retargets the spring, so the button cannot be left at the pressed size. Draw-only, so
+ * the hit area stays put while the button is small.
+ */
+@Composable
+internal fun Modifier.bounce(enabled: Boolean, source: InteractionSource): Modifier {
+    if (!enabled) return this
+    val pressed by source.collectIsPressedAsState()
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(pressed) {
+        scale.animateTo(if (pressed) 0.9f else 1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium))
+    }
+    return drawWithContent {
+        val s = scale.value
+        if (s == 1f) drawContent() else scale(s, s, center) { this@drawWithContent.drawContent() }
     }
 }
 

@@ -59,7 +59,7 @@ public fun KButton(
     val sparkleState = if (effects.sparkles) remember { SparkleState() } else null
     val sparkleColors = remember(scheme, variant) { listOf(scheme.tertiary, scheme.primary, scheme.secondary, scheme.tertiaryContainer) }
     ButtonBase(
-        modifier = modifier.sparkles(sparkleState, sparkleColors), styleState = styleState,
+        modifier = modifier.sparkles(sparkleState, sparkleColors).bounce(effects.bounce, source), styleState = styleState,
         defaultStyle = KButtonDefaults.style(variant), style = style, effectsStyle = effectsStyle,
         enabled = enabled, clickEnabled = enabled && !loading, interactionSource = source, role = Role.Button,
         iconColor = KButtonDefaults.contentColor(variant, enabled), contentDescription = null,
