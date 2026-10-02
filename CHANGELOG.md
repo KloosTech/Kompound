@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed: `KInlineEdit`'s save and cancel buttons sit in the vertical middle of a one-line field (they were top-aligned). A new test renders about 30 controls (buttons, chips, badge, segmented, menu and list items, fields, selection labels...) and fails when their text is more than 2px off the vertical centre.
 - Fixed: the placeholder of `KTextField` (and `KSearchBar`, `KNumberField`, `KInlineEdit`, which use it) sat a few pixels above the vertical centre of the field, away from the text and caret.
 - Catalog: every merge to `main` publishes the Android APK as a GitHub Release (`catalog-v<version>-build.<run>`), replacing the previous one, so Obtainium updates automatically; tags still add the desktop installers.
 - Added `Modifier.dashedBorder`, `KKeyValue`/`KMetric` and `KStepList`. Ported from the Snettbox dashedBorder, KeyValue/ValueWithUnit and firmware update steps.
