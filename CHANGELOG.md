@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added `KActionMenu` (icon button with a menu of actions: supporting text, attention dots, check marks, unfolding groups, dividers) and `KMenuItem(supportingText = ...)`. Ported from the Snettbox ActionMenu.
 - Added `KMarkdown` (renders headings, lists, task lists, quotes, tables, links, highlighted code blocks; selectable) and `KMarkdownField` (edit the source with live styling), plus `KText(AnnotatedString, textStyle = ...)`. The Styles API does not apply a `textStyle` to annotated text yet, hence the explicit parameter.
 - Catalog: every component has a "How to use" tab with a copyable Kotlin sample, rendered with `KCode`. New `@KompoundDemo(usage = ...)` field carried through the processor into `DemoMeta.usage`.
 - `KCode` no longer crashes inside a scrolling parent: it only scrolls vertically when its height is bounded.
