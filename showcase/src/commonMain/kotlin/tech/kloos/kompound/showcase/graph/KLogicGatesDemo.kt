@@ -199,60 +199,62 @@ fun DemoScope.KLogicGatesDemo() {
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
         KText("Flip the switches to change the inputs. Double-click the canvas (or drop a wire on it) to add gates, switches and lamps; drag from an output to an input to wire them, drag a wire off the end to remove it. Feedback loops are allowed: in the SR latch, Set and Reset make the lamps remember their state.")
-        KNodeGraph(
-            state,
-            Modifier.fillMaxWidth().height(540.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
-            fitOnFirstLayout = true,
-            showGrid = grid,
-            nodeTypes = LogicNodeTypes,
-            edgeStyle = { edge -> if (values[edge.from] == true) KEdgeStyle(color = on, animated = flow) else KEdgeStyle(color = off) },
-            portColor = { port, spec ->
-                if (spec.direction == tech.kloos.kompound.graph.model.PortDirection.Output) (if (bit(port)) on else off)
-                else if (incoming(port)) on else off
-            },
-            overlay = {
-                KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
-                KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))
-            },
-        ) { node ->
-            val out = PortRef(node.id, PortId("out"))
-            when (node.kind) {
-                LogicKinds.Switch -> {
-                    val sw = node.data as? LogicSwitch ?: LogicSwitch("Switch", false)
-                    KNode(node, sw.label) {
+        GraphFrame(state, 540) { frame ->
+            KNodeGraph(
+                state,
+                frame,
+                fitOnFirstLayout = true,
+                showGrid = grid,
+                nodeTypes = LogicNodeTypes,
+                edgeStyle = { edge -> if (values[edge.from] == true) KEdgeStyle(color = on, animated = flow) else KEdgeStyle(color = off) },
+                portColor = { port, spec ->
+                    if (spec.direction == tech.kloos.kompound.graph.model.PortDirection.Output) (if (bit(port)) on else off)
+                    else if (incoming(port)) on else off
+                },
+                overlay = {
+                    KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
+                    KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))
+                },
+            ) { node ->
+                val out = PortRef(node.id, PortId("out"))
+                when (node.kind) {
+                    LogicKinds.Switch -> {
+                        val sw = node.data as? LogicSwitch ?: LogicSwitch("Switch", false)
+                        KNode(node, sw.label) {
+                            Content {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    KSwitch(sw.on, { state.execute(GraphCommand.UpdateNodeData(node.id, sw.copy(on = it))) })
+                                    KText(if (sw.on) "1" else "0")
+                                }
+                            }
+                            Output("out", "Out")
+                        }
+                    }
+                    LogicKinds.Clock -> KNode(node, "Clock") {
                         Content {
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                KSwitch(sw.on, { state.execute(GraphCommand.UpdateNodeData(node.id, sw.copy(on = it))) })
-                                KText(if (sw.on) "1" else "0")
+                                Lamp(clock)
+                                KText(if (clock) "1" else "0")
                             }
                         }
                         Output("out", "Out")
                     }
-                }
-                LogicKinds.Clock -> KNode(node, "Clock") {
-                    Content {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Lamp(clock)
-                            KText(if (clock) "1" else "0")
+                    LogicKinds.Led -> KNode(node, node.data as? String ?: "LED") {
+                        Input("in", "In")
+                        Content {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                val lit = incoming(PortRef(node.id, PortId("in")))
+                                Lamp(lit)
+                                KText(if (lit) "1" else "0")
+                            }
                         }
                     }
-                    Output("out", "Out")
-                }
-                LogicKinds.Led -> KNode(node, node.data as? String ?: "LED") {
-                    Input("in", "In")
-                    Content {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            val lit = incoming(PortRef(node.id, PortId("in")))
-                            Lamp(lit)
-                            KText(if (lit) "1" else "0")
-                        }
+                    else -> KNode(node, LogicKinds.title(node.kind)) {
+                        Content { GateSymbol(node.kind, bit(out)) }
+                        Input("a", if (node.kind == LogicKinds.Not) "In" else "A")
+                        if (node.kind != LogicKinds.Not) Input("b", "B")
+                        Output("out", "Out")
                     }
-                }
-                else -> KNode(node, LogicKinds.title(node.kind)) {
-                    Content { GateSymbol(node.kind, bit(out)) }
-                    Input("a", if (node.kind == LogicKinds.Not) "In" else "A")
-                    if (node.kind != LogicKinds.Not) Input("b", "B")
-                    Output("out", "Out")
                 }
             }
         }

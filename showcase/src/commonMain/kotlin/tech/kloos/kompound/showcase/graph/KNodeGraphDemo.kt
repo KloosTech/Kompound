@@ -200,37 +200,39 @@ fun DemoScope.KNodeGraphDemo() {
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
         KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Double-click the canvas (or drop a wire on it) for the node menu, double-click a wire to add a reroute. Ctrl or Cmd+G groups the selection (Shift ungroups); L (or the Arrange button) lays the graph out in columns; Ctrl+Alt+G (or the Subgraph button) wraps the selection in a subgraph node you open by double-clicking it, Escape goes back up; drag a group's title bar to move it, use its arrow to collapse it. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
-        KNodeGraph(
-            state,
-            Modifier.fillMaxWidth().height(520.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
-            edgeShape = shape,
-            fitOnFirstLayout = true,
-            showGrid = grid,
-            nodeTypes = NodeTypes,
-            edgeStyle = { if (flow) KEdgeStyle(animated = true) else KEdgeStyle() },
-            overlay = if (overlays) ({
-                KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
-                KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))
-            }) else null,
-        ) { node ->
-            when (node.kind) {
-                "number" -> KNode(node, "Number") {
-                    val value = node.data as? Float ?: 0f
-                    Content {
-                        KText(value.toString().take(4))
-                        KSlider(value, { state.execute(GraphCommand.UpdateNodeData(node.id, it)) }, valueRange = 0f..10f)
+        GraphFrame(state, 520) { frame ->
+            KNodeGraph(
+                state,
+                frame,
+                edgeShape = shape,
+                fitOnFirstLayout = true,
+                showGrid = grid,
+                nodeTypes = NodeTypes,
+                edgeStyle = { if (flow) KEdgeStyle(animated = true) else KEdgeStyle() },
+                overlay = if (overlays) ({
+                    KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
+                    KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))
+                }) else null,
+            ) { node ->
+                when (node.kind) {
+                    "number" -> KNode(node, "Number") {
+                        val value = node.data as? Float ?: 0f
+                        Content {
+                            KText(value.toString().take(4))
+                            KSlider(value, { state.execute(GraphCommand.UpdateNodeData(node.id, it)) }, valueRange = 0f..10f)
+                        }
+                        Output("value", "Value")
                     }
-                    Output("value", "Value")
-                }
-                "display" -> KNode(node, "Display") {
-                    Input("in", "Value")
-                    val source = state.graph.edgesAt(PortRef(node.id, PortId("in"))).firstOrNull()?.from?.node?.let { state.graph.node(it) }
-                    Content { KText(if (source == null) "No input" else valueAt(state.graph, source).toString().take(7)) }
-                }
-                else -> KNode(node, if (node.kind == "add") "Add" else "Multiply") {
-                    Input("a", "A") { KText(if (node.kind == "add") "0" else "1") }
-                    Input("b", "B") { KText(if (node.kind == "add") "0" else "1") }
-                    Output("out", "Result")
+                    "display" -> KNode(node, "Display") {
+                        Input("in", "Value")
+                        val source = state.graph.edgesAt(PortRef(node.id, PortId("in"))).firstOrNull()?.from?.node?.let { state.graph.node(it) }
+                        Content { KText(if (source == null) "No input" else valueAt(state.graph, source).toString().take(7)) }
+                    }
+                    else -> KNode(node, if (node.kind == "add") "Add" else "Multiply") {
+                        Input("a", "A") { KText(if (node.kind == "add") "0" else "1") }
+                        Input("b", "B") { KText(if (node.kind == "add") "0" else "1") }
+                        Output("out", "Result")
+                    }
                 }
             }
         }
