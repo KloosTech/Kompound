@@ -233,6 +233,19 @@ public fun KNodeGraph(
                     fun colorOf(type: tech.kloos.kompound.graph.model.PortType) = palette[KNodeGraphDefaults.paletteIndex(type, palette.size)]
                     val graph = state.graph
                     val view = if (state.canvasSize == androidx.compose.ui.geometry.Size.Zero) null else state.viewport.visibleWorld(state.canvasSize)
+                    // Drag preview: a simplified outline of each dragged node where it will land.
+                    for ((node, landing) in state.dropPreview()) {
+                        val size = state.sizes[node.id] ?: androidx.compose.ui.geometry.Size(220f, 120f)
+                        val corner = androidx.compose.ui.geometry.CornerRadius(12.dp.toPx() / zoom)
+                        val tint = scheme.primary
+                        drawRoundRect(tint.copy(alpha = 0.10f), landing, size, corner)
+                        drawRect(tint.copy(alpha = 0.14f), landing, androidx.compose.ui.geometry.Size(size.width, minOf(size.height, 36f)))
+                        drawRoundRect(
+                            tint.copy(alpha = 0.8f), landing, size, corner,
+                            style = Stroke(width = 1.5.dp.toPx() / zoom, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx() / zoom, 5.dp.toPx() / zoom))),
+                        )
+                        for ((offset, _) in state.portOffsetsOf(node)) drawCircle(tint.copy(alpha = 0.8f), 4.dp.toPx() / zoom, landing + offset)
+                    }
                     for (resolved in state.resolvedEdges(view)) {
                         val e = resolved.edge
                         val a = resolved.from

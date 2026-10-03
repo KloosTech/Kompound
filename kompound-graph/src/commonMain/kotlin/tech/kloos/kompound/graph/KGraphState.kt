@@ -486,13 +486,26 @@ public class KGraphState(
 
     // --- dragging nodes -----------------------------------------------------------------------------------------
 
-    private var dragRaw: Offset = Offset.Zero
+    private var dragRaw: Offset by mutableStateOf(Offset.Zero)
     private var dragPrimary: NodeId? = null
     private var dragSet: Set<NodeId> = emptySet()
 
     /** Offset in world units currently applied to the nodes being dragged (already snapped to the grid). */
     public var dragDelta: Offset by mutableStateOf(Offset.Zero)
         private set
+
+    /**
+     * Whether a dragged node follows the pointer freely while a ghost (see [KNodeGraph]) shows where it will land once snapped to the grid
+     * and to other nodes. When off, the node itself jumps from snap position to snap position.
+     */
+    public var showDropPreview: Boolean by mutableStateOf(true)
+
+    /** Where the dragged nodes will land (the snapped [dragDelta] applied to their positions): `(node, top-left)` pairs; empty when no drag is running or the nodes are already there. */
+    internal fun dropPreview(): List<Pair<GraphNode, Offset>> {
+        if (!showDropPreview || dragPrimary == null) return emptyList()
+        if ((dragRaw - dragDelta).getDistance() < 1f) return emptyList()
+        return dragSet.mapNotNull { id -> graph.node(id)?.let { it to it.position + dragDelta } }
+    }
 
     /** Whether nodes are being dragged. */
     public val isDraggingNodes: Boolean get() = dragPrimary != null
@@ -588,10 +601,18 @@ public class KGraphState(
         dragDelta = Offset.Zero
     }
 
+    /** Port centres of [node] relative to its top-left, for drawing a stand-in: remembered offsets, else a guess. */
+    internal fun portOffsetsOf(node: GraphNode): List<Pair<Offset, tech.kloos.kompound.graph.model.PortDirection>> = node.ports.map { spec ->
+        val ref = PortRef(node.id, spec.id)
+        val relative = portOffsets[ref] ?: kindOffsets[node.kind to spec.id] ?: Offset(if (spec.direction == tech.kloos.kompound.graph.model.PortDirection.Input) 0f else 220f, 64f)
+        relative to spec.direction
+    }
+
     internal fun isDragged(id: NodeId): Boolean = id in dragSet
 
     /** Where [node] is drawn: its position plus the drag offset while it is being dragged. */
-    public fun positionOf(node: GraphNode): Offset = if (node.id in dragSet) node.position + dragDelta else node.position
+    public fun positionOf(node: GraphNode): Offset =
+        if (node.id in dragSet) node.position + (if (showDropPreview) dragRaw else dragDelta) else node.position
 
     private fun snap(v: Float): Float = (v / gridStep).roundToInt() * gridStep
 
