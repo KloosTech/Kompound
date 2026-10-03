@@ -22,6 +22,9 @@ public enum class ConnectionRejection {
 
     /** The edge would close a loop and cycles are not allowed. */
     WouldCreateCycle,
+
+    /** The nodes live in different subgraphs; wires never cross a subgraph boundary except through its own ports. */
+    ScopeMismatch,
 }
 
 /** Result of asking a [ConnectionPolicy] about two ports. */
@@ -55,6 +58,7 @@ public class ConnectionPolicy(
         val specB = graph.port(b) ?: return ConnectionCheck.Rejected(ConnectionRejection.UnknownPort)
         if (specA.direction == specB.direction) return ConnectionCheck.Rejected(ConnectionRejection.SameDirection)
         if (a.node == b.node) return ConnectionCheck.Rejected(ConnectionRejection.SameNode)
+        if (graph.node(a.node)?.scope != graph.node(b.node)?.scope) return ConnectionCheck.Rejected(ConnectionRejection.ScopeMismatch)
         val (from, to) = if (specA.direction == PortDirection.Output) a to b else b to a
         val out = graph.port(from)!!
         val inp = graph.port(to)!!

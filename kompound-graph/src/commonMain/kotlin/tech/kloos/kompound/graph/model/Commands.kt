@@ -58,7 +58,9 @@ public fun GraphCommand.applyTo(graph: Graph): AppliedCommand? = when (this) {
         )
     }
     is GraphCommand.RemoveNodes -> {
-        val removed = ids.mapNotNull { graph.node(it) }
+        // everything inside a removed subgraph goes too; restoring must add the enclosing subgraph node before what is inside it
+        val all = ids + graph.descendantsOf(ids)
+        val removed = all.mapNotNull { graph.node(it) }.sortedBy { graph.depthOf(it.id) }
         if (removed.isEmpty()) null
         else {
             val touching = removed.flatMap { graph.edgesOf(it.id) }.distinctBy { it.id }

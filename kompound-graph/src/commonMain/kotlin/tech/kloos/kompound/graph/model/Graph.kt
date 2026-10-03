@@ -11,6 +11,8 @@ import androidx.compose.ui.geometry.Offset
  * @property ports Declared ports, in display order.
  * @property data Your payload (values, settings). The framework never looks inside; replace it with `UpdateNodeData`.
  * @property group The group this node belongs to, if any (a node is in at most one group).
+ * @property scope The subgraph node this node lives inside, or `null` for the top level. Nodes are only shown, selected and wired
+ * within their own scope; removing a subgraph node removes everything inside it.
  */
 public data class GraphNode(
     public val id: NodeId,
@@ -19,6 +21,7 @@ public data class GraphNode(
     public val ports: List<PortSpec> = emptyList(),
     public val data: Any? = null,
     public val group: GroupId? = null,
+    public val scope: NodeId? = null,
 ) {
     /** The port declared with [portId], or `null`. */
     public fun port(portId: PortId): PortSpec? = ports.firstOrNull { it.id == portId }
@@ -103,6 +106,29 @@ public class Graph private constructor(
     /** The spec of the port [ref], or `null` when the node or port does not exist. */
     public fun port(ref: PortRef): PortSpec? = nodes[ref.node]?.port(ref.port)
 
+    /** Ids of the nodes inside the subgraph nodes [ids], at any depth (not including [ids] themselves). */
+    public fun descendantsOf(ids: Set<NodeId>): Set<NodeId> {
+        val found = LinkedHashSet<NodeId>()
+        var frontier: Set<NodeId> = ids
+        while (frontier.isNotEmpty()) {
+            val next = nodes.values.filter { it.scope in frontier && it.id !in found && it.id !in ids }.map { it.id }.toSet()
+            found += next
+            frontier = next
+        }
+        return found
+    }
+
+    /** How many subgraph nodes enclose [id]: 0 at the top level. */
+    public fun depthOf(id: NodeId): Int {
+        var depth = 0
+        var current = nodes[id]?.scope
+        while (current != null && depth <= nodes.size) { depth++; current = nodes[current]?.scope }
+        return depth
+    }
+
+    /** The nodes whose scope is [scope] (`null`: the top level). */
+    public fun nodesIn(scope: NodeId?): List<GraphNode> = nodes.values.filter { it.scope == scope }
+
     /** Adds [node], or replaces the node with the same id (its edges are kept when its ports still exist). */
     public fun withNode(node: GraphNode): Graph {
         val updated = LinkedHashMap(nodes).also { it[node.id] = node }
@@ -110,9 +136,10 @@ public class Graph private constructor(
         return of(updated, kept, groups)
     }
 
-    /** Removes the nodes [ids] and every edge touching them. */
-    public fun withoutNodes(ids: Set<NodeId>): Graph {
-        if (ids.none { it in nodes }) return this
+    /** Removes the nodes [requested], everything inside subgraph nodes among them, and every edge touching any of these. */
+    public fun withoutNodes(requested: Set<NodeId>): Graph {
+        if (requested.none { it in nodes }) return this
+        val ids = requested + descendantsOf(requested)
         val updated = LinkedHashMap(nodes).also { m -> ids.forEach { m.remove(it) } }
         return of(updated, edges.values.filter { it.from.node !in ids && it.to.node !in ids }, groups)
     }
@@ -156,8 +183,15 @@ public class Graph private constructor(
             of(LinkedHashMap<NodeId, GraphNode>().also { m -> nodes.forEach { m[it.id] = it } }, edges, groups.associateBy { it.id })
 
         private fun of(nodes: Map<NodeId, GraphNode>, edges: Collection<Edge>, groups: Map<GroupId, NodeGroup>): Graph {
-            val checked = if (nodes.values.any { it.group != null && it.group !in groups }) {
-                LinkedHashMap<NodeId, GraphNode>().also { m -> for ((id, n) in nodes) m[id] = if (n.group != null && n.group !in groups) n.copy(group = null) else n }
+            val checked = if (nodes.values.any { (it.group != null && it.group !in groups) || (it.scope != null && it.scope !in nodes) }) {
+                LinkedHashMap<NodeId, GraphNode>().also { m ->
+                    for ((id, n) in nodes) {
+                        var fixed = n
+                        if (fixed.group != null && fixed.group !in groups) fixed = fixed.copy(group = null)
+                        if (fixed.scope != null && fixed.scope !in nodes) fixed = fixed.copy(scope = null)
+                        m[id] = fixed
+                    }
+                }
             } else nodes
             val valid = LinkedHashMap<EdgeId, Edge>()
             val index = HashMap<PortRef, MutableList<Edge>>()
