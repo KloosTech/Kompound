@@ -13,6 +13,7 @@ include(
     ":kompound-demo",
     ":kompound-processor",
     ":kompound",
+    ":kompound-graph",
     ":showcase",
     ":catalog:shared",
     ":catalog:desktopApp",
