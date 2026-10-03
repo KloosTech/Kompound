@@ -187,6 +187,86 @@ public class KGraphState(
         selectedEdges = emptySet()
     }
 
+    /** Nodes whose box touches [world] (world coordinates). */
+    public fun nodesIn(world: Rect): Set<NodeId> = graph.nodes.values.filter { n ->
+        Rect(n.position, sizes[n.id] ?: Size(220f, 120f)).overlaps(world)
+    }.mapTo(LinkedHashSet()) { it.id }
+
+    /** Selects every node whose box touches [world]; with [additive] the hits are added to the selection. */
+    public fun selectInRect(world: Rect, additive: Boolean = false) {
+        val hits = nodesIn(world)
+        selectedEdges = emptySet()
+        selection = if (additive) selection + hits else hits
+    }
+
+    internal fun setSelection(ids: Set<NodeId>) {
+        selectedEdges = emptySet()
+        selection = ids.filterTo(LinkedHashSet()) { it in graph.nodes }
+    }
+
+    /** The selection rectangle being dragged on the canvas, in screen pixels, or `null`. */
+    public var marquee: Rect? by mutableStateOf(null)
+        internal set
+
+    /** Whether Space is held (the editor then pans with a mouse drag instead of selecting). */
+    internal var spaceHeld: Boolean = false
+
+    // --- copy, paste, duplicate -------------------------------------------------------------------------------
+
+    private var clipboard: GraphClipboard? by mutableStateOf(null)
+
+    /** Whether [paste] has something to paste. */
+    public val canPaste: Boolean get() = clipboard != null
+
+    /** Remembers the selected nodes and the wires between them. */
+    public fun copySelection() {
+        if (selection.isEmpty()) return
+        val nodes = graph.nodes.values.filter { it.id in selection }
+        val edges = graph.edges.values.filter { it.from.node in selection && it.to.node in selection }
+        clipboard = GraphClipboard(nodes, edges)
+    }
+
+    /**
+     * Pastes the copied nodes (and the wires between them) as new nodes, shifted by [offset] world units, and selects them.
+     * Ids get a numeric suffix so they stay unique. One undo step.
+     */
+    public fun paste(offset: Offset = Offset(32f, 32f)) {
+        val board = clipboard ?: return
+        insertCopies(board.nodes, board.edges, offset)
+    }
+
+    /** Copies and pastes the selection in one go (the clipboard is left alone). */
+    public fun duplicateSelection(offset: Offset = Offset(32f, 32f)) {
+        if (selection.isEmpty()) return
+        val nodes = graph.nodes.values.filter { it.id in selection }
+        val edges = graph.edges.values.filter { it.from.node in selection && it.to.node in selection }
+        insertCopies(nodes, edges, offset)
+    }
+
+    private fun insertCopies(nodes: List<GraphNode>, edges: List<tech.kloos.kompound.graph.model.Edge>, offset: Offset) {
+        val taken = graph.nodes.keys.mapTo(HashSet()) { it.value }
+        val renamed = HashMap<NodeId, NodeId>()
+        for (n in nodes) {
+            val base = n.id.value.replace(Regex("_\\d+$"), "")
+            var i = 2
+            while ("${base}_$i" in taken) i++
+            val id = NodeId("${base}_$i")
+            taken += id.value
+            renamed[n.id] = id
+        }
+        val commands = ArrayList<GraphCommand>()
+        for (n in nodes) commands += GraphCommand.AddNode(n.copy(id = renamed.getValue(n.id), position = n.position + offset))
+        for (e in edges) {
+            val from = PortRef(renamed.getValue(e.from.node), e.from.port)
+            val to = PortRef(renamed.getValue(e.to.node), e.to.port)
+            commands += GraphCommand.Connect(tech.kloos.kompound.graph.model.Edge(tech.kloos.kompound.graph.model.EdgeId("$from->$to"), from, to))
+        }
+        if (commands.isEmpty()) return
+        execute(GraphCommand.Batch(commands, "Paste"))
+        selectedEdges = emptySet()
+        selection = renamed.values.toSet()
+    }
+
     // --- dragging nodes -----------------------------------------------------------------------------------------
 
     private var dragRaw: Offset = Offset.Zero
@@ -332,6 +412,8 @@ public class KGraphState(
         return connect(w.from, target)
     }
 }
+
+private class GraphClipboard(val nodes: List<GraphNode>, val edges: List<tech.kloos.kompound.graph.model.Edge>)
 
 /** Remembers a [KGraphState] with the given starting graph; pan and zoom survive configuration changes (the graph does not: persist it yourself). */
 @Composable

@@ -168,10 +168,11 @@ fun DemoScope.KNodeGraphDemo() {
             KButton({ add("display") }, variant = KButtonVariant.Tonal) { KText("+ Display") }
             KButton({ state.undo() }, variant = KButtonVariant.Outlined, enabled = state.canUndo) { KText("Undo") }
             KButton({ state.redo() }, variant = KButtonVariant.Outlined, enabled = state.canRedo) { KText("Redo") }
+            KButton({ state.duplicateSelection() }, variant = KButtonVariant.Outlined, enabled = state.selection.isNotEmpty()) { KText("Duplicate") }
             KButton({ state.fitView() }, variant = KButtonVariant.Outlined) { KText("Fit") }
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
-        KText("Drag the title bar to move a node, drag from a port to wire, drag the background to pan, scroll to zoom, Delete removes, Ctrl or Cmd+Z undoes, F fits.")
+        KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
         KNodeGraph(
             state,
             Modifier.fillMaxWidth().height(520.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),

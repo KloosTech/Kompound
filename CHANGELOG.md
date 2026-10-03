@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-- New module `kompound-graph` (Experimental): node graph framework. `KNodeGraph` (pannable, zoomable canvas), `KNode` with typed ports, wires with bezier, straight or step shapes, drag to move and to connect, node and edge selection, undo/redo, keyboard basics; pure model (`Graph`, `ConnectionPolicy`, `GraphCommand`, `GraphDocument`). Design: docs/adr/0004-node-graph.md.
+- New module `kompound-graph` (Experimental): node graph framework. `KNodeGraph` (pannable, zoomable canvas), `KNode` with typed ports, wires with bezier, straight or step shapes, drag to move and to connect, node and edge selection, undo/redo, keyboard basics; pure model (`Graph`, `ConnectionPolicy`, `GraphCommand`, `GraphDocument`). Multi-select: rectangle selection (mouse drag, or long-press on touch), Shift/Ctrl/Cmd+click, move and delete together, copy, paste and duplicate with wires between copied nodes. Design: docs/adr/0004-node-graph.md.
 - Catalog (phones): the system back gesture leaves a component's detail view for the list instead of closing the app.
 - Fixed `KSlideToConfirm`: the fill now uses the primary container colour so the handle stays visible on it, the hint fades more slowly, and a new drag cancels a running spring-back or confirm animation instead of competing with it.
 - `KSegmentedControl`: the selection highlight is now a pill that slides to the newly selected segment (new `indicatorStyle` parameter); it used to jump. A `selected { background }` in `segmentStyle` is drawn over the pill and does not animate.

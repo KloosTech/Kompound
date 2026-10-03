@@ -2,8 +2,20 @@ package tech.kloos.kompound.graph
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculateCentroidSize
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.input.pointer.positionChanged
+import kotlin.math.abs
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.style.MutableStyleState
@@ -32,6 +44,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -57,7 +70,12 @@ import kotlin.math.roundToInt
 /**
  * A pannable, zoomable canvas of [GraphNode]s joined by wires. Drag the background to pan, use the wheel or pinch to zoom,
  * drag a node by its title bar, drag from a port to another port to connect them. Delete removes the selection;
- * Ctrl or Cmd with Z or Shift+Z undoes and redoes; Ctrl or Cmd+A selects everything; Escape cancels a wire.
+ * Ctrl or Cmd with Z or Shift+Z undoes and redoes; Ctrl or Cmd+A selects everything; Ctrl or Cmd with C, V, D copies, pastes and
+ * duplicates the selection; Escape cancels a wire.
+ *
+ * Selecting: click a node, Shift/Ctrl/Cmd+click adds or removes it, and dragging on the background with the mouse draws a selection
+ * rectangle (hold Shift to add to the selection). Panning then uses the middle or right mouse button, Space+drag, or one finger on a
+ * touch screen; on touch, press and hold on the background, then drag to select.
  *
  * What the editor shows is [KGraphState.graph]; what a node looks like is up to [nodeContent], normally a [KNode].
  * Each node is composed once in world space; panning and zooming only move a graphics layer, so they do not recompose nodes.
@@ -107,6 +125,10 @@ public fun KNodeGraph(
                 .focusRequester(focus)
                 .focusable()
                 .semantics { contentDescription = summary }
+                .onPreviewKeyEvent { event ->
+                    if (event.key == Key.Spacebar) { state.spaceHeld = event.type == KeyEventType.KeyDown }
+                    false
+                }
                 .onKeyEvent { event -> handleKey(state, event) }
                 .pointerInput(state) {
                     detectTapGestures { position ->
@@ -124,12 +146,7 @@ public fun KNodeGraph(
                         if (hit != null) state.selectEdge(hit.first) else state.clearSelection()
                     }
                 }
-                .pointerInput(state) {
-                    detectTransformGestures(panZoomLock = false) { centroid, pan, zoom, _ ->
-                        state.viewport.panBy(pan)
-                        if (zoom != 1f) state.viewport.zoomBy(zoom, centroid)
-                    }
-                }
+                .pointerInput(state) { canvasGestures(state) }
                 .pointerInput(state) {
                     awaitPointerEventScope {
                         while (true) {
@@ -199,6 +216,14 @@ public fun KNodeGraph(
                 }
                 NodeLayer(state, nodeContent)
             }
+            val marquee = state.marquee
+            if (marquee != null) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val rect = state.marquee ?: return@Canvas
+                    drawRect(scheme.primary.copy(alpha = 0.12f), rect.topLeft, rect.size)
+                    drawRect(scheme.primary, rect.topLeft, rect.size, style = Stroke(width = 1.dp.toPx()))
+                }
+            }
         }
     }
 }
@@ -235,7 +260,103 @@ private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.K
         command && event.key == Key.Z -> { if (event.isShiftPressed) state.redo() else state.undo(); true }
         command && event.key == Key.Y -> { state.redo(); true }
         command && event.key == Key.A -> { state.selectAll(); true }
+        command && event.key == Key.C -> { state.copySelection(); true }
+        command && event.key == Key.V -> { state.paste(); true }
+        command && event.key == Key.D -> { state.duplicateSelection(); true }
         event.key == Key.F && !command -> { state.fitView(); true }
         else -> false
+    }
+}
+
+/**
+ * Pointer handling of the canvas background. A primary-button mouse drag draws a selection rectangle; a touch drag, a
+ * middle/right-button drag or Space+drag pans, two fingers pan and pinch-zoom, and a long press followed by a drag on
+ * touch selects like the mouse. Moves that a node or port already consumed are left alone.
+ */
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.canvasGestures(state: KGraphState) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val mouse = down.type == PointerType.Mouse
+        val primary = currentEvent.buttons.isPrimaryPressed
+        val additive = currentEvent.isAdditive()
+        when {
+            mouse && primary && !state.spaceHeld -> marqueeDrag(state, down, additive)
+            mouse -> drag(down.id) { change ->
+                state.viewport.panBy(change.positionChange())
+                change.consume()
+            }
+            else -> {
+                // Touch: moving pans (or pinches), holding still for the long-press time starts a selection rectangle.
+                var firstMove: androidx.compose.ui.input.pointer.PointerEvent? = null
+                var cancelled = false
+                val held = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.changes.any { it.isConsumed }) { cancelled = true; return@withTimeoutOrNull false }
+                        if (event.changes.none { it.pressed }) { cancelled = true; return@withTimeoutOrNull false }
+                        val moved = event.changes.any { (it.position - it.previousPosition).getDistance() > 0f && (it.position - down.position).getDistance() > viewConfiguration.touchSlop }
+                        if (event.changes.count { it.pressed } > 1 || moved) { firstMove = event; return@withTimeoutOrNull false }
+                    }
+                    @Suppress("UNREACHABLE_CODE") true
+                }
+                when {
+                    held == null -> marqueeDrag(state, down, additive = false)
+                    !cancelled && firstMove != null -> panZoom(state, firstMove, pastSlop = true)
+                }
+            }
+        }
+    }
+}
+
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.marqueeDrag(state: KGraphState, down: androidx.compose.ui.input.pointer.PointerInputChange, additive: Boolean) {
+    val start = down.position
+    var started = false
+    val before = state.selection
+    drag(down.id) { change ->
+        if (change.isConsumed && !started) return@drag
+        val distance = (change.position - start).getDistance()
+        if (!started && distance < viewConfiguration.touchSlop) return@drag
+        started = true
+        val rect = androidx.compose.ui.geometry.Rect(start, change.position).let {
+            androidx.compose.ui.geometry.Rect(minOf(it.left, it.right), minOf(it.top, it.bottom), maxOf(it.left, it.right), maxOf(it.top, it.bottom))
+        }
+        state.marquee = rect
+        val a = state.viewport.screenToWorld(rect.topLeft)
+        val b = state.viewport.screenToWorld(rect.bottomRight)
+        val hits = state.nodesIn(androidx.compose.ui.geometry.Rect(minOf(a.x, b.x), minOf(a.y, b.y), maxOf(a.x, b.x), maxOf(a.y, b.y)))
+        state.setSelection(if (additive) before + hits else hits)
+        change.consume()
+    }
+    state.marquee = null
+}
+
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.panZoom(
+    state: KGraphState,
+    initial: androidx.compose.ui.input.pointer.PointerEvent?,
+    pastSlop: Boolean,
+) {
+    var past = pastSlop
+    var zoomAccumulator = 1f
+    var panAccumulator = Offset.Zero
+    val slop = viewConfiguration.touchSlop
+    var event = initial ?: awaitPointerEvent()
+    while (true) {
+        if (event.changes.any { it.isConsumed }) break
+        val zoomChange = event.calculateZoom()
+        val panChange = event.calculatePan()
+        val centroid = event.calculateCentroid(useCurrent = false)
+        if (!past) {
+            zoomAccumulator *= zoomChange
+            panAccumulator += panChange
+            val zoomMotion = abs(1 - zoomAccumulator) * event.calculateCentroidSize(useCurrent = false)
+            if (zoomMotion > slop || panAccumulator.getDistance() > slop) past = true
+        }
+        if (past) {
+            if (zoomChange != 1f) state.viewport.zoomBy(zoomChange, centroid)
+            state.viewport.panBy(panChange)
+            event.changes.forEach { if (it.positionChanged()) it.consume() }
+        }
+        if (event.changes.none { it.pressed }) break
+        event = awaitPointerEvent()
     }
 }

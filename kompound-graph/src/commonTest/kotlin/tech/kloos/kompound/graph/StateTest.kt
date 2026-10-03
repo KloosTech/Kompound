@@ -286,4 +286,59 @@ class KGraphStateTest {
         assertNull(s.anchorOf(ref("n2", "a")))
         assertNotNull(s.anchorOf(ref("n1", "a")))
     }
+
+    @Test
+    fun rectangleSelectionPicksNodesWhoseBoxesTouchIt() {
+        val s = state()
+        s.sizes[NodeId("n1")] = Size(200f, 100f); s.sizes[NodeId("n2")] = Size(200f, 100f); s.sizes[NodeId("n3")] = Size(200f, 100f)
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), s.nodesIn(Rect(150f, 20f, 350f, 60f)))
+        s.selectInRect(Rect(150f, 20f, 350f, 60f))
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), s.selection)
+        s.selectInRect(Rect(650f, 0f, 700f, 10f), additive = true)
+        assertEquals(setOf(NodeId("n1"), NodeId("n2"), NodeId("n3")), s.selection)
+        s.selectInRect(Rect(1000f, 1000f, 1100f, 1100f))
+        assertTrue(s.selection.isEmpty())
+    }
+
+    @Test
+    fun duplicatingCopiesNodesAndTheWiresBetweenThemOnly() {
+        val s = state()
+        s.connect(ref("n1", "out"), ref("n2", "a"))
+        s.connect(ref("n2", "out"), ref("n3", "a"))
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        s.duplicateSelection(Offset(10f, 20f))
+        assertEquals(5, s.graph.nodes.size)
+        val copies = s.selection
+        assertEquals(setOf(NodeId("n1_2"), NodeId("n2_2")), copies, "the copies end up selected")
+        assertEquals(Offset(10f, 20f), s.graph.node(NodeId("n1_2"))!!.position)
+        assertEquals(Offset(310f, 20f), s.graph.node(NodeId("n2_2"))!!.position)
+        assertTrue(s.graph.edges.values.any { it.from == ref("n1_2", "out") && it.to == ref("n2_2", "a") }, "inner wire copied")
+        assertEquals(3 + 0, s.graph.edges.size - 0 - 0 + 0 - 0 + 0, "originals 2 + one copied wire")
+        assertFalse(s.graph.edges.values.any { it.from.node == NodeId("n2_2") && it.to.node == NodeId("n3") }, "wires leaving the selection are not copied")
+        s.undo()
+        assertEquals(3, s.graph.nodes.size)
+        assertEquals(2, s.graph.edges.size)
+    }
+
+    @Test
+    fun pasteUsesTheClipboardAndKeepsIdsUnique() {
+        val s = state()
+        assertFalse(s.canPaste)
+        s.paste()
+        assertEquals(3, s.graph.nodes.size)
+        s.select(NodeId("n1"))
+        s.copySelection()
+        assertTrue(s.canPaste)
+        s.paste(); s.paste()
+        assertEquals(setOf("n1", "n2", "n3", "n1_2", "n1_3"), s.graph.nodes.keys.map { it.value }.toSet())
+        assertEquals(setOf(NodeId("n1_3")), s.selection)
+    }
+
+    @Test
+    fun copyingNothingKeepsTheOldClipboard() {
+        val s = state()
+        s.select(NodeId("n1")); s.copySelection()
+        s.clearSelection(); s.copySelection()
+        assertTrue(s.canPaste)
+    }
 }

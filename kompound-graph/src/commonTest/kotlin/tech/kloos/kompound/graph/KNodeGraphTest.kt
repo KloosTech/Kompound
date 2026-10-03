@@ -13,6 +13,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.down
+import androidx.compose.ui.test.moveTo
+import androidx.compose.ui.test.up
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -254,5 +257,111 @@ class KNodeGraphTest {
         assertTrue(state.anchorOf(ref("m60", "out")) != null)
         state.viewport.panBy(Offset(-500f, -300f))
         waitForIdle()
+    }
+
+    @Test
+    fun draggingTheBackgroundWithTheMouseSelectsNodesInsideTheRectangle() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        onRoot().performMouseInput { moveTo(Offset(20f, 20f)); press(); moveTo(Offset(150f, 100f)); moveTo(Offset(300f, 250f)); release() }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1")), state.selection)
+        assertEquals(Offset.Zero, state.viewport.offset, "a mouse drag on the background selects, it does not pan")
+        assertTrue(state.marquee == null)
+    }
+
+    @Test
+    fun theRectangleCanCoverSeveralNodesAndShiftAddsToTheSelection() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        onRoot().performMouseInput { moveTo(Offset(20f, 20f)); press(); moveTo(Offset(700f, 400f)); release() }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), state.selection)
+        state.select(NodeId("n1"))
+        onRoot().performKeyInput { keyDown(Key.ShiftLeft) }
+        onRoot().performMouseInput { moveTo(Offset(420f, 20f)); press(); moveTo(Offset(800f, 300f)); release() }
+        onRoot().performKeyInput { keyUp(Key.ShiftLeft) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), state.selection, "shift keeps the existing selection")
+    }
+
+    @Test
+    fun shiftClickTogglesNodesInTheSelection() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        onNodeWithTag("n1").performTouchInput { click(Offset(60f, 14f)) }
+        onRoot().performKeyInput { keyDown(Key.ShiftLeft) }
+        onNodeWithTag("n2").performMouseInput { moveTo(Offset(60f, 14f)); click() }
+        onRoot().performKeyInput { keyUp(Key.ShiftLeft) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), state.selection)
+        onRoot().performKeyInput { keyDown(Key.ShiftLeft) }
+        onNodeWithTag("n1").performMouseInput { moveTo(Offset(60f, 14f)); click() }
+        onRoot().performKeyInput { keyUp(Key.ShiftLeft) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n2")), state.selection)
+    }
+
+    @Test
+    fun draggingOneOfSeveralSelectedNodesMovesThemAll() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        state.selectAll()
+        onNodeWithTag("n1").performTouchInput { swipe(Offset(60f, 14f), Offset(60f, 64f), durationMillis = 200) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), state.selection)
+        assertEquals(100f, state.graph.node(NodeId("n1"))!!.position.y, 3f)
+        assertEquals(130f, state.graph.node(NodeId("n2"))!!.position.y, 3f)
+        state.undo()
+        assertEquals(Offset(50f, 50f), state.graph.node(NodeId("n1"))!!.position)
+        assertEquals(Offset(450f, 80f), state.graph.node(NodeId("n2"))!!.position)
+    }
+
+    @Test
+    fun aLongPressOnTouchStartsARectangleInsteadOfPanning() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        onRoot().performTouchInput { down(Offset(20f, 20f)) }
+        mainClock.advanceTimeBy(800)
+        onRoot().performTouchInput { moveTo(Offset(150f, 100f)); moveTo(Offset(300f, 250f)); up() }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1")), state.selection)
+        assertEquals(Offset.Zero, state.viewport.offset)
+    }
+
+    @Test
+    fun holdingSpaceTurnsAMouseDragIntoAPan() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { keyDown(Key.Spacebar) }
+        onRoot().performMouseInput { moveTo(Offset(600f, 450f)); press(); moveTo(Offset(650f, 470f)); moveTo(Offset(700f, 490f)); release() }
+        canvas.performKeyInput { keyUp(Key.Spacebar) }
+        waitForIdle()
+        assertTrue(state.viewport.offset.x > 60f, "offset ${state.viewport.offset}")
+        assertTrue(state.selection.isEmpty())
+    }
+
+    @Test
+    fun copyPasteAndDuplicateShortcuts() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        state.select(NodeId("n1"))
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); pressKey(Key.C); pressKey(Key.V); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(3, state.graph.nodes.size)
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); pressKey(Key.D); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(4, state.graph.nodes.size)
     }
 }
