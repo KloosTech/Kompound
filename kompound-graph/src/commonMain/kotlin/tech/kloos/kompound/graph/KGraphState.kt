@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,7 +55,7 @@ public class KWireDraft(
  * @param initial The starting graph.
  * @param policy Which ports may be connected.
  * @param viewport Pan and zoom.
- * @param gridStep Snap step in world units for dragged nodes; `0` turns snapping off.
+ * @param gridStep Initial snap step in world units for dragged nodes; `0` turns snapping off.
  * @param wireSnapRadius How close (world units) a dragged wire must come to a port to snap to it.
  * @param maxHistory Undo steps kept.
  */
@@ -63,11 +64,14 @@ public class KGraphState(
     initial: Graph = Graph.Empty,
     policy: ConnectionPolicy = ConnectionPolicy(),
     public val viewport: KViewportState = KViewportState(),
-    public val gridStep: Float = 0f,
+    gridStep: Float = 0f,
     public val wireSnapRadius: Float = 28f,
     maxHistory: Int = 200,
 ) {
     private val document = GraphDocument(initial, policy, maxHistory)
+
+    /** Snap step in world units for dragged nodes; `0` turns snapping off. May be changed at any time. */
+    public var gridStep: Float by mutableFloatStateOf(gridStep)
 
     /** The connection rules in force. */
     public val policy: ConnectionPolicy get() = document.policy
@@ -259,8 +263,9 @@ public class KGraphState(
     /** Bumped when [layer] changes so ports re-report their anchors. */
     internal var layerTick: Int by mutableIntStateOf(0)
 
-    /** Size of the canvas in pixels. */
-    internal var canvasSize: Size = Size.Zero
+    /** Size of the canvas in pixels; [Size.Zero] before it was laid out. */
+    public var canvasSize: Size = Size.Zero
+        internal set
 
     /** Records where the centre of a port is, from its layout coordinates. */
     internal fun reportPort(ref: PortRef, coordinates: LayoutCoordinates) {

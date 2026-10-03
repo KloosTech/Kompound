@@ -65,6 +65,7 @@ import kotlin.math.roundToInt
  * @param state The editor state ([rememberKGraphState]).
  * @param modifier Modifier applied to the canvas.
  * @param edgeShape Look of the wires.
+ * @param fitOnFirstLayout Zooms and pans once, when the nodes were first measured, so that all of them are visible.
  * @param showGrid Draws a dotted grid that moves with the canvas.
  * @param gridSpacing Distance between the dots in world units.
  * @param style Overrides merged over [KNodeGraphDefaults.style].
@@ -76,6 +77,7 @@ public fun KNodeGraph(
     state: KGraphState,
     modifier: Modifier = Modifier,
     edgeShape: KEdgeShape = KEdgeShape.Bezier,
+    fitOnFirstLayout: Boolean = false,
     showGrid: Boolean = true,
     gridSpacing: Dp = KNodeGraphDefaults.GridSpacing,
     style: Style = Style,
@@ -88,6 +90,12 @@ public fun KNodeGraph(
     val scheme = MaterialTheme.colorScheme
     val palette = KNodeGraphDefaults.portPalette()
     val density = LocalDensity.current
+    if (fitOnFirstLayout) {
+        val measured = state.graph.nodes.isNotEmpty() && state.graph.nodes.keys.all { it in state.sizes }
+        androidx.compose.runtime.LaunchedEffect(measured, state.canvasSize) {
+            if (measured && state.canvasSize != androidx.compose.ui.geometry.Size.Zero) state.fitView()
+        }
+    }
     val summary = "Node graph, ${state.graph.nodes.size} nodes, ${state.graph.edges.size} connections"
 
     CompositionLocalProvider(LocalKGraphState provides state) {
