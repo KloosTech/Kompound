@@ -73,6 +73,8 @@ import tech.kloos.kompound.graph.model.GroupId
 import tech.kloos.kompound.graph.model.Subgraphs
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
+import tech.kloos.kompound.graph.model.PortSpec
+import tech.kloos.kompound.graph.model.PortRef
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
@@ -100,6 +102,7 @@ import kotlin.math.roundToInt
  * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
  * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
  * @param virtualizeAbove Above this many nodes only the nodes near the visible area are composed (and wires that cannot be seen are not drawn), so graphs with thousands of nodes stay fast; selected and dragged nodes always stay. `Int.MAX_VALUE` turns it off.
+ * @param portColor Overrides the colour of a port's handle (return null for the default, which depends on the port's type); use it to show a port's live value.
  * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
  * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
  */
@@ -116,6 +119,7 @@ public fun KNodeGraph(
     overlay: (@Composable BoxScope.() -> Unit)? = null,
     nodeTypes: List<KNodeType> = emptyList(),
     virtualizeAbove: Int = 150,
+    portColor: ((port: PortRef, spec: PortSpec) -> Color?)? = null,
     edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
@@ -142,7 +146,7 @@ public fun KNodeGraph(
     androidx.compose.runtime.LaunchedEffect(state.scopePath, state.canvasSize, state.sizes.size) { state.applyPendingFit() }
     val summary = "Node graph, ${state.graph.nodes.size} nodes, ${state.graph.edges.size} connections"
 
-    CompositionLocalProvider(LocalKGraphState provides state) {
+    CompositionLocalProvider(LocalKGraphState provides state, LocalPortColor provides portColor) {
         Box(
             modifier
                 .clipToBounds()
@@ -477,3 +481,6 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.pan
         event = awaitPointerEvent()
     }
 }
+
+/** Optional per-port colour override set by [KNodeGraph]'s `portColor` parameter. */
+internal val LocalPortColor = androidx.compose.runtime.staticCompositionLocalOf<((PortRef, PortSpec) -> Color?)?> { null }

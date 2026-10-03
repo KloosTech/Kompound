@@ -39,7 +39,7 @@ import tech.kloos.kompound.graph.model.PortSpec
 internal fun KPortHandle(ref: PortRef, spec: PortSpec, modifier: Modifier = Modifier) {
     val state = LocalKGraphState.current ?: error("KNode must be used inside KNodeGraph")
     val colors = KNodeGraphDefaults.portPalette()
-    val colour = colors[KNodeGraphDefaults.paletteIndex(spec.type, colors.size)]
+    val colour = LocalPortColor.current?.invoke(ref, spec) ?: colors[KNodeGraphDefaults.paletteIndex(spec.type, colors.size)]
     val track = MaterialTheme.colorScheme.surface
     val dim = MaterialTheme.colorScheme.outlineVariant
     val coords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
