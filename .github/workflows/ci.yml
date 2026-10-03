@@ -46,6 +46,7 @@ jobs:
           ./gradlew
           :kompound-processor:test
           :kompound:desktopTest
+          :kompound-graph:desktopTest
           :catalog:shared:desktopTest
           compileAndroidMain
           compileKotlinWasmJs
@@ -74,6 +75,7 @@ jobs:
         run: >
           ./gradlew
           :kompound:iosSimulatorArm64Test
+          :kompound-graph:iosSimulatorArm64Test
           :catalog:shared:iosSimulatorArm64Test
           compileKotlinIosArm64
           --stacktrace

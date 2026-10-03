@@ -42,6 +42,7 @@ public object KompoundCategory {
     public const val Overlays: String = "Overlays"
     public const val Data: String = "Data"
     public const val Animation: String = "Animation"
+    public const val Graph: String = "Graph"
     public const val Utilities: String = "Utilities"
 }
 

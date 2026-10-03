@@ -1,0 +1,27 @@
+[
+  {
+    "label": "kompound: android apk",
+    "command": "./gradlew :catalog:androidApp:assembleDebug && echo && ls -1 catalog/androidApp/build/outputs/apk/debug/*.apk",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "kompound: android install",
+    "command": "./gradlew :catalog:androidApp:assembleDebug && adb install -r catalog/androidApp/build/outputs/apk/debug/*.apk",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "kompound: desktop run",
+    "command": "./gradlew :catalog:desktopApp:run",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "kompound: web dev",
+    "command": "./gradlew :catalog:webApp:wasmJsBrowserDevelopmentRun --continuous",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always"
+  }
+]

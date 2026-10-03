@@ -76,4 +76,4 @@ cd samples/consumer && ./gradlew desktopTest     # consume them like an external
 ./gradlew :catalog:androidApp:assembleRelease    # APK (debug-signed without ANDROID_KEYSTORE_PATH)
 ```
 
-Published artifacts: `tech.kloos.kompound:kompound`, `kompound-annotations`, `kompound-demo`, `kompound-processor`, `kompound-gradle-plugin` (plus plugin markers `tech.kloos.kompound.demos` and `tech.kloos.kompound.catalog`).
+Published artifacts: `tech.kloos.kompound:kompound`, `kompound-annotations`, `kompound-demo`, `kompound-graph`, `kompound-processor`, `kompound-gradle-plugin` (plus plugin markers `tech.kloos.kompound.demos` and `tech.kloos.kompound.catalog`).
