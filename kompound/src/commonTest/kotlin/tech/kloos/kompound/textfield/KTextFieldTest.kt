@@ -29,6 +29,10 @@ import tech.kloos.kompound.SquareIcon
 import tech.kloos.kompound.buttons.ButtonTestScheme
 import tech.kloos.kompound.containsColor
 import tech.kloos.kompound.icon.KIcon
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -179,5 +183,19 @@ class KTextFieldTest {
         onNode(hasSetTextAction()).performTextInput("3")   // inserted at the cursor, wherever that is
         assertEquals(3, text.length)
         assertTrue(text.all { it.isDigit() } && '3' in text, "was $text")
+    }
+
+    @Test
+    fun theEmptyFieldsPlaceholderIsCentredVertically() = runComposeUiTest {
+        setContent {
+            androidx.compose.material3.MaterialTheme(androidx.compose.material3.lightColorScheme()) {
+                KTextField("", {}, androidx.compose.ui.Modifier.testTag("f").width(300.dp), placeholder = "Add a title")
+            }
+        }
+        val img = onNodeWithTag("f").captureToImage().toPixelMap()
+        val bg = img[100, img.height / 2]
+        val rows = (4 until img.height - 4).filter { y -> (20 until 200).any { x -> abs(img[x, y].red - bg.red) > 0.25f } }
+        val centre = (rows.first() + rows.last()) / 2.0
+        assertTrue(abs(centre - img.height / 2.0) <= 1.5, "placeholder text spans rows ${rows.first()}..${rows.last()} in a field ${img.height}px tall")
     }
 }

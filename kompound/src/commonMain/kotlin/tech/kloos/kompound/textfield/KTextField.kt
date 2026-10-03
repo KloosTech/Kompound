@@ -138,7 +138,8 @@ public fun KTextField(
                         interactionSource = source,
                         cursorBrush = SolidColor(if (isError) scheme.error else scheme.primary),
                         decorationBox = { inner ->
-                            Box {
+                            // Centred so the placeholder lines up with the text and the caret even when their line boxes differ in height.
+                            Box(contentAlignment = Alignment.CenterStart) {
                                 if (value.isEmpty() && placeholder != null) {
                                     KText(placeholder, style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1)
                                 }

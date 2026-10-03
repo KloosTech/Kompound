@@ -21,6 +21,8 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.runComposeUiTest
 import tech.kloos.kompound.buttons.ButtonTestScheme
+import kotlin.math.abs
+import kotlin.test.assertTrue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -141,5 +143,18 @@ class KInlineEditTest {
         waitForIdle()
         onNodeWithContentDescription("Speichern").assertExists()
         onNodeWithContentDescription("Abbrechen").assertExists()
+    }
+
+    @Test
+    fun saveAndCancelButtonsAreCentredOnAOneLineField() = runComposeUiTest {
+        setContent { MaterialTheme(s) { KInlineEdit("Ada", {}) } }
+        onNode(viewButton).performClick()
+        waitForIdle()
+        val field = onNode(hasSetTextAction()).fetchSemanticsNode().boundsInRoot
+        val save = onNodeWithContentDescription("Save").fetchSemanticsNode().boundsInRoot
+        val cancel = onNodeWithContentDescription("Cancel").fetchSemanticsNode().boundsInRoot
+        // the field's own box is a little smaller than its outline, so compare with the row: both buttons share one centre
+        assertEquals(save.center.y, cancel.center.y, 0.5f)
+        assertTrue(abs(save.center.y - field.center.y) <= 2f, "buttons centre ${save.center.y}, field centre ${field.center.y}")
     }
 }
