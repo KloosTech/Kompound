@@ -557,4 +557,31 @@ class KGraphGroupStateTest {
         val visible = s.viewport.visibleWorld(s.canvasSize)
         assertTrue(visible.contains(s.collapsedRect(id)!!.topLeft))
     }
+
+    @Test
+    fun autoLayoutArrangesInOneUndoStepAndRespectsTheSelection() {
+        val s = KGraphState(Graph.of(listOf(math("a", Offset(900f, 700f)), math("b", Offset(0f, 0f)), math("c", Offset(300f, 800f)), math("far", Offset(5000f, 5000f))),
+            listOf(tech.kloos.kompound.graph.model.Edge(EdgeId("e1"), ref("a", "out"), ref("b", "a")), tech.kloos.kompound.graph.model.Edge(EdgeId("e2"), ref("b", "out"), ref("c", "a")))))
+        for (n in s.graph.nodes.keys) s.sizes[n] = Size(200f, 100f)
+        assertTrue(s.autoLayout())
+        val a = s.graph.node(NodeId("a"))!!.position; val b = s.graph.node(NodeId("b"))!!.position; val c = s.graph.node(NodeId("c"))!!.position
+        assertTrue(a.x < b.x && b.x < c.x, "a -> b -> c runs left to right: $a $b $c")
+        assertFalse(s.autoLayout(), "a second run changes nothing")
+        s.undo()
+        assertEquals(Offset(900f, 700f), s.graph.node(NodeId("a"))!!.position)
+        assertFalse(s.canUndo)
+        s.select(NodeId("a")); s.select(NodeId("b"), additive = true)
+        s.autoLayout(selectedOnly = true)
+        assertEquals(Offset(300f, 800f), s.graph.node(NodeId("c"))!!.position, "unselected nodes stay")
+    }
+
+    @Test
+    fun autoLayoutLeavesCollapsedGroupMembersAlone() {
+        val s = state()
+        s.sizes.putAll(listOf("n1", "n2", "n3").associate { NodeId(it) to Size(200f, 100f) })
+        s.select(NodeId("n1")); s.groupSelection(); s.toggleCollapsed(s.graph.groups.keys.single())
+        val before = s.graph.node(NodeId("n1"))!!.position
+        s.autoLayout()
+        assertEquals(before, s.graph.node(NodeId("n1"))!!.position)
+    }
 }

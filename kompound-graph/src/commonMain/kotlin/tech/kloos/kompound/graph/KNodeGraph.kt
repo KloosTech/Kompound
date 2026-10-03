@@ -75,7 +75,7 @@ import kotlin.math.roundToInt
  * A pannable, zoomable canvas of [GraphNode]s joined by wires. Drag the background to pan, use the wheel or pinch to zoom,
  * drag a node by its title bar, drag from a port to another port to connect them. Delete removes the selection;
  * Ctrl or Cmd with Z or Shift+Z undoes and redoes; Ctrl or Cmd+A selects everything; Ctrl or Cmd with C, V, D copies, pastes and
- * duplicates the selection; Escape cancels a wire.
+ * duplicates the selection; L arranges the graph (the selection, if several nodes are selected); Escape cancels a wire.
  *
  * Selecting: click a node, Shift/Ctrl/Cmd+click adds or removes it, and dragging on the background with the mouse draws a selection
  * rectangle (hold Shift to add to the selection). Panning then uses the middle or right mouse button, Space+drag, or one finger on a
@@ -332,6 +332,7 @@ private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.K
         command && event.key == Key.D -> { state.duplicateSelection(); true }
         command && event.key == Key.G -> { if (event.isShiftPressed) state.ungroupSelection() else state.groupSelection(); true }
         event.key == Key.F && !command -> { state.fitView(); true }
+        event.key == Key.L && !command -> { state.autoLayout(selectedOnly = true, fit = false); true }
         else -> false
     }
 }

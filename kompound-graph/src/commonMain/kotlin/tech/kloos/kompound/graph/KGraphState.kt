@@ -15,6 +15,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Rect
+import tech.kloos.kompound.graph.layout.GraphLayout
+import tech.kloos.kompound.graph.layout.LayoutOptions
 import tech.kloos.kompound.graph.model.ConnectionCheck
 import tech.kloos.kompound.graph.model.ConnectionPolicy
 import tech.kloos.kompound.graph.model.EdgeId
@@ -512,6 +514,23 @@ public class KGraphState(
         val centre = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
         val world = l.localPositionOf(coordinates, centre)
         if (anchors[ref] != world) anchors[ref] = world
+    }
+
+    /**
+     * Arranges the nodes in columns along the direction of the wires (see [GraphLayout]); one undo step.
+     * Nodes inside collapsed groups are left where they are.
+     *
+     * @param selectedOnly Arrange only the selected nodes when at least two are selected.
+     * @param fit Also zoom and pan so the result is fully visible.
+     * @return Whether any node moved.
+     */
+    public fun autoLayout(options: LayoutOptions = LayoutOptions(), selectedOnly: Boolean = false, fit: Boolean = false): Boolean {
+        val visible = graph.nodes.values.filter { !isHidden(it) }.mapTo(LinkedHashSet()) { it.id }
+        val target = if (selectedOnly && selection.size >= 2) selection.filterTo(LinkedHashSet()) { it in visible } else visible
+        val positions = GraphLayout.layered(graph, sizes.toMap(), target, options)
+        val changed = execute(GraphCommand.PlaceNodes(positions))
+        if (fit) fitView()
+        return changed
     }
 
     /** Zooms and pans so every node is visible. */

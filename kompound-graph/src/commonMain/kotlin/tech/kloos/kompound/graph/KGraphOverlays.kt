@@ -125,7 +125,7 @@ private fun miniMapTransform(state: KGraphState, mapSize: Size): MiniMapTransfor
 }
 
 /**
- * A column of buttons for zoom in, zoom out, fit view, undo and redo. Place it with the `overlay` slot of [KNodeGraph].
+ * A column of buttons for zoom in, zoom out, fit view, arrange nodes, undo and redo. Place it with the `overlay` slot of [KNodeGraph].
  *
  * @param state The editor state it controls.
  * @param modifier Modifier applied to the panel.
@@ -138,6 +138,7 @@ public fun KGraphControls(
     zoomInDescription: String = "Zoom in",
     zoomOutDescription: String = "Zoom out",
     fitDescription: String = "Fit view",
+    layoutDescription: String = "Arrange nodes",
     undoDescription: String = "Undo",
     redoDescription: String = "Redo",
     style: Style = Style,
@@ -149,6 +150,7 @@ public fun KGraphControls(
         KIconButton({ state.viewport.zoomBy(1.25f, centre) }, zoomInDescription) { KIcon(GraphIcons.Add, null) }
         KIconButton({ state.viewport.zoomBy(0.8f, centre) }, zoomOutDescription) { KIcon(GraphIcons.Remove, null) }
         KIconButton({ state.fitView() }, fitDescription) { KIcon(GraphIcons.FitScreen, null) }
+        KIconButton({ state.autoLayout(selectedOnly = true, fit = true) }, layoutDescription) { KIcon(GraphIcons.AccountTree, null) }
         KIconButton({ state.undo() }, undoDescription, enabled = state.canUndo) { KIcon(GraphIcons.Undo, null) }
         KIconButton({ state.redo() }, redoDescription, enabled = state.canRedo) { KIcon(GraphIcons.Redo, null) }
     }
@@ -161,6 +163,7 @@ internal object GraphIcons {
     val Add: ImageVector by lazy { icon("add", "M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z") }
     val Remove: ImageVector by lazy { icon("remove", "M19,13H5v-2h14v2z") }
     val FitScreen: ImageVector by lazy { icon("fit_screen", "M17,4h3c1.1,0 2,0.9 2,2v2h-2L20,6h-3L17,4zM4,8L4,6h3L7,4L4,4c-1.1,0 -2,0.9 -2,2v2h2zM20,16v2h-3v2h3c1.1,0 2,-0.9 2,-2v-2h-2zM7,18L4,18v-2L2,16v2c0,1.1 0.9,2 2,2h3v-2zM18,8L6,8v8h12L18,8z") }
+    val AccountTree: ImageVector by lazy { icon("account_tree", "M22,11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z") }
     val Undo: ImageVector by lazy { icon("undo", "M12.5,8c-2.65,0 -5.05,0.99 -6.9,2.6L2,7v9h9l-3.62,-3.62c1.39,-1.16 3.16,-1.88 5.12,-1.88 3.54,0 6.55,2.31 7.6,5.5l2.37,-0.78C21.08,11.03 17.15,8 12.5,8z") }
     val ExpandMore: ImageVector by lazy { icon("expand_more", "M16.59,8.59L12,13.17 7.41,8.59 6,10l6,6 6,-6z") }
     val ChevronRight: ImageVector by lazy { icon("chevron_right", "M10,6L8.59,7.41 13.17,12l-4.58,4.59L10,18l6,-6z") }

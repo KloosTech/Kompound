@@ -193,10 +193,11 @@ fun DemoScope.KNodeGraphDemo() {
             KButton({ state.groupSelection() }, variant = KButtonVariant.Outlined, enabled = state.selection.isNotEmpty()) { KText("Group") }
             KButton({ state.ungroupSelection() }, variant = KButtonVariant.Outlined, enabled = state.selection.any { state.graph.node(it)?.group != null }) { KText("Ungroup") }
             KButton({ state.duplicateSelection() }, variant = KButtonVariant.Outlined, enabled = state.selection.isNotEmpty()) { KText("Duplicate") }
+            KButton({ state.autoLayout(selectedOnly = true, fit = true) }, variant = KButtonVariant.Outlined) { KText("Arrange") }
             KButton({ state.fitView() }, variant = KButtonVariant.Outlined) { KText("Fit") }
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
-        KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Double-click the canvas (or drop a wire on it) for the node menu, double-click a wire to add a reroute. Ctrl or Cmd+G groups the selection (Shift ungroups); drag a group's title bar to move it, use its arrow to collapse it. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
+        KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Double-click the canvas (or drop a wire on it) for the node menu, double-click a wire to add a reroute. Ctrl or Cmd+G groups the selection (Shift ungroups); L (or the Arrange button) lays the graph out in columns; drag a group's title bar to move it, use its arrow to collapse it. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
         KNodeGraph(
             state,
             Modifier.fillMaxWidth().height(520.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
