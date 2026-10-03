@@ -22,6 +22,8 @@ import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphCommand
 import tech.kloos.kompound.graph.model.GraphDocument
 import tech.kloos.kompound.graph.model.GraphNode
+import tech.kloos.kompound.graph.model.GroupId
+import tech.kloos.kompound.graph.model.NodeGroup
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortRef
 import kotlin.math.roundToInt
@@ -166,6 +168,104 @@ public class KGraphState(
         if (old != g) onGraphChange?.invoke(old, g)
     }
 
+    // --- groups --------------------------------------------------------------------------------------------
+
+    /** Whether [node] is hidden because it belongs to a collapsed group. */
+    public fun isHidden(node: GraphNode): Boolean = node.group?.let { graph.group(it)?.collapsed } == true
+
+    /** Frame around the members of [id] (padded, with room for the title bar on top), or `null` for a group without members. */
+    public fun groupBounds(id: GroupId): Rect? {
+        val rects = graph.nodes.values.filter { it.group == id }.map { Rect(positionOf(it), sizes[it.id] ?: Size(220f, 120f)) }
+        if (rects.isEmpty()) return null
+        return Rect(
+            rects.minOf { it.left } - GroupPadding, rects.minOf { it.top } - GroupPadding - GroupHeader,
+            rects.maxOf { it.right } + GroupPadding, rects.maxOf { it.bottom } + GroupPadding,
+        )
+    }
+
+    /** The compact box a collapsed group is drawn as: at the top-left of its expanded frame. */
+    public fun collapsedRect(id: GroupId): Rect? = groupBounds(id)?.let { Rect(it.topLeft, CollapsedSize) }
+
+    /** Wraps the selected nodes in a new group (one undo step). Returns its id, or `null` when nothing is selected. */
+    public fun groupSelection(title: String = "Group"): GroupId? {
+        val members = selection.filter { graph.node(it) != null }
+        if (members.isEmpty()) return null
+        var n = graph.groups.size + 1
+        while (GroupId("group_$n") in graph.groups) n++
+        val id = GroupId("group_$n")
+        val group = NodeGroup(id, title, collapsed = false, color = graph.groups.size % 7)
+        execute(GraphCommand.Batch(listOf(GraphCommand.PutGroup(group), GraphCommand.AssignGroups(members.associateWith { id })), "Group"))
+        return id
+    }
+
+    /** Dissolves the groups of the selected nodes; the nodes stay (one undo step). */
+    public fun ungroupSelection() {
+        val groups = selection.mapNotNull { graph.node(it)?.group }.toSet()
+        if (groups.isNotEmpty()) execute(GraphCommand.Batch(groups.map { GraphCommand.RemoveGroup(it) }, "Ungroup"))
+    }
+
+    /** Dissolves the group [id]; its nodes stay. */
+    public fun ungroup(id: GroupId) {
+        execute(GraphCommand.RemoveGroup(id))
+    }
+
+    /** Collapses or expands the group [id]; its members leave the selection when it collapses. */
+    public fun toggleCollapsed(id: GroupId) {
+        val g = graph.group(id) ?: return
+        execute(GraphCommand.PutGroup(g.copy(collapsed = !g.collapsed)))
+        if (!g.collapsed) setSelection(selection - graph.membersOf(id).toSet())
+    }
+
+    /** Changes the title of the group [id]. */
+    public fun renameGroup(id: GroupId, title: String) {
+        graph.group(id)?.let { execute(GraphCommand.PutGroup(it.copy(title = title))) }
+    }
+
+    /** Selects all members of the group [id]. */
+    public fun selectGroup(id: GroupId) {
+        setSelection(graph.membersOf(id).toSet())
+    }
+
+    /** Starts dragging the whole group [id] (all its members move together). */
+    public fun beginGroupDrag(id: GroupId) {
+        val members = graph.membersOf(id)
+        if (members.isEmpty()) return
+        setSelection(members.toSet())
+        beginNodeDrag(members.first())
+    }
+
+    /** A wire from `from` to `to` with the points the editor draws it between; wires into or out of collapsed groups end on the group's box. */
+    internal class ResolvedEdge(val edge: tech.kloos.kompound.graph.model.Edge, val from: Offset, val to: Offset)
+
+    private fun nextRank(ranks: HashMap<Pair<GroupId, Boolean>, Int>, key: Pair<GroupId, Boolean>): Int {
+        val rank = ranks[key] ?: 0
+        ranks[key] = rank + 1
+        return rank
+    }
+
+    /** Resolves every wire to drawable end points; wires inside one collapsed group are left out. */
+    internal fun resolvedEdges(): List<ResolvedEdge> {
+        val out = ArrayList<ResolvedEdge>(graph.edges.size)
+        val ranks = HashMap<Pair<GroupId, Boolean>, Int>()
+        val rects = HashMap<GroupId, Rect?>()
+        fun collapsedOf(node: NodeId): GroupId? = graph.node(node)?.group?.takeIf { graph.group(it)?.collapsed == true }
+        for (e in graph.edges.values) {
+            val gFrom = collapsedOf(e.from.node)
+            val gTo = collapsedOf(e.to.node)
+            if (gFrom != null && gFrom == gTo) continue
+            val a = if (gFrom == null) anchors[e.from] else rects.getOrPut(gFrom) { collapsedRect(gFrom) }?.let { r ->
+                val rank = nextRank(ranks, gFrom to true)
+                Offset(r.right, r.top + 32f + rank * 14f)
+            }
+            val b = if (gTo == null) anchors[e.to] else rects.getOrPut(gTo) { collapsedRect(gTo) }?.let { r ->
+                val rank = nextRank(ranks, gTo to false)
+                Offset(r.left, r.top + 32f + rank * 14f)
+            }
+            if (a != null && b != null) out += ResolvedEdge(e, a, b)
+        }
+        return out
+    }
+
     // --- selection ----------------------------------------------------------------------------------------------
 
     /** Selects [id]; with [additive] it toggles it in the current selection instead of replacing it. */
@@ -184,7 +284,7 @@ public class KGraphState(
 
     /** Selects every node. */
     public fun selectAll() {
-        selection = graph.nodes.keys.toSet()
+        selection = graph.nodes.values.filter { !isHidden(it) }.mapTo(LinkedHashSet()) { it.id }
         selectedEdges = emptySet()
     }
 
@@ -196,7 +296,7 @@ public class KGraphState(
 
     /** Nodes whose box touches [world] (world coordinates). */
     public fun nodesIn(world: Rect): Set<NodeId> = graph.nodes.values.filter { n ->
-        Rect(n.position, sizes[n.id] ?: Size(220f, 120f)).overlaps(world)
+        !isHidden(n) && Rect(positionOf(n), sizes[n.id] ?: Size(220f, 120f)).overlaps(world)
     }.mapTo(LinkedHashSet()) { it.id }
 
     /** Selects every node whose box touches [world]; with [additive] the hits are added to the selection. */
@@ -262,7 +362,7 @@ public class KGraphState(
             renamed[n.id] = id
         }
         val commands = ArrayList<GraphCommand>()
-        for (n in nodes) commands += GraphCommand.AddNode(n.copy(id = renamed.getValue(n.id), position = n.position + offset))
+        for (n in nodes) commands += GraphCommand.AddNode(n.copy(id = renamed.getValue(n.id), position = n.position + offset, group = null))
         for (e in edges) {
             val from = PortRef(renamed.getValue(e.from.node), e.from.port)
             val to = PortRef(renamed.getValue(e.to.node), e.to.port)
@@ -416,10 +516,8 @@ public class KGraphState(
 
     /** Zooms and pans so every node is visible. */
     public fun fitView(padding: Float = 48f) {
-        val rects = graph.nodes.values.map { n ->
-            val size = sizes[n.id] ?: Size(220f, 120f)
-            Rect(n.position, size)
-        }
+        val rects = graph.nodes.values.filter { !isHidden(it) }.map { n -> Rect(n.position, sizes[n.id] ?: Size(220f, 120f)) } +
+            graph.groups.values.filter { it.collapsed }.mapNotNull { collapsedRect(it.id) }
         if (rects.isEmpty() || canvasSize == Size.Zero) return
         val bounds = Rect(rects.minOf { it.left }, rects.minOf { it.top }, rects.maxOf { it.right }, rects.maxOf { it.bottom })
         viewport.fit(bounds, canvasSize, padding)
@@ -431,7 +529,7 @@ public class KGraphState(
     /** Starts a wire at the port [from]; the pointer starts on the port. */
     public fun beginWire(from: PortRef) {
         val start = anchors[from] ?: return
-        val compatible = graph.nodes.values.flatMap { n -> n.ports.map { PortRef(n.id, it.id) } }
+        val compatible = graph.nodes.values.filter { !isHidden(it) }.flatMap { n -> n.ports.map { PortRef(n.id, it.id) } }
             .filterTo(HashSet()) { it != from && policy.check(graph, from, it) is ConnectionCheck.Allowed }
         wire = KWireDraft(from, start, null, compatible)
     }
@@ -488,6 +586,15 @@ public class KGraphState(
 }
 
 private class GraphClipboard(val nodes: List<GraphNode>, val edges: List<tech.kloos.kompound.graph.model.Edge>)
+
+/** Space around group members inside a frame. */
+internal const val GroupPadding: Float = 24f
+
+/** Height of a group frame's title bar. */
+internal const val GroupHeader: Float = 36f
+
+/** Size of a collapsed group's box. */
+internal val CollapsedSize: Size = Size(220f, 64f)
 
 /** Remembers a [KGraphState] with the given starting graph; pan and zoom survive configuration changes (the graph does not: persist it yourself). */
 @Composable

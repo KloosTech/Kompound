@@ -511,4 +511,100 @@ class KNodeGraphTest {
         assertTrue(redRuns(graph(), dashed = true) >= 3, "dashed wire should break into several dashes")
         assertEquals(1, redRuns(graph(), dashed = false))
     }
+
+    private fun groupedState(): KGraphState {
+        val s = twoNodes()
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        s.groupSelection("Pair")
+        s.clearSelection()
+        return s
+    }
+
+    @Test
+    fun aGroupIsDrawnAsAFrameAroundItsMembersWithATitleBar() = runComposeUiTest {
+        val state = groupedState()
+        show(state)
+        waitForIdle()
+        val frame = onNodeWithContentDescription("Group Pair, 2 nodes, expanded").fetchSemanticsNode().boundsInRoot
+        val n1 = onNodeWithTag("n1").fetchSemanticsNode().boundsInRoot
+        val n2 = onNodeWithTag("n2").fetchSemanticsNode().boundsInRoot
+        assertTrue(frame.left < n1.left && frame.right > n2.right && frame.bottom > n2.bottom, "frame $frame around $n1 and $n2")
+        assertTrue(frame.top < n1.top - 30f, "room for the title bar above the nodes")
+        onNodeWithText("Pair").assertExists()
+    }
+
+    @Test
+    fun collapsingAGroupHidesItsNodesAndTheWiresAttachToTheBox() = runComposeUiTest {
+        val state = groupedState()
+        state.execute(tech.kloos.kompound.graph.model.GraphCommand.AddNode(math("n3", Offset(700f, 300f))))
+        state.connect(ref("n2", "out"), ref("n3", "a"))
+        show(state)
+        waitForIdle()
+        onNodeWithContentDescription("Collapse Pair").performClick()
+        waitForIdle()
+        onNodeWithTag("n1").assertDoesNotExist()
+        onNodeWithTag("n2").assertDoesNotExist()
+        onNodeWithTag("n3").assertExists()
+        onNodeWithContentDescription("Group Pair, 2 nodes, collapsed").assertExists()
+        val box = state.collapsedRect(state.graph.groups.keys.single())!!
+        assertEquals(box.right, state.resolvedEdges().single().from.x)
+        onNodeWithContentDescription("Expand Pair").performClick()
+        waitForIdle()
+        onNodeWithTag("n1").assertExists()
+        state.undo()
+        state.undo()
+        waitForIdle()
+        onNodeWithTag("n1").assertExists()
+    }
+
+    @Test
+    fun draggingTheTitleBarMovesTheWholeGroup() = runComposeUiTest {
+        val state = groupedState()
+        show(state)
+        waitForIdle()
+        val frame = onNodeWithContentDescription("Group Pair, 2 nodes, expanded").fetchSemanticsNode().boundsInRoot
+        onRoot().performTouchInput { swipe(Offset(frame.center.x, frame.top + 18f), Offset(frame.center.x + 60f, frame.top + 58f), durationMillis = 200) }
+        waitForIdle()
+        assertEquals(110f, state.graph.node(NodeId("n1"))!!.position.x, 3f)
+        assertEquals(90f, state.graph.node(NodeId("n1"))!!.position.y, 3f)
+        assertEquals(510f, state.graph.node(NodeId("n2"))!!.position.x, 3f)
+        state.undo()
+        assertEquals(Offset(50f, 50f), state.graph.node(NodeId("n1"))!!.position)
+    }
+
+    @Test
+    fun clickingTheTitleBarSelectsTheMembersAndCtrlGGroupsTheSelection() = runComposeUiTest {
+        val state = groupedState()
+        show(state)
+        waitForIdle()
+        val frame = onNodeWithContentDescription("Group Pair, 2 nodes, expanded").fetchSemanticsNode().boundsInRoot
+        onRoot().performTouchInput { click(Offset(frame.center.x, frame.top + 18f)) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1"), NodeId("n2")), state.selection)
+        state.clearSelection()
+        state.execute(tech.kloos.kompound.graph.model.GraphCommand.AddNode(math("n3", Offset(700f, 300f))))
+        waitForIdle()
+        state.select(NodeId("n3"))
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); pressKey(Key.G); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(2, state.graph.groups.size)
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); keyDown(Key.ShiftLeft); pressKey(Key.G); keyUp(Key.ShiftLeft); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(1, state.graph.groups.size)
+    }
+
+    @Test
+    fun commentNodesAreDrawnByTheEditorAndCanBeMoved() = runComposeUiTest {
+        val state = KGraphState(Graph.of(listOf(commentNode("c1", Offset(100f, 100f), "Remember to normalise"))))
+        show(state)
+        waitForIdle()
+        onNodeWithContentDescription("Comment").assertExists()
+        onNodeWithText("Remember to normalise").assertExists()
+        val note = onNodeWithContentDescription("Comment").fetchSemanticsNode().boundsInRoot
+        onRoot().performTouchInput { swipe(Offset(note.center.x, note.top + 5f), Offset(note.center.x + 80f, note.top + 45f), durationMillis = 200) }
+        waitForIdle()
+        assertEquals(180f, state.graph.node(NodeId("c1"))!!.position.x, 4f)
+    }
 }

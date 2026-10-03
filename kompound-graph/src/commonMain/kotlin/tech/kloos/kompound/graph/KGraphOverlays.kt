@@ -162,5 +162,7 @@ internal object GraphIcons {
     val Remove: ImageVector by lazy { icon("remove", "M19,13H5v-2h14v2z") }
     val FitScreen: ImageVector by lazy { icon("fit_screen", "M17,4h3c1.1,0 2,0.9 2,2v2h-2L20,6h-3L17,4zM4,8L4,6h3L7,4L4,4c-1.1,0 -2,0.9 -2,2v2h2zM20,16v2h-3v2h3c1.1,0 2,-0.9 2,-2v-2h-2zM7,18L4,18v-2L2,16v2c0,1.1 0.9,2 2,2h3v-2zM18,8L6,8v8h12L18,8z") }
     val Undo: ImageVector by lazy { icon("undo", "M12.5,8c-2.65,0 -5.05,0.99 -6.9,2.6L2,7v9h9l-3.62,-3.62c1.39,-1.16 3.16,-1.88 5.12,-1.88 3.54,0 6.55,2.31 7.6,5.5l2.37,-0.78C21.08,11.03 17.15,8 12.5,8z") }
+    val ExpandMore: ImageVector by lazy { icon("expand_more", "M16.59,8.59L12,13.17 7.41,8.59 6,10l6,6 6,-6z") }
+    val ChevronRight: ImageVector by lazy { icon("chevron_right", "M10,6L8.59,7.41 13.17,12l-4.58,4.59L10,18l6,-6z") }
     val Redo: ImageVector by lazy { icon("redo", "M18.4,10.6C16.55,8.99 14.15,8 11.5,8c-4.65,0 -8.58,3.03 -9.96,7.22L3.9,16c1.05,-3.19 4.05,-5.5 7.6,-5.5 1.95,0 3.73,0.72 5.12,1.88L13,16h9V7l-3.6,3.6z") }
 }

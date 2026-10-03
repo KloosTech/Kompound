@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.graph.model.Edge
+import tech.kloos.kompound.graph.model.GroupId
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
 import kotlin.math.exp
@@ -151,11 +152,8 @@ public fun KNodeGraph(
                         focus.requestFocus()
                         val world = state.viewport.screenToWorld(position)
                         val tolerance = 10.dp.toPx() / state.viewport.zoom
-                        val hit = state.graph.edges.values
-                            .mapNotNull { e ->
-                                val a = state.anchors[e.from]; val b = state.anchors[e.to]
-                                if (a == null || b == null) null else e.id to EdgeGeometry.distance(edgeShape, a, b, world)
-                            }
+                        val hit = state.resolvedEdges()
+                            .map { r -> r.edge.id to EdgeGeometry.distance(edgeShape, r.from, r.to, world) }
                             .filter { it.second <= tolerance }
                             .minByOrNull { it.second }
                         if (hit != null) state.insertReroute(hit.first, world) else state.openNodeMenu(world)
@@ -164,11 +162,8 @@ public fun KNodeGraph(
                         state.cancelWire()
                         val world = state.viewport.screenToWorld(position)
                         val tolerance = 10.dp.toPx() / state.viewport.zoom
-                        val hit = state.graph.edges.values
-                            .mapNotNull { e ->
-                                val a = state.anchors[e.from]; val b = state.anchors[e.to]
-                                if (a == null || b == null) null else e.id to EdgeGeometry.distance(edgeShape, a, b, world)
-                            }
+                        val hit = state.resolvedEdges()
+                            .map { r -> r.edge.id to EdgeGeometry.distance(edgeShape, r.from, r.to, world) }
                             .filter { it.second <= tolerance }
                             .minByOrNull { it.second }
                         if (hit != null) state.selectEdge(hit.first) else state.clearSelection()
@@ -224,9 +219,10 @@ public fun KNodeGraph(
                     val flow = flowState?.value ?: 0f
                     fun colorOf(type: tech.kloos.kompound.graph.model.PortType) = palette[KNodeGraphDefaults.paletteIndex(type, palette.size)]
                     val graph = state.graph
-                    for (e in graph.edges.values) {
-                        val a = state.anchors[e.from] ?: continue
-                        val b = state.anchors[e.to] ?: continue
+                    for (resolved in state.resolvedEdges()) {
+                        val e = resolved.edge
+                        val a = resolved.from
+                        val b = resolved.to
                         val selected = e.id in state.selectedEdges
                         val look = edgeStyle(e)
                         val base = if (look.color != Color.Unspecified) look.color else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
@@ -274,25 +270,48 @@ public fun KNodeGraph(
     }
 }
 
-/** Composes every node once and places it at its world position (read in the layout phase, so dragging does not recompose). */
+/**
+ * Composes every visible node once and places it at its world position (read in the layout phase, so dragging does not recompose),
+ * with a frame behind each group and one compact box for each collapsed group.
+ */
 @Composable
 private fun NodeLayer(state: KGraphState, nodeContent: @Composable (GraphNode) -> Unit) {
     Layout(
         content = {
+            for (group in state.graph.groups.values) {
+                val members = state.graph.membersOf(group.id)
+                if (members.isEmpty()) continue
+                key(group.id) {
+                    Box(Modifier.layoutId(group.id).zIndex(if (group.collapsed) 0.5f else -1f)) { KGroupFrame(group, members.size, Modifier.fillMaxSize()) }
+                }
+            }
             for (node in state.graph.nodes.values) {
+                if (state.isHidden(node)) continue
                 key(node.id) {
                     Box(Modifier.layoutId(node.id).zIndex(if (node.id in state.selection) 1f else 0f)) {
-                        if (node.kind == KRerouteKind) KReroute(node) else nodeContent(node)
+                        when (node.kind) {
+                            KRerouteKind -> KReroute(node)
+                            KCommentKind -> KComment(node)
+                            else -> nodeContent(node)
+                        }
                     }
                 }
             }
         },
     ) { measurables, constraints ->
-        val placeables = measurables.map { it to it.measure(Constraints()) }
+        val placeables = measurables.map { m ->
+            val id = m.layoutId
+            if (id is GroupId) {
+                val bounds = if (state.graph.group(id)?.collapsed == true) state.collapsedRect(id) else state.groupBounds(id)
+                val w = bounds?.width?.roundToInt()?.coerceAtLeast(1) ?: 1
+                val h = bounds?.height?.roundToInt()?.coerceAtLeast(1) ?: 1
+                Triple(m, m.measure(Constraints.fixed(w, h)), bounds?.topLeft)
+            } else Triple(m, m.measure(Constraints()), null)
+        }
         layout(constraints.maxWidth, constraints.maxHeight) {
-            for ((measurable, placeable) in placeables) {
-                val node = state.graph.nodes[measurable.layoutId as NodeId] ?: continue
-                val position = state.positionOf(node)
+            for ((measurable, placeable, groupOrigin) in placeables) {
+                val id = measurable.layoutId
+                val position = if (id is GroupId) groupOrigin ?: continue else state.positionOf(state.graph.nodes[id as NodeId] ?: continue)
                 placeable.place(IntOffset(position.x.roundToInt(), position.y.roundToInt()))
             }
         }
@@ -311,6 +330,7 @@ private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.K
         command && event.key == Key.C -> { state.copySelection(); true }
         command && event.key == Key.V -> { state.paste(); true }
         command && event.key == Key.D -> { state.duplicateSelection(); true }
+        command && event.key == Key.G -> { if (event.isShiftPressed) state.ungroupSelection() else state.groupSelection(); true }
         event.key == Key.F && !command -> { state.fitView(); true }
         else -> false
     }

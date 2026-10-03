@@ -434,3 +434,127 @@ class KGraphStateTest {
         assertNull(s.menuRequest)
     }
 }
+
+class KGraphGroupStateTest {
+    private fun state(): KGraphState {
+        val s = KGraphState(Graph.of(listOf(math("n1", Offset(0f, 0f)), math("n2", Offset(300f, 0f)), math("n3", Offset(600f, 0f)), math("n4", Offset(900f, 0f)))))
+        for (id in listOf("n1", "n2", "n3", "n4")) s.sizes[NodeId(id)] = Size(200f, 100f)
+        for (n in s.graph.nodes.values) {
+            s.anchors[PortRef(n.id, tech.kloos.kompound.graph.model.PortId("out"))] = n.position + Offset(200f, 40f)
+            s.anchors[PortRef(n.id, tech.kloos.kompound.graph.model.PortId("a"))] = n.position + Offset(0f, 40f)
+        }
+        return s
+    }
+
+    @Test
+    fun groupingTheSelectionIsOneUndoStep() {
+        val s = state()
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        val id = s.groupSelection("Inputs")!!
+        assertEquals(listOf(NodeId("n1"), NodeId("n2")), s.graph.membersOf(id))
+        assertEquals("Inputs", s.graph.group(id)!!.title)
+        s.undo()
+        assertTrue(s.graph.groups.isEmpty() && s.graph.nodes.values.all { it.group == null })
+        assertNull(KGraphState().groupSelection(), "nothing selected, nothing grouped")
+    }
+
+    @Test
+    fun theFrameFitsItsMembersWithPaddingAndATitleBar() {
+        val s = state()
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        val id = s.groupSelection()!!
+        val b = s.groupBounds(id)!!
+        assertEquals(-GroupPadding, b.left); assertEquals(500f + GroupPadding, b.right)
+        assertEquals(-GroupPadding - GroupHeader, b.top); assertEquals(100f + GroupPadding, b.bottom)
+        assertEquals(b.topLeft, s.collapsedRect(id)!!.topLeft)
+    }
+
+    @Test
+    fun collapsingHidesMembersLeavesTheSelectionAndSkipsThemInMarqueeAndSelectAll() {
+        val s = state()
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        val id = s.groupSelection()!!
+        s.toggleCollapsed(id)
+        assertTrue(s.isHidden(s.graph.node(NodeId("n1"))!!))
+        assertTrue(s.selection.isEmpty())
+        s.selectAll()
+        assertEquals(setOf(NodeId("n3"), NodeId("n4")), s.selection)
+        assertEquals(setOf(NodeId("n3")), s.nodesIn(Rect(590f, 0f, 700f, 10f)))
+        assertTrue(s.nodesIn(Rect(0f, 0f, 100f, 10f)).isEmpty(), "hidden nodes cannot be marquee selected")
+        s.undo()
+        assertFalse(s.graph.group(id)!!.collapsed)
+    }
+
+    @Test
+    fun wiresIntoACollapsedGroupEndOnItsBoxAndInnerWiresDisappear() {
+        val s = state()
+        s.connect(ref("n1", "out"), ref("n2", "a"))
+        s.connect(ref("n2", "out"), ref("n3", "a"))
+        s.connect(ref("n3", "out"), ref("n1", "a")).let { assertTrue(it is ConnectionCheck.Rejected, "cycle") }
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        val id = s.groupSelection()!!
+        s.toggleCollapsed(id)
+        val box = s.collapsedRect(id)!!
+        val resolved = s.resolvedEdges()
+        assertEquals(1, resolved.size, "the wire between the two members is hidden")
+        val r = resolved.single()
+        assertEquals("n2.out->n3.a", r.edge.id.value)
+        assertEquals(box.right, r.from.x, "leaves from the box's right edge")
+        assertEquals(s.anchorOf(ref("n3", "a")), r.to)
+        s.toggleCollapsed(id)
+        assertEquals(2, s.resolvedEdges().size)
+    }
+
+    @Test
+    fun wiresCannotTargetHiddenPorts() {
+        val s = state()
+        s.select(NodeId("n2")); s.groupSelection(); s.toggleCollapsed(s.graph.groups.keys.single())
+        s.beginWire(ref("n1", "out"))
+        assertFalse(ref("n2", "a") in s.wire!!.compatible)
+        assertTrue(ref("n3", "a") in s.wire!!.compatible)
+    }
+
+    @Test
+    fun draggingAGroupMovesAllItsMembersAsOneUndoStep() {
+        val s = state()
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        val id = s.groupSelection()!!
+        s.clearSelection()
+        s.beginGroupDrag(id)
+        s.dragNodesBy(Offset(40f, 20f))
+        assertEquals(Offset(40f, 20f), s.positionOf(s.graph.node(NodeId("n1"))!!))
+        assertEquals(Offset(340f, 20f), s.positionOf(s.graph.node(NodeId("n2"))!!))
+        assertEquals(Offset(600f, 0f), s.positionOf(s.graph.node(NodeId("n3"))!!))
+        assertEquals(s.groupBounds(id)!!.left, -GroupPadding + 40f, "the frame moves with the drag")
+        s.endNodeDrag()
+        s.undo()
+        assertEquals(Offset(0f, 0f), s.graph.node(NodeId("n1"))!!.position)
+    }
+
+    @Test
+    fun ungroupingRenamingAndPastingBehave() {
+        val s = state()
+        s.select(NodeId("n1")); val id = s.groupSelection()!!
+        s.renameGroup(id, "Source")
+        assertEquals("Source", s.graph.group(id)!!.title)
+        s.selectGroup(id)
+        assertEquals(setOf(NodeId("n1")), s.selection)
+        s.duplicateSelection()
+        assertNull(s.graph.node(NodeId("n1_2"))!!.group, "copies are not put into the group")
+        s.select(NodeId("n1"))
+        s.ungroupSelection()
+        assertTrue(s.graph.groups.isEmpty())
+        assertNull(s.graph.node(NodeId("n1"))!!.group)
+    }
+
+    @Test
+    fun fitViewIncludesCollapsedGroupBoxes() {
+        val s = state()
+        s.canvasSize = Size(1000f, 600f)
+        s.select(NodeId("n4")); val id = s.groupSelection()!!
+        s.toggleCollapsed(id)
+        s.fitView(padding = 0f)
+        val visible = s.viewport.visibleWorld(s.canvasSize)
+        assertTrue(visible.contains(s.collapsedRect(id)!!.topLeft))
+    }
+}
