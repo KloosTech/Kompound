@@ -101,6 +101,26 @@ class EdgeGeometryTest {
 }
 
 class KGraphStateTest {
+    @Test
+    fun theDragPreviewShowsTheSnappedLandingSpotWhileTheNodeFollowsThePointer() {
+        val s = state(gridStep = 20f)
+        val n1 = s.graph.node(NodeId("n1"))!!
+        assertTrue(s.dropPreview().isEmpty())
+        s.beginNodeDrag(NodeId("n1"))
+        s.dragNodesBy(Offset(33f, 7f))
+        assertEquals(Offset(33f, 7f), s.positionOf(n1), "node follows the pointer")
+        val preview = s.dropPreview().single()
+        assertEquals(Offset(40f, 0f), preview.second, "ghost sits on the grid")
+        s.endNodeDrag()
+        assertEquals(Offset(40f, 0f), s.graph.node(NodeId("n1"))!!.position)
+        assertTrue(s.dropPreview().isEmpty())
+        s.showDropPreview = false
+        s.beginNodeDrag(NodeId("n1"))
+        s.dragNodesBy(Offset(33f, 7f))
+        assertEquals(Offset(80f, 0f), s.positionOf(s.graph.node(NodeId("n1"))!!), "without the preview the node snaps itself")
+        s.cancelNodeDrag()
+    }
+
     private fun state(gridStep: Float = 0f) = KGraphState(
         Graph.of(listOf(math("n1", Offset(0f, 0f)), math("n2", Offset(300f, 0f)), math("n3", Offset(600f, 0f)))), gridStep = gridStep,
     ).also { s ->
