@@ -1,6 +1,6 @@
 # ADR 0004: Node graph framework (`kompound-graph`)
 
-Status: proposed
+Status: accepted; P1 implemented (module `kompound-graph`, Experimental)
 
 Reference for the interaction model: node editors in the React Flow / Blender / Unreal / Figma-plugin family
 (pannable and zoomable canvas, draggable nodes with typed input and output ports, wires between ports, group and
@@ -109,7 +109,7 @@ and connection state; an invisible, ordered **edge list** (from, to) makes the w
 
 | Phase | Content | Status |
 |---|---|---|
-| **P1 core** | model, `ConnectionPolicy`, commands + undo/redo, `KGraphState`, viewport, `KNodeGraph` with grid, `KNode` + `KPort`, drag nodes, bezier edges, wire dragging with validation, delete, demo | proposed |
+| **P1 core** | model, `ConnectionPolicy`, commands + undo/redo, `KGraphState`, viewport, `KNodeGraph` with grid, `KNode` + ports, drag nodes, bezier/straight/step edges, wire dragging with validation, edge and node selection, delete, keyboard basics, calculator demo | done |
 | **P2 editing** | marquee/multi-select, snap + guides, copy/paste/duplicate, minimap, controls, node palette menu, keyboard wiring, edge selection and reroute (dot) nodes, edge styles | |
 | **P3 structure** | group/comment nodes, collapse, subgraph nodes, auto layout (layered), JSON serialization module, virtualisation | |
 | **P4 runtime (optional)** | evaluation engine module (typed values, dirty propagation), execution tracing overlay | |
