@@ -63,6 +63,14 @@ public class KViewportState(
         offset = Offset(canvas.width / 2f, canvas.height / 2f) - world.center * z
     }
 
+    /** Pans so that the world point [world] is in the middle of a canvas of [canvas] pixels, keeping the zoom. */
+    public fun centerOn(world: Offset, canvas: Size) {
+        offset = Offset(canvas.width / 2f, canvas.height / 2f) - world * zoom
+    }
+
+    /** The part of the world that is visible in a canvas of [canvas] pixels. */
+    public fun visibleWorld(canvas: Size): Rect = Rect(screenToWorld(Offset.Zero), screenToWorld(Offset(canvas.width, canvas.height)))
+
     /** Sets the viewport directly. */
     public fun set(offset: Offset, zoom: Float) {
         this.offset = offset

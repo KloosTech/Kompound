@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -23,6 +24,8 @@ import tech.kloos.kompound.buttons.KButton
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.graph.KEdgeShape
+import tech.kloos.kompound.graph.KGraphControls
+import tech.kloos.kompound.graph.KMiniMap
 import tech.kloos.kompound.graph.KGraphState
 import tech.kloos.kompound.graph.KNode
 import tech.kloos.kompound.graph.KNodeGraph
@@ -145,9 +148,11 @@ private fun valueAt(graph: Graph, node: GraphNode, depth: Int = 0): Float {
 fun DemoScope.KNodeGraphDemo() {
     val grid = boolControl("Dotted grid", true)
     val snap = boolControl("Snap nodes to grid", true)
+    val guides = boolControl("Alignment guides", true)
+    val overlays = boolControl("Minimap and controls", true)
     val shape = choiceControl("Wire shape", KEdgeShape.entries)
     val state = remember { KGraphState(sampleGraph()) }
-    SideEffect { state.gridStep = if (snap) 24f else 0f }
+    SideEffect { state.gridStep = if (snap) 24f else 0f; state.snapToNodes = guides }
     val counter = remember { intArrayOf(10) }
     fun add(kind: String) {
         val id = "${kind}${counter[0]++}"
@@ -179,6 +184,10 @@ fun DemoScope.KNodeGraphDemo() {
             edgeShape = shape,
             fitOnFirstLayout = true,
             showGrid = grid,
+            overlay = if (overlays) ({
+                KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
+                KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))
+            }) else null,
         ) { node ->
             when (node.kind) {
                 "number" -> KNode(node, "Number") {

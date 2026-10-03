@@ -341,4 +341,39 @@ class KGraphStateTest {
         s.clearSelection(); s.copySelection()
         assertTrue(s.canPaste)
     }
+
+    @Test
+    fun draggingSnapsToAnotherNodesEdgeAndShowsAGuide() {
+        val s = state()
+        for (id in listOf("n1", "n2", "n3")) s.sizes[NodeId(id)] = Size(200f, 100f)
+        s.snapToNodes = true
+        s.beginNodeDrag(NodeId("n1"))
+        // n1 at x 0..200; n2 starts at x=300. Moving n1 by 97 puts its right edge (297) within 6 of n2's left edge (300).
+        s.dragNodesBy(Offset(97f, 0f))
+        assertEquals(100f, s.dragDelta.x, 0.001f, "snapped so that the right edge meets n2's left edge")
+        assertTrue(s.guides.any { it.vertical && abs(it.position - 300f) < 0.5f })
+        // top edges are all at y=0 already: a horizontal guide at 0 appears too
+        assertTrue(s.guides.any { !it.vertical && abs(it.position) < 0.5f })
+        s.dragNodesBy(Offset(-60f, 40f))
+        assertTrue(s.guides.none { it.vertical }, "too far from any vertical alignment")
+        s.endNodeDrag()
+        assertTrue(s.guides.isEmpty())
+    }
+
+    @Test
+    fun nodeSnappingIsOffByDefaultAndCentresAlignToo() {
+        val s = state()
+        for (id in listOf("n1", "n2", "n3")) s.sizes[NodeId(id)] = Size(200f, 100f)
+        s.beginNodeDrag(NodeId("n1"))
+        s.dragNodesBy(Offset(97f, 0f))
+        assertEquals(97f, s.dragDelta.x)
+        assertTrue(s.guides.isEmpty())
+        s.cancelNodeDrag()
+        s.snapToNodes = true
+        s.execute(GraphCommand.MoveNodes(mapOf(NodeId("n1") to Offset(0f, 300f))))
+        s.beginNodeDrag(NodeId("n1"))
+        // n2's vertical centre is y=50; n1 (height 100) centre would be 350+dy: moving up by 297 puts it at 53, within 6 of 50
+        s.dragNodesBy(Offset(0f, -297f))
+        assertEquals(-300f, s.dragDelta.y, 0.001f)
+    }
 }

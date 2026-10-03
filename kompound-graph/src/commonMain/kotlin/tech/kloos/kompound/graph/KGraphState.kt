@@ -43,6 +43,13 @@ public class KWireDraft(
 )
 
 /**
+ * An alignment guide shown while dragging: a vertical line at world x [position] (when [vertical]) or a horizontal line at world y,
+ * running from [start] to [end] along the other axis.
+ */
+@Immutable
+public class KGuide(public val vertical: Boolean, public val position: Float, public val start: Float, public val end: Float)
+
+/**
  * State of a node graph editor: the [graph] with undo and redo, the selection, the [viewport] and the interactions in
  * progress (dragging nodes, dragging a wire). Create it with [rememberKGraphState].
  *
@@ -294,10 +301,60 @@ public class KGraphState(
     public fun dragNodesBy(delta: Offset) {
         val primary = dragPrimary?.let { graph.node(it) } ?: return
         dragRaw += delta
-        dragDelta = if (gridStep > 0f) {
+        var effective = if (gridStep > 0f) {
             val target = primary.position + dragRaw
             Offset(snap(target.x), snap(target.y)) - primary.position
         } else dragRaw
+        if (snapToNodes) {
+            val aligned = alignToOthers(effective)
+            effective = aligned.first
+            guides = aligned.second
+        }
+        dragDelta = effective
+    }
+
+    /** Whether dragged nodes snap to the edges and centres of other nodes (and show guide lines while they do). */
+    public var snapToNodes: Boolean by mutableStateOf(false)
+
+    /** How close (world units) an edge or centre must come to another node's to snap to it. */
+    public var guideThreshold: Float = 6f
+
+    /** Alignment guide lines currently shown while dragging. */
+    public var guides: List<KGuide> by mutableStateOf(emptyList())
+        private set
+
+    private fun alignToOthers(delta: Offset): Pair<Offset, List<KGuide>> {
+        val moving = dragSet.mapNotNull { id -> graph.node(id)?.let { Rect(it.position + delta, sizes[id] ?: Size(220f, 120f)) } }
+        if (moving.isEmpty()) return delta to emptyList()
+        val box = Rect(moving.minOf { it.left }, moving.minOf { it.top }, moving.maxOf { it.right }, moving.maxOf { it.bottom })
+        val others = graph.nodes.values.filter { it.id !in dragSet }.map { Rect(it.position, sizes[it.id] ?: Size(220f, 120f)) }
+        var dx = 0f; var dy = 0f
+        var bestX = guideThreshold + 1f; var bestY = guideThreshold + 1f
+        var vx: Float? = null; var hy: Float? = null
+        for (o in others) {
+            for (mine in listOf(box.left, box.center.x, box.right)) for (theirs in listOf(o.left, o.center.x, o.right)) {
+                val d = theirs - mine
+                if (kotlin.math.abs(d) < bestX) { bestX = kotlin.math.abs(d); dx = d; vx = theirs }
+            }
+            for (mine in listOf(box.top, box.center.y, box.bottom)) for (theirs in listOf(o.top, o.center.y, o.bottom)) {
+                val d = theirs - mine
+                if (kotlin.math.abs(d) < bestY) { bestY = kotlin.math.abs(d); dy = d; hy = theirs }
+            }
+        }
+        val snappedX = bestX <= guideThreshold
+        val snappedY = bestY <= guideThreshold
+        val result = Offset(delta.x + if (snappedX) dx else 0f, delta.y + if (snappedY) dy else 0f)
+        val shifted = Rect(box.left + (if (snappedX) dx else 0f), box.top + (if (snappedY) dy else 0f), box.right + (if (snappedX) dx else 0f), box.bottom + (if (snappedY) dy else 0f))
+        val lines = ArrayList<KGuide>()
+        if (snappedX && vx != null) {
+            val matching = others.filter { o -> listOf(o.left, o.center.x, o.right).any { kotlin.math.abs(it - vx) < 0.5f } }
+            lines += KGuide(true, vx, minOf(shifted.top, matching.minOfOrNull { it.top } ?: shifted.top), maxOf(shifted.bottom, matching.maxOfOrNull { it.bottom } ?: shifted.bottom))
+        }
+        if (snappedY && hy != null) {
+            val matching = others.filter { o -> listOf(o.top, o.center.y, o.bottom).any { kotlin.math.abs(it - hy) < 0.5f } }
+            lines += KGuide(false, hy, minOf(shifted.left, matching.minOfOrNull { it.left } ?: shifted.left), maxOf(shifted.right, matching.maxOfOrNull { it.right } ?: shifted.right))
+        }
+        return result to lines
     }
 
     /** Commits the drag as one undoable move. */
@@ -314,6 +371,7 @@ public class KGraphState(
     }
 
     private fun resetDrag() {
+        guides = emptyList()
         dragPrimary = null
         dragSet = emptySet()
         dragRaw = Offset.Zero

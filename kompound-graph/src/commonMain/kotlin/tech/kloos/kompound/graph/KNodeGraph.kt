@@ -17,6 +17,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.style.MutableStyleState
 import androidx.compose.foundation.style.Style
@@ -87,6 +88,7 @@ import kotlin.math.roundToInt
  * @param showGrid Draws a dotted grid that moves with the canvas.
  * @param gridSpacing Distance between the dots in world units.
  * @param style Overrides merged over [KNodeGraphDefaults.style].
+ * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
  * @param nodeContent Draws one node.
  */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -99,6 +101,7 @@ public fun KNodeGraph(
     showGrid: Boolean = true,
     gridSpacing: Dp = KNodeGraphDefaults.GridSpacing,
     style: Style = Style,
+    overlay: (@Composable BoxScope.() -> Unit)? = null,
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -202,6 +205,11 @@ public fun KNodeGraph(
                         val colour = if (selected) scheme.primary else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
                         drawPath(EdgeGeometry.path(edgeShape, a, b), colour, style = Stroke(width = if (selected) width * 1.6f else width, cap = StrokeCap.Round))
                     }
+                    for (g in state.guides) {
+                        val line = scheme.primary.copy(alpha = 0.7f)
+                        if (g.vertical) drawLine(line, Offset(g.position, g.start), Offset(g.position, g.end), strokeWidth = 1.dp.toPx() / zoom)
+                        else drawLine(line, Offset(g.start, g.position), Offset(g.end, g.position), strokeWidth = 1.dp.toPx() / zoom)
+                    }
                     val wire = state.wire
                     if (wire != null) {
                         val from = state.anchors[wire.from]
@@ -216,6 +224,7 @@ public fun KNodeGraph(
                 }
                 NodeLayer(state, nodeContent)
             }
+            overlay?.invoke(this)
             val marquee = state.marquee
             if (marquee != null) {
                 Canvas(Modifier.fillMaxSize()) {

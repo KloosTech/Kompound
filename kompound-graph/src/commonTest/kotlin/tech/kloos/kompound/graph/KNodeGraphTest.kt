@@ -12,7 +12,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.down
 import androidx.compose.ui.test.moveTo
 import androidx.compose.ui.test.up
@@ -363,5 +365,41 @@ class KNodeGraphTest {
         canvas.performKeyInput { keyDown(Key.CtrlLeft); pressKey(Key.D); keyUp(Key.CtrlLeft) }
         waitForIdle()
         assertEquals(4, state.graph.nodes.size)
+    }
+
+    @Test
+    fun theControlsZoomFitAndUndoAndTheMinimapMovesTheCanvas() = runComposeUiTest {
+        val state = twoNodes()
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize(), overlay = {
+                        KGraphControls(state, Modifier.align(androidx.compose.ui.Alignment.TopEnd))
+                        KMiniMap(state, Modifier.align(androidx.compose.ui.Alignment.BottomEnd).testTag("map"))
+                    }) { node -> KNode(node, "N ${node.id}", Modifier.testTag(node.id.value)) { Input("a"); Output("out") } }
+                }
+            }
+        }
+        waitForIdle()
+        onNodeWithContentDescription("Zoom in").performClick()
+        assertTrue(state.viewport.zoom > 1.2f)
+        onNodeWithContentDescription("Zoom out").performClick()
+        onNodeWithContentDescription("Zoom out").performClick()
+        assertTrue(state.viewport.zoom < 1f)
+        onNodeWithContentDescription("Fit view").performClick()
+        waitForIdle()
+        // after fitting, both nodes are inside the visible area
+        val visible = state.viewport.visibleWorld(state.canvasSize)
+        assertTrue(state.graph.nodes.values.all { visible.contains(it.position) })
+        onNodeWithContentDescription("Undo").assertIsNotEnabled()
+        state.connect(ref("n1", "out"), ref("n2", "a"))
+        waitForIdle()
+        onNodeWithContentDescription("Undo").performClick()
+        assertTrue(state.graph.edges.isEmpty())
+        // clicking the top-left of the minimap puts the canvas near the top-left node
+        val before = state.viewport.offset
+        onNodeWithTag("map").performTouchInput { click(Offset(8f, 8f)) }
+        waitForIdle()
+        assertTrue(state.viewport.offset != before)
     }
 }
