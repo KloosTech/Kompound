@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Catalog (phones): the system back gesture leaves a component's detail view for the list instead of closing the app.
+- Fixed `KSlideToConfirm`: the fill now uses the primary container colour so the handle stays visible on it, the hint fades more slowly, and a new drag cancels a running spring-back or confirm animation instead of competing with it.
+- `KSegmentedControl`: the selection highlight is now a pill that slides to the newly selected segment (new `indicatorStyle` parameter); it used to jump. A `selected { background }` in `segmentStyle` is drawn over the pill and does not animate.
+- Fixed: `KInlineEdit`'s save and cancel buttons sit in the vertical middle of a one-line field (they were top-aligned). A new test renders about 30 controls (buttons, chips, badge, segmented, menu and list items, fields, selection labels...) and fails when their text is more than 2px off the vertical centre.
+- Fixed: the placeholder of `KTextField` (and `KSearchBar`, `KNumberField`, `KInlineEdit`, which use it) sat a few pixels above the vertical centre of the field, away from the text and caret.
 - Catalog: every merge to `main` publishes the Android APK as a GitHub Release (`catalog-v<version>-build.<run>`), replacing the previous one, so Obtainium updates automatically; tags still add the desktop installers.
 - Added `Modifier.dashedBorder`, `KKeyValue`/`KMetric` and `KStepList`. Ported from the Snettbox dashedBorder, KeyValue/ValueWithUnit and firmware update steps.
 - Added `KSlideToConfirm` (drag-to-confirm control; keyboard and screen readers confirm directly; RTL aware). Ported from the Snettbox Swipe. `KStrengthMeter` now fills the available width.

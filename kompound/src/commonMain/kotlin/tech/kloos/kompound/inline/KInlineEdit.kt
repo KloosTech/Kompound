@@ -129,7 +129,8 @@ public fun KInlineEdit(
                     if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) { cancel(); true } else false
                 },
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.Top,
+            // The save and cancel buttons sit in the middle of a one-line field and at its top beside a multi-line one.
+            verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
         ) {
             KTextField(
                 value = draft,

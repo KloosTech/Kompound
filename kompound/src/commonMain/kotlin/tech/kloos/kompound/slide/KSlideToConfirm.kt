@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tech.kloos.kompound.KompoundStyles
@@ -115,6 +116,7 @@ public fun KSlideToConfirm(
     var trackWidth by remember { mutableIntStateOf(0) }
     var offset by remember { mutableFloatStateOf(0f) }
     var confirmed by remember { mutableStateOf(false) }
+    var motion by remember { mutableStateOf<Job?>(null) }   // the one running settle/confirm animation; a new gesture cancels it
     val density = androidx.compose.ui.platform.LocalDensity.current
     val handleSize = with(density) { KSlideToConfirmDefaults.HandleSize.toPx() }
     val inset = with(density) { KSlideToConfirmDefaults.Inset.toPx() }
@@ -124,7 +126,8 @@ public fun KSlideToConfirm(
     fun confirmNow() {
         if (confirmed || !enabled) return
         confirmed = true
-        scope.launch {
+        motion?.cancel()
+        motion = scope.launch {
             animate(offset, maxOffset, animationSpec = spring()) { v, _ -> offset = v }
             delay(confirmDelayMillis)
             currentOnConfirm()
@@ -173,9 +176,13 @@ public fun KSlideToConfirm(
                 state = rememberDraggableState { delta -> if (!confirmed) offset = (offset + delta * sign).coerceIn(0f, maxOffset) },
                 orientation = Orientation.Horizontal,
                 enabled = enabled && !confirmed,
+                onDragStarted = { motion?.cancel() },
                 onDragStopped = {
                     if (progress >= KSlideToConfirmDefaults.Threshold) confirmNow()
-                    else scope.launch { animate(offset, 0f, animationSpec = spring(dampingRatio = 0.7f)) { v, _ -> offset = v } }
+                    else {
+                        motion?.cancel()
+                        motion = scope.launch { animate(offset, 0f, animationSpec = spring(dampingRatio = 0.7f)) { v, _ -> offset = v } }
+                    }
                 },
             ),
         contentAlignment = Alignment.Center,
@@ -184,7 +191,7 @@ public fun KSlideToConfirm(
         val labelColor = if (confirmed || progress > 0.5f) colors.onFill else colors.onTrack
         KText(
             shown,
-            Modifier.padding(horizontal = KSlideToConfirmDefaults.HandleSize + 16.dp).graphicsLayer { alpha = if (confirmed) 1f else (breathe.value * (1f - progress * 1.5f).coerceIn(0f, 1f)) },
+            Modifier.padding(horizontal = KSlideToConfirmDefaults.HandleSize + 16.dp).graphicsLayer { alpha = if (confirmed) 1f else (breathe.value * (1f - progress * 2f).coerceIn(0f, 1f)) },
             maxLines = 1,
             style = Style { contentColor(labelColor) },
         )
@@ -235,7 +242,7 @@ public object KSlideToConfirmDefaults {
     /** Fraction of the travel the handle must pass for the drag to confirm when released. */
     public const val Threshold: Float = 0.85f
 
-    /** Colours from the theme: a tinted track that fills with the primary colour. */
+    /** Colours from the theme: a tinted track that fills with the primary container colour behind a primary handle. */
     @Composable
     public fun colors(): KSlideToConfirmColors {
         val c = MaterialTheme.colorScheme
@@ -243,7 +250,7 @@ public object KSlideToConfirmDefaults {
         return remember(c, l) {
             KSlideToConfirmColors(
                 track = c.primary.copy(alpha = 0.12f).compositeOver(c.surface),
-                fill = c.primary, onTrack = c.primary, onFill = c.onPrimary,
+                fill = c.primaryContainer, onTrack = c.primary, onFill = c.onPrimaryContainer,
                 handle = c.primary, onHandle = c.onPrimary,
                 disabledTrack = c.onSurface.copy(alpha = l.disabledContainer),
                 disabledContent = c.onSurface.copy(alpha = l.disabledContent),

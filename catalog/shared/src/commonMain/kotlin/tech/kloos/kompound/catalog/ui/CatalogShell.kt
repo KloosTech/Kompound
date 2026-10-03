@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
@@ -58,6 +59,7 @@ private val WideBreakpoint = 840.dp
 private val SidebarWidth = 340.dp
 
 /** Adaptive layout: sidebar, detail and theme inspector side by side when wide; one pane with a back button when narrow. */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 internal fun CatalogShell(state: CatalogState, settings: ThemeSettings, dark: Boolean, onSettings: (ThemeSettings) -> Unit) {
     var showTheme by remember { mutableStateOf(false) }
@@ -75,6 +77,8 @@ internal fun CatalogShell(state: CatalogState, settings: ThemeSettings, dark: Bo
 
     BoxWithConstraints(Modifier.fillMaxSize().background(scheme.background)) {
         val wide = maxWidth >= WideBreakpoint
+        // On a phone the system back gesture (Android back, iOS edge swipe) leaves the detail view for the list instead of closing the app.
+        BackHandler(enabled = !wide && state.selected != null) { state.selectedId = null }
         // On a wide screen the detail pane always shows a listed component, like a master/detail app: when the filter
         // removes the selected one, the first remaining one is selected.
         LaunchedEffect(wide, state.visible) {
