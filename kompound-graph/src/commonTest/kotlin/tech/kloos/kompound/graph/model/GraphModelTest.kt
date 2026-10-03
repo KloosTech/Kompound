@@ -235,13 +235,17 @@ class GraphDocumentTest {
                 val id = "n${random.nextInt(1, 8)}"
                 val other = "n${random.nextInt(1, 8)}"
                 val before = d.graph
-                when (random.nextInt(6)) {
+                val gid = GroupId("g${random.nextInt(1, 4)}")
+                when (random.nextInt(9)) {
                     0 -> d.connect(ref(id, listOf("a", "b", "out").random(random)), ref(other, listOf("a", "b", "out").random(random)))
                     1 -> d.execute(GraphCommand.RemoveNodes(setOf(NodeId(id))))
                     2 -> d.execute(GraphCommand.AddNode(math(id, Offset(random.nextFloat() * 100, 0f))))
                     3 -> d.execute(GraphCommand.MoveNodes(mapOf(NodeId(id) to Offset(random.nextFloat() * 10 + 1, 1f))))
                     4 -> d.execute(GraphCommand.Disconnect(d.graph.edges.keys.take(random.nextInt(0, 3)).toSet()))
-                    else -> d.execute(GraphCommand.UpdateNodeData(NodeId(id), random.nextInt()))
+                    5 -> d.execute(GraphCommand.UpdateNodeData(NodeId(id), random.nextInt()))
+                    6 -> d.execute(GraphCommand.PutGroup(NodeGroup(gid, "Group ${random.nextInt(5)}", random.nextBoolean(), random.nextInt(7))))
+                    7 -> d.execute(GraphCommand.AssignGroups(mapOf(NodeId(id) to (if (random.nextBoolean()) gid else null), NodeId(other) to gid)))
+                    else -> d.execute(GraphCommand.RemoveGroup(gid))
                 }
                 assertConsistent(d.graph)
                 assertAcyclic(d.graph)
@@ -254,6 +258,8 @@ class GraphDocumentTest {
     }
 
     private fun assertConsistent(g: Graph) {
+        for (n in g.nodes.values) n.group?.let { assertNotNull(g.group(it), "${n.id} is in missing group $it") }
+        for (gr in g.groups.keys) assertTrue(g.membersOf(gr).all { g.node(it)?.group == gr })
         for (e in g.edges.values) {
             assertNotNull(g.port(e.from), "dangling ${e.from}")
             assertNotNull(g.port(e.to), "dangling ${e.to}")
@@ -276,5 +282,69 @@ class GraphDocumentTest {
             return true
         }
         for (n in g.nodes.keys) assertTrue(visit(n), "cycle through $n")
+    }
+}
+
+class GroupModelTest {
+    private fun graph() = Graph.of(listOf(math("n1"), math("n2"), math("n3")), groups = listOf(NodeGroup(GroupId("g"), "Group")))
+
+    @Test
+    fun nodesJoinAndLeaveGroups() {
+        val g = graph().withAssigned(mapOf(NodeId("n1") to GroupId("g"), NodeId("n2") to GroupId("g")))
+        assertEquals(listOf(NodeId("n1"), NodeId("n2")), g.membersOf(GroupId("g")))
+        assertEquals(listOf(NodeId("n2")), g.withAssigned(mapOf(NodeId("n1") to null)).membersOf(GroupId("g")))
+        assertEquals(emptyList(), g.withAssigned(mapOf(NodeId("n3") to GroupId("missing"))).membersOf(GroupId("missing")))
+    }
+
+    @Test
+    fun removingAGroupReleasesItsMembersAndUndoRestoresThem() {
+        val d = GraphDocument(graph())
+        d.execute(GraphCommand.AssignGroups(mapOf(NodeId("n1") to GroupId("g"), NodeId("n2") to GroupId("g"))))
+        val grouped = d.graph
+        d.execute(GraphCommand.RemoveGroup(GroupId("g")))
+        assertTrue(d.graph.groups.isEmpty() && d.graph.nodes.values.all { it.group == null })
+        d.undo()
+        assertEquals(grouped, d.graph)
+    }
+
+    @Test
+    fun removingMembersKeepsTheGroupAndUndoPutsThemBack() {
+        val d = GraphDocument(graph())
+        d.execute(GraphCommand.AssignGroups(mapOf(NodeId("n1") to GroupId("g"))))
+        val before = d.graph
+        d.execute(GraphCommand.RemoveNodes(setOf(NodeId("n1"))))
+        assertEquals(emptyList(), d.graph.membersOf(GroupId("g")))
+        assertNotNull(d.graph.group(GroupId("g")))
+        d.undo()
+        assertEquals(before, d.graph)
+        assertEquals(GroupId("g"), d.graph.node(NodeId("n1"))!!.group)
+    }
+
+    @Test
+    fun aNodeIsInAtMostOneGroupAndNoOpsAreNotRecorded() {
+        val d = GraphDocument(graph().withGroup(NodeGroup(GroupId("h"))))
+        d.execute(GraphCommand.AssignGroups(mapOf(NodeId("n1") to GroupId("g"))))
+        d.execute(GraphCommand.AssignGroups(mapOf(NodeId("n1") to GroupId("h"))))
+        assertEquals(GroupId("h"), d.graph.node(NodeId("n1"))!!.group)
+        assertFalse(d.execute(GraphCommand.AssignGroups(mapOf(NodeId("n1") to GroupId("h")))))
+        assertFalse(d.execute(GraphCommand.RemoveGroup(GroupId("nope"))))
+        assertFalse(d.execute(GraphCommand.PutGroup(NodeGroup(GroupId("h")))))
+    }
+
+    @Test
+    fun editingAGroupIsUndoable() {
+        val d = GraphDocument(graph())
+        d.execute(GraphCommand.PutGroup(NodeGroup(GroupId("g"), "Renamed", collapsed = true, color = 3)))
+        assertEquals("Renamed", d.graph.group(GroupId("g"))!!.title)
+        d.undo()
+        assertEquals("Group", d.graph.group(GroupId("g"))!!.title)
+        d.undo()
+        assertFalse(d.undo(), "nothing left to undo")
+    }
+
+    @Test
+    fun nodesNamingAnUnknownGroupAreReleasedWhenBuildingAGraph() {
+        val g = Graph.of(listOf(math("n1").copy(group = GroupId("ghost"))))
+        assertNull(g.node(NodeId("n1"))!!.group)
     }
 }

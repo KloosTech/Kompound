@@ -28,6 +28,15 @@ public sealed interface GraphCommand {
     /** Replaces the payload of a node. */
     public data class UpdateNodeData(public val id: NodeId, public val data: Any?) : GraphCommand
 
+    /** Creates the group or replaces its title, colour and collapsed state. Members are set with [AssignGroups]. */
+    public data class PutGroup(public val group: NodeGroup) : GraphCommand
+
+    /** Removes the group [id]; its members stay in the graph, outside any group. */
+    public data class RemoveGroup(public val id: GroupId) : GraphCommand
+
+    /** Puts nodes into groups, or out of any group with `null`. */
+    public data class AssignGroups(public val assignments: Map<NodeId, GroupId?>) : GraphCommand
+
     /** Several commands applied in order and undone as one step. */
     public data class Batch(public val commands: List<GraphCommand>, public val label: String? = null) : GraphCommand
 }
@@ -83,6 +92,24 @@ public fun GraphCommand.applyTo(graph: Graph): AppliedCommand? = when (this) {
         val node = graph.node(id)
         if (node == null || node.data == data) null
         else AppliedCommand(graph.withNode(node.copy(data = data)), GraphCommand.UpdateNodeData(id, node.data))
+    }
+    is GraphCommand.PutGroup -> {
+        val before = graph.group(group.id)
+        val after = graph.withGroup(group)
+        if (after == graph) null else AppliedCommand(after, if (before == null) GraphCommand.RemoveGroup(group.id) else GraphCommand.PutGroup(before))
+    }
+    is GraphCommand.RemoveGroup -> {
+        val before = graph.group(id)
+        if (before == null) null
+        else AppliedCommand(
+            graph.withoutGroup(id),
+            GraphCommand.Batch(listOf(GraphCommand.PutGroup(before), GraphCommand.AssignGroups(graph.membersOf(id).associateWith { id }))),
+        )
+    }
+    is GraphCommand.AssignGroups -> {
+        val effective = assignments.filter { (nid, g) -> graph.node(nid) != null && (g == null || graph.group(g) != null) && graph.node(nid)!!.group != g }
+        if (effective.isEmpty()) null
+        else AppliedCommand(graph.withAssigned(effective), GraphCommand.AssignGroups(effective.mapValues { graph.node(it.key)!!.group }))
     }
     is GraphCommand.Batch -> {
         var current = graph

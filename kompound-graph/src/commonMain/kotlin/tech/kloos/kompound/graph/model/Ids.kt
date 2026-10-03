@@ -24,3 +24,9 @@ public value class EdgeId(public val value: String) {
 public data class PortRef(public val node: NodeId, public val port: PortId) {
     override fun toString(): String = "$node.$port"
 }
+
+/** Identity of a group of nodes. */
+@JvmInline
+public value class GroupId(public val value: String) {
+    override fun toString(): String = value
+}
