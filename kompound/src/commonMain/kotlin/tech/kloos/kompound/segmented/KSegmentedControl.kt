@@ -1,5 +1,21 @@
 package tech.kloos.kompound.segmented
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -36,15 +52,18 @@ import tech.kloos.kompound.theme.LocalKContentColor
 
 /**
  * Row of mutually exclusive options; exactly one is selected. Announced as a group of radio buttons.
- * Segments share the width of the widest one.
+ * Segments share the width of the widest one. The selection highlight is a pill that slides to the newly
+ * selected segment.
  *
  * @param options Labels of the segments, in order.
  * @param selectedIndex Index of the selected segment.
  * @param onSelectedIndexChange Called with the index the user picked.
  * @param modifier Modifier applied to the container.
  * @param style Overrides merged over [KSegmentedControlDefaults.style] (the container).
- * @param segmentStyle Overrides merged over [KSegmentedControlDefaults.segmentStyle] (each segment); use a
- * `selected { }` block for the selected look.
+ * @param segmentStyle Overrides merged over [KSegmentedControlDefaults.segmentStyle] (each segment): text,
+ * padding and the hover, focus and press layers. A `selected { }` block with a `background` is drawn over the
+ * sliding pill and does not animate; use [indicatorStyle] for the pill.
+ * @param indicatorStyle Overrides merged over [KSegmentedControlDefaults.indicatorStyle] (the sliding pill).
  * @param enabled When false no segment can be picked.
  * @param segment Content of one segment; defaults to a [KText] label. Receives the index and label.
  */
@@ -56,31 +75,71 @@ public fun KSegmentedControl(
     modifier: Modifier = Modifier,
     style: Style = Style,
     segmentStyle: Style = Style,
+    indicatorStyle: Style = Style,
     enabled: Boolean = true,
     segment: @Composable RowScope.(index: Int, label: String) -> Unit = { _, label -> KText(label, maxLines = 1) },
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val containerState = remember { MutableStyleState(null) }
+    val indicatorState = rememberUpdatedStyleState(null) { it.isEnabled = enabled }
+    // Position and width of every segment inside the row; the pill animates between them.
+    val lefts = remember(options.size) { IntArray(options.size) }
+    val widths = remember(options.size) { IntArray(options.size) }
+    var placed by remember(options.size) { mutableIntStateOf(0) }
+    val left = remember { Animatable(0f) }
+    val width = remember { Animatable(0f) }
+    var snapped by remember { mutableStateOf(false) }
+    val target = selectedIndex.coerceIn(0, (options.size - 1).coerceAtLeast(0))
+    LaunchedEffect(target, placed, options.size) {
+        if (options.isEmpty() || widths[target] == 0) return@LaunchedEffect
+        if (!snapped) {          // first layout: appear in place instead of sliding in from the corner
+            left.snapTo(lefts[target].toFloat()); width.snapTo(widths[target].toFloat()); snapped = true
+        } else {
+            launch { left.animateTo(lefts[target].toFloat(), spring(stiffness = Spring.StiffnessMediumLow)) }
+            launch { width.animateTo(widths[target].toFloat(), spring(stiffness = Spring.StiffnessMediumLow)) }
+        }
+    }
     Row(
         modifier = modifier.width(IntrinsicSize.Max).selectableGroup().styleable(containerState, KSegmentedControlDefaults.style(), style),
     ) {
-        options.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
-            val source = remember { MutableInteractionSource() }
-            val state = rememberUpdatedStyleState(source) {
-                it.isEnabled = enabled
-                it.isSelected = selected
+        Box(Modifier.height(IntrinsicSize.Min)) {
+            if (options.isNotEmpty() && snapped) {
+                Box(
+                    Modifier
+                        .layout { measurable, constraints ->
+                            val w = width.value.roundToInt().coerceAtLeast(0)
+                            val placeable = measurable.measure(constraints.copy(minWidth = w, maxWidth = w))
+                            layout(0, 0) { placeable.place(left.value.roundToInt(), 0) }
+                        }
+                        .fillMaxHeight()
+                        .styleable(indicatorState, KSegmentedControlDefaults.indicatorStyle(), indicatorStyle),
+                )
             }
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .hoverable(source, enabled)
-                    .selectable(selected, source, null, enabled, Role.RadioButton) { onSelectedIndexChange(index) }
-                    .styleable(state, KSegmentedControlDefaults.segmentStyle(), segmentStyle),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CompositionLocalProvider(LocalKContentColor provides KSegmentedControlDefaults.contentColor(selected, enabled)) {
-                    segment(index, label)
+            Row {
+                options.forEachIndexed { index, label ->
+                    val selected = index == selectedIndex
+                    val source = remember { MutableInteractionSource() }
+                    val state = rememberUpdatedStyleState(source) {
+                        it.isEnabled = enabled
+                        it.isSelected = selected
+                    }
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .onPlaced { coordinates ->
+                                val x = coordinates.positionInParent().x.roundToInt()
+                                val w = coordinates.size.width
+                                if (lefts[index] != x || widths[index] != w) { lefts[index] = x; widths[index] = w; placed++ }
+                            }
+                            .hoverable(source, enabled)
+                            .selectable(selected, source, null, enabled, Role.RadioButton) { onSelectedIndexChange(index) }
+                            .styleable(state, KSegmentedControlDefaults.segmentStyle(), segmentStyle),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CompositionLocalProvider(LocalKContentColor provides KSegmentedControlDefaults.contentColor(selected, enabled)) {
+                            segment(index, label)
+                        }
+                    }
                 }
             }
         }
@@ -103,7 +162,21 @@ public object KSegmentedControlDefaults {
         }
     }
 
-    /** One segment: transparent pill, `secondaryContainer` when selected, with interaction layers. */
+    /** The sliding selection pill: `secondaryContainer`, or a faint `onSurface` tint when disabled. */
+    @Composable
+    public fun indicatorStyle(): Style {
+        val c = MaterialTheme.colorScheme
+        val l = KompoundTheme.tokens.stateLayer
+        return remember(c, l) {
+            Style {
+                background(c.secondaryContainer)
+                shape(CircleShape)
+                disabled { background(c.onSurface.copy(alpha = l.disabledContainer)) }
+            }
+        }
+    }
+
+    /** One segment: transparent pill with interaction layers; the selected segment's text turns `onSecondaryContainer`. */
     @Composable
     public fun segmentStyle(): Style {
         val c = MaterialTheme.colorScheme
@@ -124,18 +197,17 @@ public object KSegmentedControlDefaults {
                 focused { background(layer(off, l.focused, Color.Transparent)) }
                 pressed { background(layer(off, l.pressed, Color.Transparent)) }
                 selected {
-                    background(c.secondaryContainer)
+                    // The pill behind it is the sliding indicator; here only text and the interaction layers change.
                     contentColor(on)
                     textStyle(type.labelLarge.copy(color = on))
-                    hovered { background(layer(on, l.hovered, c.secondaryContainer)) }
-                    focused { background(layer(on, l.focused, c.secondaryContainer)) }
-                    pressed { background(layer(on, l.pressed, c.secondaryContainer)) }
+                    hovered { background(on.copy(alpha = l.hovered)) }
+                    focused { background(on.copy(alpha = l.focused)) }
+                    pressed { background(on.copy(alpha = l.pressed)) }
                 }
                 disabled {
                     background(Color.Transparent)
                     contentColor(off.copy(alpha = l.disabledContent))
                     textStyle(type.labelLarge.copy(color = off.copy(alpha = l.disabledContent)))
-                    selected { background(c.onSurface.copy(alpha = l.disabledContainer)) }
                 }
             }
         }
