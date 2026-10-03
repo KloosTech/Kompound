@@ -24,6 +24,7 @@ import tech.kloos.kompound.buttons.KButton
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.graph.KEdgeShape
+import tech.kloos.kompound.graph.KEdgeStyle
 import tech.kloos.kompound.graph.KGraphControls
 import tech.kloos.kompound.graph.KMiniMap
 import tech.kloos.kompound.graph.KNodeType
@@ -158,6 +159,7 @@ fun DemoScope.KNodeGraphDemo() {
     val snap = boolControl("Snap nodes to grid", true)
     val guides = boolControl("Alignment guides", true)
     val overlays = boolControl("Minimap and controls", true)
+    val flow = boolControl("Animated wires", false)
     val shape = choiceControl("Wire shape", KEdgeShape.entries)
     val state = remember { KGraphState(sampleGraph()) }
     SideEffect { state.gridStep = if (snap) 24f else 0f; state.snapToNodes = guides }
@@ -193,6 +195,7 @@ fun DemoScope.KNodeGraphDemo() {
             fitOnFirstLayout = true,
             showGrid = grid,
             nodeTypes = NodeTypes,
+            edgeStyle = { if (flow) KEdgeStyle(animated = true) else KEdgeStyle() },
             overlay = if (overlays) ({
                 KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
                 KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))

@@ -13,6 +13,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.performClick
@@ -472,5 +474,41 @@ class KNodeGraphTest {
         waitForIdle()
         assertEquals(1, state.graph.edges.size)
         assertEquals("n1.out->sink_3.in", state.graph.edges.keys.single().value)
+    }
+
+    private fun redRuns(state: KGraphState, dashed: Boolean, animated: Boolean = false): Int {
+        var runs = 0
+        runComposeUiTest {
+            setContent {
+                MaterialTheme(scheme) {
+                    Box(Modifier.size(900.dp, 600.dp).testTag("canvas")) {
+                        KNodeGraph(state, Modifier.fillMaxSize(), edgeShape = KEdgeShape.Straight, showGrid = false,
+                            edgeStyle = { KEdgeStyle(color = androidx.compose.ui.graphics.Color.Red, dashed = dashed, animated = animated) }) { node ->
+                            KNode(node, "N", Modifier.testTag(node.id.value)) { Input("a"); Output("out") }
+                        }
+                    }
+                }
+            }
+            waitForIdle()
+            val a = state.viewport.worldToScreen(state.anchorOf(ref("n1", "out"))!!)
+            val b = state.viewport.worldToScreen(state.anchorOf(ref("n2", "a"))!!)
+            val map = onNodeWithTag("canvas").captureToImage().toPixelMap()
+            var inRun = false
+            for (i in 12..88) {
+                val p = a + (b - a) * (i / 100f)
+                val c = map[p.x.toInt().coerceIn(0, map.width - 1), p.y.toInt().coerceIn(0, map.height - 1)]
+                val red = c.red > 0.7f && c.green < 0.3f && c.blue < 0.3f
+                if (red && !inRun) runs++
+                inRun = red
+            }
+        }
+        return runs
+    }
+
+    @Test
+    fun dashedWiresHaveGapsAndSolidOnesDoNot() {
+        fun graph() = KGraphState(Graph.of(listOf(math("n1", Offset(50f, 200f)), math("n2", Offset(450f, 200f))))).also { it.connect(ref("n1", "out"), ref("n2", "a")) }
+        assertTrue(redRuns(graph(), dashed = true) >= 3, "dashed wire should break into several dashes")
+        assertEquals(1, redRuns(graph(), dashed = false))
     }
 }

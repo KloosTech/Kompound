@@ -110,7 +110,7 @@ and connection state; an invisible, ordered **edge list** (from, to) makes the w
 | Phase | Content | Status |
 |---|---|---|
 | **P1 core** | model, `ConnectionPolicy`, commands + undo/redo, `KGraphState`, viewport, `KNodeGraph` with grid, `KNode` + ports, drag nodes, bezier/straight/step edges, wire dragging with validation, edge and node selection, delete, keyboard basics, calculator demo | done |
-| **P2 editing** | marquee/multi-select, copy/paste/duplicate, alignment guides, minimap, controls, node menu (canvas and wire drop), reroute nodes (all **done**); edge styles and keyboard-driven menu still open | mostly done |
+| **P2 editing** | marquee/multi-select, copy/paste/duplicate, alignment guides, minimap, controls, node menu (canvas and wire drop), reroute nodes, per-wire styles (all **done**); keyboard-driven node menu still open | done except the keyboard menu |
 | **P3 structure** | group/comment nodes, collapse, subgraph nodes, auto layout (layered), JSON serialization module, virtualisation | |
 | **P4 runtime (optional)** | evaluation engine module (typed values, dirty propagation), execution tracing overlay | |
 

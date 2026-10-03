@@ -17,6 +17,24 @@ public enum class KEdgeShape {
     Step,
 }
 
+/**
+ * Look of one wire, returned by the `edgeStyle` callback of [KNodeGraph]. Unset values fall back to the editor's defaults.
+ *
+ * @property shape Overrides the editor's wire shape for this wire.
+ * @property color Overrides the colour (by default the colour of the output port's type, or the primary colour when selected).
+ * @property width Overrides the line width.
+ * @property dashed Draws a dashed line, for example for optional or conditional connections.
+ * @property animated Moves the dashes along the wire to show the direction of data flow (implies [dashed]).
+ */
+@androidx.compose.runtime.Immutable
+public class KEdgeStyle(
+    public val shape: KEdgeShape? = null,
+    public val color: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Unspecified,
+    public val width: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp.Unspecified,
+    public val dashed: Boolean = false,
+    public val animated: Boolean = false,
+)
+
 /** Geometry of edges: the path to draw and distance queries for picking. All points are in world units. */
 internal object EdgeGeometry {
     /** Horizontal reach of the bezier handles. */

@@ -1,5 +1,6 @@
 package tech.kloos.kompound.graph
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import tech.kloos.kompound.KompoundStyles
+import tech.kloos.kompound.graph.model.Edge
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
 import kotlin.math.exp
@@ -90,6 +92,7 @@ import kotlin.math.roundToInt
  * @param style Overrides merged over [KNodeGraphDefaults.style].
  * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
  * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
+ * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
  * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
  */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -104,6 +107,7 @@ public fun KNodeGraph(
     style: Style = Style,
     overlay: (@Composable BoxScope.() -> Unit)? = null,
     nodeTypes: List<KNodeType> = emptyList(),
+    edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -120,6 +124,12 @@ public fun KNodeGraph(
             if (measured && state.canvasSize != androidx.compose.ui.geometry.Size.Zero) state.fitView()
         }
     }
+    // The flow animation only runs while some wire asks for it (the State is read in the draw phase, never in composition).
+    val anyAnimated = state.graph.edges.values.any { edgeStyle(it).animated }
+    val flowState = if (anyAnimated) {
+        androidx.compose.animation.core.rememberInfiniteTransition(label = "flow")
+            .animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.LinearEasing)), label = "phase")
+    } else null
     val summary = "Node graph, ${state.graph.nodes.size} nodes, ${state.graph.edges.size} connections"
 
     CompositionLocalProvider(LocalKGraphState provides state) {
@@ -211,14 +221,23 @@ public fun KNodeGraph(
                 Canvas(Modifier.fillMaxSize()) {
                     val zoom = state.viewport.zoom
                     val width = 2.dp.toPx() / zoom
+                    val flow = flowState?.value ?: 0f
                     fun colorOf(type: tech.kloos.kompound.graph.model.PortType) = palette[KNodeGraphDefaults.paletteIndex(type, palette.size)]
                     val graph = state.graph
                     for (e in graph.edges.values) {
                         val a = state.anchors[e.from] ?: continue
                         val b = state.anchors[e.to] ?: continue
                         val selected = e.id in state.selectedEdges
-                        val colour = if (selected) scheme.primary else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
-                        drawPath(EdgeGeometry.path(edgeShape, a, b), colour, style = Stroke(width = if (selected) width * 1.6f else width, cap = StrokeCap.Round))
+                        val look = edgeStyle(e)
+                        val base = if (look.color != Color.Unspecified) look.color else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
+                        val colour = if (selected) scheme.primary else base
+                        val lineWidth = (if (look.width != androidx.compose.ui.unit.Dp.Unspecified) look.width.toPx() / zoom else width) * (if (selected) 1.6f else 1f)
+                        val dashed = look.dashed || look.animated
+                        val effect = if (dashed) {
+                            val on = 10.dp.toPx() / zoom
+                            androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(on, on * 0.6f), if (look.animated) -flow * on * 1.6f else 0f)
+                        } else null
+                        drawPath(EdgeGeometry.path(look.shape ?: edgeShape, a, b), colour, style = Stroke(width = lineWidth, cap = if (dashed) StrokeCap.Butt else StrokeCap.Round, pathEffect = effect))
                     }
                     for (g in state.guides) {
                         val line = scheme.primary.copy(alpha = 0.7f)
