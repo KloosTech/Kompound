@@ -26,6 +26,7 @@ import tech.kloos.kompound.demo.DemoScope
 import tech.kloos.kompound.graph.KEdgeShape
 import tech.kloos.kompound.graph.KGraphControls
 import tech.kloos.kompound.graph.KMiniMap
+import tech.kloos.kompound.graph.KNodeType
 import tech.kloos.kompound.graph.KGraphState
 import tech.kloos.kompound.graph.KNode
 import tech.kloos.kompound.graph.KNodeGraph
@@ -99,6 +100,13 @@ private fun mathNode(id: String, kind: String, at: Offset) =
     GraphNode(NodeId(id), kind, at, listOf(PortSpec.input("a", "A", Num), PortSpec.input("b", "B", Num), PortSpec.output("out", "Result", Num)), 0f)
 
 private fun displayNode(id: String, at: Offset) = GraphNode(NodeId(id), "display", at, listOf(PortSpec.input("in", "Value", Num)), null)
+
+private val NodeTypes = listOf(
+    KNodeType("number", "Number", listOf(PortSpec.output("value", "Value", Num)), "Input", { 1f }),
+    KNodeType("add", "Add", listOf(PortSpec.input("a", "A", Num), PortSpec.input("b", "B", Num), PortSpec.output("out", "Result", Num)), "Math", { 0f }),
+    KNodeType("multiply", "Multiply", listOf(PortSpec.input("a", "A", Num), PortSpec.input("b", "B", Num), PortSpec.output("out", "Result", Num)), "Math", { 0f }),
+    KNodeType("display", "Display", listOf(PortSpec.input("in", "Value", Num)), "Output"),
+)
 
 private fun sampleGraph(): Graph = Graph.of(
     listOf(
@@ -177,13 +185,14 @@ fun DemoScope.KNodeGraphDemo() {
             KButton({ state.fitView() }, variant = KButtonVariant.Outlined) { KText("Fit") }
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
-        KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
+        KText("Drag the title bar to move a node (all selected nodes move together), drag from a port to wire. Mouse: drag the background to select, hold Space to pan, scroll to zoom, Shift+click adds to the selection. Touch: drag to pan, pinch to zoom, press and hold then drag to select. Double-click the canvas (or drop a wire on it) for the node menu, double-click a wire to add a reroute. Delete removes, Ctrl or Cmd with Z, C, V, D undoes, copies, pastes, duplicates; F fits.")
         KNodeGraph(
             state,
             Modifier.fillMaxWidth().height(520.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
             edgeShape = shape,
             fitOnFirstLayout = true,
             showGrid = grid,
+            nodeTypes = NodeTypes,
             overlay = if (overlays) ({
                 KGraphControls(state, Modifier.align(Alignment.TopEnd).padding(8.dp))
                 KMiniMap(state, Modifier.align(Alignment.BottomEnd).padding(8.dp))

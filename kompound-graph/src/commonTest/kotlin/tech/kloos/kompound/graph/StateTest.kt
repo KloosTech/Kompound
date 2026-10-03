@@ -11,6 +11,7 @@ import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphCommand
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortRef
+import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.math
 import tech.kloos.kompound.graph.model.ref
 import kotlin.math.abs
@@ -375,5 +376,61 @@ class KGraphStateTest {
         // n2's vertical centre is y=50; n1 (height 100) centre would be 350+dy: moving up by 297 puts it at 53, within 6 of 50
         s.dragNodesBy(Offset(0f, -297f))
         assertEquals(-300f, s.dragDelta.y, 0.001f)
+    }
+
+    @Test
+    fun insertingARerouteSplitsTheWireIntoTwoInOneUndoStep() {
+        val s = state()
+        s.connect(ref("n1", "out"), ref("n2", "a"))
+        val reroute = s.insertReroute(EdgeId("n1.out->n2.a"), Offset(150f, 50f))!!
+        assertEquals(4, s.graph.nodes.size)
+        assertEquals(KRerouteKind, s.graph.node(reroute)!!.kind)
+        assertEquals(setOf("n1.out->reroute_1.in", "reroute_1.out->n2.a"), s.graph.edges.keys.map { it.value }.toSet())
+        assertEquals(setOf(reroute), s.selection)
+        s.undo()
+        assertEquals(3, s.graph.nodes.size)
+        assertEquals(listOf("n1.out->n2.a"), s.graph.edges.keys.map { it.value })
+        assertNull(s.insertReroute(EdgeId("ghost"), Offset.Zero))
+    }
+
+    @Test
+    fun addingANodeFromAWireConnectsItsFirstCompatiblePortInOneUndoStep() {
+        val s = state()
+        val type = KNodeType("calc", "Calc", listOf(PortSpec.output("o"), PortSpec.input("i1"), PortSpec.input("i2")))
+        val node = s.addNode(type, Offset(400f, 400f), connectFrom = ref("n1", "out"))
+        assertEquals("calc_4", node.id.value)
+        assertEquals(listOf("n1.out->calc_4.i1"), s.graph.edges.keys.map { it.value })
+        assertEquals(setOf(node.id), s.selection)
+        s.undo()
+        assertEquals(3, s.graph.nodes.size)
+        assertTrue(s.graph.edges.isEmpty())
+    }
+
+    @Test
+    fun anAddedNodeWithNoCompatiblePortIsStillAddedWithoutAWire() {
+        val s = state()
+        val type = KNodeType("src", "Source", listOf(PortSpec.output("o")))
+        val wired = s.addNode(GraphNodeOf(type), connectFrom = ref("n1", "out"))
+        assertFalse(wired)
+        assertEquals(4, s.graph.nodes.size)
+        assertTrue(s.graph.edges.isEmpty())
+    }
+
+    private fun GraphNodeOf(type: KNodeType) = tech.kloos.kompound.graph.model.GraphNode(NodeId("x"), type.kind, Offset.Zero, type.ports)
+
+    @Test
+    fun droppingAWireOnEmptyCanvasAsksForTheMenuOnlyWhenNodeTypesAreEnabled() {
+        val s = state()
+        s.beginWire(ref("n1", "out")); s.updateWire(Offset(150f, 500f)); s.endWire()
+        assertNull(s.menuRequest)
+        s.nodeMenuEnabled = true
+        s.beginWire(ref("n1", "out")); s.updateWire(Offset(150f, 500f)); s.endWire()
+        val request = s.menuRequest!!
+        assertEquals(ref("n1", "out"), request.from)
+        assertEquals(Offset(150f, 500f), request.world)
+        s.menuRequest = null
+        // a barely moved wire (a tap on the port) does not
+        s.beginWire(ref("n1", "out")); s.updateWire(Offset(205f, 45f)); s.endWire()
+        assertNull(s.menuRequest)
     }
 }

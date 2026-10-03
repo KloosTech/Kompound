@@ -14,6 +14,7 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.down
 import androidx.compose.ui.test.moveTo
@@ -34,6 +35,8 @@ import tech.kloos.kompound.graph.model.Edge
 import tech.kloos.kompound.graph.model.EdgeId
 import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.NodeId
+import tech.kloos.kompound.graph.model.PortDirection
+import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.math
 import tech.kloos.kompound.graph.model.ref
 import tech.kloos.kompound.text.KText
@@ -202,9 +205,11 @@ class KNodeGraphTest {
         val b = state.anchorOf(ref("n2", "a"))!!
         val mid = EdgeGeometry.sample(KEdgeShape.Bezier, a, b, 2)[1]
         onRoot().performTouchInput { click(state.viewport.worldToScreen(mid)) }
+        mainClock.advanceTimeBy(600)   // a single tap is confirmed once the double-tap time has passed
         waitForIdle()
         assertEquals(setOf(EdgeId("n1.out->n2.a")), state.selectedEdges)
         onRoot().performTouchInput { click(Offset(800f, 550f)) }
+        mainClock.advanceTimeBy(600)
         waitForIdle()
         assertTrue(state.selectedEdges.isEmpty() && state.selection.isEmpty())
     }
@@ -401,5 +406,71 @@ class KNodeGraphTest {
         onNodeWithTag("map").performTouchInput { click(Offset(8f, 8f)) }
         waitForIdle()
         assertTrue(state.viewport.offset != before)
+    }
+
+    private val types = listOf(
+        KNodeType("num", "Number", listOf(PortSpec.output("value", "Value")), category = "Input"),
+        KNodeType("sink", "Display", listOf(PortSpec.input("in", "In")), category = "Output"),
+    )
+
+    private fun ComposeUiTest.showWithTypes(state: KGraphState) = setContent {
+        MaterialTheme(scheme) {
+            Box(Modifier.size(900.dp, 600.dp)) {
+                KNodeGraph(state, Modifier.fillMaxSize(), nodeTypes = types) { node ->
+                    KNode(node, "Node ${node.id}", Modifier.testTag(node.id.value)) {
+                        for (p in node.ports) if (p.direction == PortDirection.Input) Input(p.id.value) else Output(p.id.value)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun doubleClickingAWireInsertsARerouteThatTheEditorDraws() = runComposeUiTest {
+        val state = twoNodes()
+        state.connect(ref("n1", "out"), ref("n2", "a"))
+        show(state)
+        waitForIdle()
+        val a = state.anchorOf(ref("n1", "out"))!!
+        val b = state.anchorOf(ref("n2", "a"))!!
+        val mid = EdgeGeometry.sample(KEdgeShape.Bezier, a, b, 2)[1]
+        onRoot().performTouchInput { doubleClick(state.viewport.worldToScreen(mid)) }
+        waitForIdle()
+        assertEquals(3, state.graph.nodes.size)
+        assertEquals(2, state.graph.edges.size)
+        onNodeWithContentDescription("Reroute").assertExists()
+        assertNotNull(state.anchorOf(ref("reroute_1", "in")))
+    }
+
+    @Test
+    fun doubleClickingTheEmptyCanvasOpensTheNodeMenuAndPickingAddsTheNode() = runComposeUiTest {
+        val state = twoNodes()
+        showWithTypes(state)
+        waitForIdle()
+        onRoot().performTouchInput { doubleClick(Offset(400f, 450f)) }
+        waitForIdle()
+        onNodeWithText("Number").assertExists()
+        onNodeWithText("Display").assertExists()
+        onNodeWithText("Number").performClick()
+        waitForIdle()
+        assertEquals(3, state.graph.nodes.size)
+        assertEquals("num", state.graph.nodes.values.last().kind)
+        assertTrue(state.menuRequest == null)
+    }
+
+    @Test
+    fun droppingAWireOnEmptyCanvasOffersOnlyNodesThatCanConnectAndWiresThePick() = runComposeUiTest {
+        val state = twoNodes()
+        showWithTypes(state)
+        waitForIdle()
+        val from = state.viewport.worldToScreen(state.anchorOf(ref("n1", "out"))!!)
+        onRoot().performTouchInput { swipe(from, Offset(300f, 500f), durationMillis = 300) }
+        waitForIdle()
+        onNodeWithText("Display").assertExists()
+        onNodeWithText("Number").assertDoesNotExist()   // an output cannot feed another output
+        onNodeWithText("Display").performClick()
+        waitForIdle()
+        assertEquals(1, state.graph.edges.size)
+        assertEquals("n1.out->sink_3.in", state.graph.edges.keys.single().value)
     }
 }

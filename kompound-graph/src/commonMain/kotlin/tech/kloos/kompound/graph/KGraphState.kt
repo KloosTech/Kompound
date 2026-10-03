@@ -446,11 +446,27 @@ public class KGraphState(
         wire = KWireDraft(w.from, pointer, target, w.compatible)
     }
 
-    /** Drops the wire: connects when it snapped to a compatible port, otherwise nothing happens. Returns the verdict if it tried. */
+    /** Drops the wire: connects when it snapped to a compatible port; released on empty canvas it asks for the node menu (if one is enabled). Returns the verdict if it connected. */
     public fun endWire(): ConnectionCheck? {
         val w = wire ?: return null
         wire = null
-        return w.target?.let { connect(w.from, it) }
+        if (w.target == null) {
+            val start = anchors[w.from]
+            if (nodeMenuEnabled && start != null && (w.pointer - start).getDistance() > 40f) menuRequest = KNodeMenuRequest(w.pointer, w.from)
+            return null
+        }
+        return connect(w.from, w.target)
+    }
+
+    /** Set by the editor when node types were given, so wires dropped on empty canvas and double clicks open the node menu. */
+    internal var nodeMenuEnabled: Boolean = false
+
+    /** The node menu to show, or `null`. */
+    public var menuRequest: KNodeMenuRequest? by mutableStateOf(null)
+
+    /** Opens the node menu at [world], optionally for a wire coming from [from]. Does nothing when no node types are enabled. */
+    public fun openNodeMenu(world: Offset, from: PortRef? = null) {
+        if (nodeMenuEnabled) menuRequest = KNodeMenuRequest(world, from)
     }
 
     /** Throws the wire away. */

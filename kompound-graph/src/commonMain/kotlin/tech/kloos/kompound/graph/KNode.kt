@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.graph.model.GraphCommand
 import tech.kloos.kompound.graph.model.GraphNode
+import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortDirection
 import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
@@ -132,40 +133,13 @@ public fun KNode(
                 state.execute(GraphCommand.MoveNodes(targets.associateWith { delta }))
                 true
             }
-            .pointerInput(node.id) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    val additive = currentEvent.isAdditive()
-                    val up = waitForUpOrCancellation()
-                    if (up != null) { up.consume(); state.select(node.id, additive) }
-                }
-            }
+            .nodeSelectOnClick(state, node.id)
             .styleable(nodeState, KNodeDefaults.style(), style),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .pointerInput(node.id) {
-                    // No touch slop: the node follows the pointer from the first pixel instead of lagging behind by the slop distance.
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val additive = currentEvent.isAdditive()
-                        var started = false
-                        val finished = drag(down.id) { change ->
-                            val delta = change.positionChange()
-                            if (!started && delta == Offset.Zero) return@drag
-                            if (!started) {
-                                // Grabbing an unselected node with Shift held joins the selection instead of replacing it.
-                                if (additive && node.id !in state.selection) state.select(node.id, additive = true)
-                                state.beginNodeDrag(node.id)
-                                started = true
-                            }
-                            state.dragNodesBy(delta)
-                            change.consume()
-                        }
-                        if (started) { if (finished) state.endNodeDrag() else state.cancelNodeDrag() }
-                    }
-                }
+                .nodeDragHandle(state, node.id)
                 .styleable(headerState, KNodeDefaults.headerStyle(), headerStyle),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -226,4 +200,39 @@ private fun Modifier.halfWidth(direction: PortDirection): Modifier = layout { me
     val p = measurable.measure(constraints)
     val reported = p.width / 2
     layout(reported, p.height) { p.place(if (direction == PortDirection.Input) -reported else 0, 0) }
+}
+
+/** Clicking the node selects it; with Shift, Ctrl or Cmd held it toggles the node in the selection. */
+internal fun Modifier.nodeSelectOnClick(state: KGraphState, id: NodeId): Modifier = pointerInput(id) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        val additive = currentEvent.isAdditive()
+        val up = waitForUpOrCancellation()
+        if (up != null) { up.consume(); state.select(id, additive) }
+    }
+}
+
+/**
+ * Dragging this area moves the node (and the rest of the selection). There is no touch slop: the node follows the
+ * pointer from the first pixel instead of lagging behind by the slop distance.
+ */
+internal fun Modifier.nodeDragHandle(state: KGraphState, id: NodeId): Modifier = pointerInput(id) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val additive = currentEvent.isAdditive()
+        var started = false
+        val finished = drag(down.id) { change ->
+            val delta = change.positionChange()
+            if (!started && delta == Offset.Zero) return@drag
+            if (!started) {
+                // Grabbing an unselected node with Shift held joins the selection instead of replacing it.
+                if (additive && id !in state.selection) state.select(id, additive = true)
+                state.beginNodeDrag(id)
+                started = true
+            }
+            state.dragNodesBy(delta)
+            change.consume()
+        }
+        if (started) { if (finished) state.endNodeDrag() else state.cancelNodeDrag() }
+    }
 }

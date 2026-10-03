@@ -89,7 +89,8 @@ import kotlin.math.roundToInt
  * @param gridSpacing Distance between the dots in world units.
  * @param style Overrides merged over [KNodeGraphDefaults.style].
  * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
- * @param nodeContent Draws one node.
+ * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
+ * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -102,9 +103,11 @@ public fun KNodeGraph(
     gridSpacing: Dp = KNodeGraphDefaults.GridSpacing,
     style: Style = Style,
     overlay: (@Composable BoxScope.() -> Unit)? = null,
+    nodeTypes: List<KNodeType> = emptyList(),
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
+    state.nodeMenuEnabled = nodeTypes.isNotEmpty()
     val styleState = remember { MutableStyleState(null) }
     val focus = remember { FocusRequester() }
     val gridColor = KNodeGraphDefaults.gridColor()
@@ -134,7 +137,19 @@ public fun KNodeGraph(
                 }
                 .onKeyEvent { event -> handleKey(state, event) }
                 .pointerInput(state) {
-                    detectTapGestures { position ->
+                    detectTapGestures(onDoubleTap = { position ->
+                        focus.requestFocus()
+                        val world = state.viewport.screenToWorld(position)
+                        val tolerance = 10.dp.toPx() / state.viewport.zoom
+                        val hit = state.graph.edges.values
+                            .mapNotNull { e ->
+                                val a = state.anchors[e.from]; val b = state.anchors[e.to]
+                                if (a == null || b == null) null else e.id to EdgeGeometry.distance(edgeShape, a, b, world)
+                            }
+                            .filter { it.second <= tolerance }
+                            .minByOrNull { it.second }
+                        if (hit != null) state.insertReroute(hit.first, world) else state.openNodeMenu(world)
+                    }) { position ->
                         focus.requestFocus()
                         state.cancelWire()
                         val world = state.viewport.screenToWorld(position)
@@ -223,8 +238,11 @@ public fun KNodeGraph(
                     }
                 }
                 NodeLayer(state, nodeContent)
+                // the node menu lives in the world layer so it opens where the wire was dropped
             }
             overlay?.invoke(this)
+            val request = state.menuRequest
+            if (request != null) NodeTypeMenu(state, nodeTypes, request) { state.menuRequest = null }
             val marquee = state.marquee
             if (marquee != null) {
                 Canvas(Modifier.fillMaxSize()) {
@@ -244,7 +262,9 @@ private fun NodeLayer(state: KGraphState, nodeContent: @Composable (GraphNode) -
         content = {
             for (node in state.graph.nodes.values) {
                 key(node.id) {
-                    Box(Modifier.layoutId(node.id).zIndex(if (node.id in state.selection) 1f else 0f)) { nodeContent(node) }
+                    Box(Modifier.layoutId(node.id).zIndex(if (node.id in state.selection) 1f else 0f)) {
+                        if (node.kind == KRerouteKind) KReroute(node) else nodeContent(node)
+                    }
                 }
             }
         },
