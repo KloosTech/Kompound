@@ -66,7 +66,7 @@ class VerticalCentringTest {
         val bg = map[x0, map.height / 2].let { first ->
             // most common colour in the band is the background
             val counts = HashMap<Color, Int>()
-            for (y in 0 until map.height step 1) for (x in x0 until x1 step 2) counts.merge(map[x, y], 1, Int::plus)
+            for (y in 0 until map.height step 1) for (x in x0 until x1 step 2) map[x, y].let { c -> counts[c] = (counts[c] ?: 0) + 1 }
             counts.maxByOrNull { it.value }?.key ?: first
         }
         val rows = (2 until map.height - 2).filter { y -> (x0 until x1).any { x -> map[x, y].differs(bg) } }
