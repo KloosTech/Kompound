@@ -27,6 +27,8 @@ import androidx.compose.foundation.style.styleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -97,6 +99,7 @@ import kotlin.math.roundToInt
  * @param style Overrides merged over [KNodeGraphDefaults.style].
  * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
  * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
+ * @param virtualizeAbove Above this many nodes only the nodes near the visible area are composed (and wires that cannot be seen are not drawn), so graphs with thousands of nodes stay fast; selected and dragged nodes always stay. `Int.MAX_VALUE` turns it off.
  * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
  * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
  */
@@ -112,6 +115,7 @@ public fun KNodeGraph(
     style: Style = Style,
     overlay: (@Composable BoxScope.() -> Unit)? = null,
     nodeTypes: List<KNodeType> = emptyList(),
+    virtualizeAbove: Int = 150,
     edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
@@ -224,7 +228,8 @@ public fun KNodeGraph(
                     val flow = flowState?.value ?: 0f
                     fun colorOf(type: tech.kloos.kompound.graph.model.PortType) = palette[KNodeGraphDefaults.paletteIndex(type, palette.size)]
                     val graph = state.graph
-                    for (resolved in state.resolvedEdges()) {
+                    val view = if (state.canvasSize == androidx.compose.ui.geometry.Size.Zero) null else state.viewport.visibleWorld(state.canvasSize)
+                    for (resolved in state.resolvedEdges(view)) {
                         val e = resolved.edge
                         val a = resolved.from
                         val b = resolved.to
@@ -257,7 +262,7 @@ public fun KNodeGraph(
                         }
                     }
                 }
-                NodeLayer(state, nodeContent)
+                NodeLayer(state, virtualizeAbove, nodeContent)
                 // the node menu lives in the world layer so it opens where the wire was dropped
             }
             if (state.scopePath.isNotEmpty()) KGraphBreadcrumbs(state, Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(8.dp))
@@ -281,7 +286,33 @@ public fun KNodeGraph(
  * with a frame behind each group and one compact box for each collapsed group.
  */
 @Composable
-private fun NodeLayer(state: KGraphState, nodeContent: @Composable (GraphNode) -> Unit) {
+private fun NodeLayer(state: KGraphState, virtualizeAbove: Int, nodeContent: @Composable (GraphNode) -> Unit) {
+    // Which nodes are composed: everything for small graphs; otherwise the ones near the viewport. derivedStateOf only notifies when the
+    // set itself changes, so panning recomposes the layer only when a node enters or leaves the margin around the visible area.
+    val composed by remember(state, virtualizeAbove) {
+        derivedStateOf<Set<NodeId>?> {
+            if (state.graph.nodes.size <= virtualizeAbove) null
+            else {
+                val canvas = state.canvasSize
+                if (canvas == androidx.compose.ui.geometry.Size.Zero) emptySet()
+                else {
+                    val margin = maxOf(canvas.width, canvas.height) / state.viewport.zoom * 0.35f
+                    val view = state.viewport.visibleWorld(canvas)
+                    val area = androidx.compose.ui.geometry.Rect(view.left - margin, view.top - margin, view.right + margin, view.bottom + margin)
+                    val visible = LinkedHashSet<NodeId>()
+                    for (n in state.graph.nodes.values) {
+                        val size = state.sizes[n.id] ?: androidx.compose.ui.geometry.Size(260f, 180f)
+                        if (n.id in state.selection || state.isDragged(n.id) ||
+                            androidx.compose.ui.geometry.Rect(state.positionOf(n), size).overlaps(area)
+                        ) {
+                            visible += n.id
+                        }
+                    }
+                    visible
+                }
+            }
+        }
+    }
     Layout(
         content = {
             for (group in state.graph.groups.values) {
@@ -292,7 +323,7 @@ private fun NodeLayer(state: KGraphState, nodeContent: @Composable (GraphNode) -
                 }
             }
             for (node in state.graph.nodes.values) {
-                if (state.isHidden(node)) continue
+                if (state.isHidden(node) || composed?.contains(node.id) == false) continue
                 key(node.id) {
                     Box(Modifier.layoutId(node.id).zIndex(if (node.id in state.selection) 1f else 0f)) {
                         when (node.kind) {

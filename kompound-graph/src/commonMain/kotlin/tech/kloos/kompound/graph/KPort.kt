@@ -45,6 +45,7 @@ internal fun KPortHandle(ref: PortRef, spec: PortSpec, modifier: Modifier = Modi
     val coords = remember { arrayOfNulls<androidx.compose.ui.layout.LayoutCoordinates>(1) }
     // The editor's layer may appear after the port: report again once it is there.
     val tick = state.layerTick
+    androidx.compose.runtime.DisposableEffect(ref) { onDispose { state.portDisposed(ref) } }
     androidx.compose.runtime.LaunchedEffect(tick) { coords[0]?.let { state.reportPort(ref, it) } }
 
     val description = buildString {

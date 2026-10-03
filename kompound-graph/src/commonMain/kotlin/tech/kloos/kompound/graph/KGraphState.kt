@@ -321,6 +321,13 @@ public class KGraphState(
         beginNodeDrag(members.first())
     }
 
+    /** Removes every undo and redo step (for example after laying out a freshly loaded graph). */
+    public fun clearHistory() {
+        document.clearHistory()
+        canUndo = false
+        canRedo = false
+    }
+
     /** A wire from `from` to `to` with the points the editor draws it between; wires into or out of collapsed groups end on the group's box. */
     internal class ResolvedEdge(val edge: tech.kloos.kompound.graph.model.Edge, val from: Offset, val to: Offset)
 
@@ -331,7 +338,7 @@ public class KGraphState(
     }
 
     /** Resolves every wire to drawable end points; wires inside one collapsed group are left out. */
-    internal fun resolvedEdges(): List<ResolvedEdge> {
+    internal fun resolvedEdges(view: Rect? = null): List<ResolvedEdge> {
         val out = ArrayList<ResolvedEdge>(graph.edges.size)
         val ranks = HashMap<Pair<GroupId, Boolean>, Int>()
         val rects = HashMap<GroupId, Rect?>()
@@ -341,15 +348,19 @@ public class KGraphState(
             val gFrom = collapsedOf(e.from.node)
             val gTo = collapsedOf(e.to.node)
             if (gFrom != null && gFrom == gTo) continue
-            val a = if (gFrom == null) anchors[e.from] else rects.getOrPut(gFrom) { collapsedRect(gFrom) }?.let { r ->
+            val a = if (gFrom == null) resolvedAnchor(e.from) else rects.getOrPut(gFrom) { collapsedRect(gFrom) }?.let { r ->
                 val rank = nextRank(ranks, gFrom to true)
                 Offset(r.right, r.top + 32f + rank * 14f)
             }
-            val b = if (gTo == null) anchors[e.to] else rects.getOrPut(gTo) { collapsedRect(gTo) }?.let { r ->
+            val b = if (gTo == null) resolvedAnchor(e.to) else rects.getOrPut(gTo) { collapsedRect(gTo) }?.let { r ->
                 val rank = nextRank(ranks, gTo to false)
                 Offset(r.left, r.top + 32f + rank * 14f)
             }
-            if (a != null && b != null) out += ResolvedEdge(e, a, b)
+            if (a != null && b != null) {
+                // Wires entirely outside [view] (plus room for the curve's handles) are not worth drawing.
+                if (view != null && (maxOf(a.x, b.x) < view.left - 200f || minOf(a.x, b.x) > view.right + 200f || maxOf(a.y, b.y) < view.top - 200f || maxOf(a.y, b.y).let { false } || minOf(a.y, b.y) > view.bottom + 200f)) continue
+                out += ResolvedEdge(e, a, b)
+            }
         }
         return out
     }
@@ -577,6 +588,8 @@ public class KGraphState(
         dragDelta = Offset.Zero
     }
 
+    internal fun isDragged(id: NodeId): Boolean = id in dragSet
+
     /** Where [node] is drawn: its position plus the drag offset while it is being dragged. */
     public fun positionOf(node: GraphNode): Offset = if (node.id in dragSet) node.position + dragDelta else node.position
 
@@ -601,7 +614,7 @@ public class KGraphState(
     internal var layerTick: Int by mutableIntStateOf(0)
 
     /** Size of the canvas in pixels; [Size.Zero] before it was laid out. */
-    public var canvasSize: Size = Size.Zero
+    public var canvasSize: Size by mutableStateOf(Size.Zero)
         internal set
 
     /** Records where the centre of a port is, from its layout coordinates. */
@@ -611,6 +624,37 @@ public class KGraphState(
         val centre = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
         val world = l.localPositionOf(coordinates, centre)
         if (anchors[ref] != world) anchors[ref] = world
+        graph.node(ref.node)?.let { n ->
+            val relative = world - positionOf(n)
+            portOffsets[ref] = relative
+            kindOffsets[n.kind to ref.port] = relative
+        }
+    }
+
+    /** Offsets of port centres from their node's top-left, remembered from when the port was laid out. */
+    private val portOffsets = HashMap<PortRef, Offset>()
+
+    /** The same per node kind and port id: lets wires reach nodes that were never composed (see virtualization). */
+    private val kindOffsets = HashMap<Pair<String, tech.kloos.kompound.graph.model.PortId>, Offset>()
+
+    /** A port left the composition (its node scrolled out of the virtualised canvas): its measured anchor is no longer valid. */
+    internal fun portDisposed(ref: PortRef) {
+        anchors.remove(ref)
+    }
+
+    /**
+     * Where the port [ref] is: measured when its node is composed, otherwise the node's position plus the offset remembered for that
+     * port (or for the same port of another node of the same kind), otherwise a rough guess from the port's place in the node.
+     */
+    internal fun resolvedAnchor(ref: PortRef): Offset? {
+        anchors[ref]?.let { return it }
+        val node = graph.node(ref.node) ?: return null
+        val spec = node.port(ref.port) ?: return null
+        val relative = portOffsets[ref] ?: kindOffsets[node.kind to ref.port] ?: run {
+            val row = node.ports.filter { it.direction == spec.direction }.indexOfFirst { it.id == ref.port }.coerceAtLeast(0)
+            Offset(if (spec.direction == tech.kloos.kompound.graph.model.PortDirection.Input) 0f else 220f, 64f + row * 32f)
+        }
+        return positionOf(node) + relative
     }
 
     /**

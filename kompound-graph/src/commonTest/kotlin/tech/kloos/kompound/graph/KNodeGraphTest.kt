@@ -691,4 +691,59 @@ class KNodeGraphTest {
         assertEquals(0, state.graph.nodes.values.count { it.kind == "subgraph" })
         onNodeWithTag("n1").assertExists()
     }
+
+    private fun bigGraph(): KGraphState {
+        val nodes = (0 until 1500).map { math("v$it", Offset((it % 50) * 300f, (it / 50) * 220f)) }
+        val edges = (0 until 1499).map { Edge(EdgeId("e$it"), ref("v$it", "out"), ref("v${it + 1}", "a")) }
+        return KGraphState(Graph.of(nodes, edges))
+    }
+
+    @Test
+    fun hugeGraphsOnlyComposeTheNodesNearTheViewport() = runComposeUiTest {
+        val state = bigGraph()
+        val composed = IntArray(1)
+        show(state, composed)
+        waitForIdle()
+        assertTrue(composed[0] in 1..200, "composed ${composed[0]} of 1500 nodes")
+        onNodeWithTag("v0").assertExists()
+        onNodeWithTag("v1499").assertDoesNotExist()
+    }
+
+    @Test
+    fun panningFarComposesTheNodesThereAndDropsTheOnesLeftBehind() = runComposeUiTest {
+        val state = bigGraph()
+        show(state)
+        waitForIdle()
+        state.viewport.centerOn(Offset(30 * 300f + 100f, 20 * 220f + 100f), state.canvasSize)
+        waitForIdle()
+        onNodeWithTag("v1030").assertExists()
+        onNodeWithTag("v0").assertDoesNotExist()
+    }
+
+    @Test
+    fun wiresToNodesThatAreNotComposedStillResolve() = runComposeUiTest {
+        val state = bigGraph()
+        show(state)
+        waitForIdle()
+        assertTrue(state.anchors[ref("v1400", "a")] == null)
+        val far = state.resolvedAnchor(ref("v1400", "a"))
+        assertNotNull(far)
+        val node = state.graph.node(NodeId("v1400"))!!
+        val measured = state.anchors.getValue(ref("v0", "a")) - state.graph.node(NodeId("v0"))!!.position
+        assertEquals(node.position + measured, far, "same offset as a measured node of the same kind")
+        val culled = state.resolvedEdges(state.viewport.visibleWorld(state.canvasSize))
+        assertTrue(culled.size < 100, "${culled.size} wires near the viewport")
+        assertEquals(1499, state.resolvedEdges().size)
+    }
+
+    @Test
+    fun aSelectedNodeStaysComposedWhenItLeavesTheViewport() = runComposeUiTest {
+        val state = bigGraph()
+        show(state)
+        waitForIdle()
+        state.select(NodeId("v0"))
+        state.viewport.centerOn(Offset(30 * 300f, 20 * 220f), state.canvasSize)
+        waitForIdle()
+        onNodeWithTag("v0").assertExists()
+    }
 }
