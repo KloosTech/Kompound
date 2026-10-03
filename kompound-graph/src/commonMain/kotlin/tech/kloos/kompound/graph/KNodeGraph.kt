@@ -20,6 +20,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.style.MutableStyleState
 import androidx.compose.foundation.style.Style
 import androidx.compose.foundation.style.styleable
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -66,6 +68,7 @@ import androidx.compose.ui.zIndex
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.graph.model.Edge
 import tech.kloos.kompound.graph.model.GroupId
+import tech.kloos.kompound.graph.model.Subgraphs
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
 import kotlin.math.exp
@@ -75,7 +78,8 @@ import kotlin.math.roundToInt
  * A pannable, zoomable canvas of [GraphNode]s joined by wires. Drag the background to pan, use the wheel or pinch to zoom,
  * drag a node by its title bar, drag from a port to another port to connect them. Delete removes the selection;
  * Ctrl or Cmd with Z or Shift+Z undoes and redoes; Ctrl or Cmd+A selects everything; Ctrl or Cmd with C, V, D copies, pastes and
- * duplicates the selection; L arranges the graph (the selection, if several nodes are selected); Escape cancels a wire.
+ * duplicates the selection; Ctrl+Alt+G wraps the selection in a subgraph (add Shift to open one up again), Escape goes back up out of a
+ * subgraph; L arranges the graph (the selection, if several nodes are selected); Escape cancels a wire.
  *
  * Selecting: click a node, Shift/Ctrl/Cmd+click adds or removes it, and dragging on the background with the mouse draws a selection
  * rectangle (hold Shift to add to the selection). Panning then uses the middle or right mouse button, Space+drag, or one finger on a
@@ -131,6 +135,7 @@ public fun KNodeGraph(
         androidx.compose.animation.core.rememberInfiniteTransition(label = "flow")
             .animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(900, easing = androidx.compose.animation.core.LinearEasing)), label = "phase")
     } else null
+    androidx.compose.runtime.LaunchedEffect(state.scopePath, state.canvasSize, state.sizes.size) { state.applyPendingFit() }
     val summary = "Node graph, ${state.graph.nodes.size} nodes, ${state.graph.edges.size} connections"
 
     CompositionLocalProvider(LocalKGraphState provides state) {
@@ -255,6 +260,7 @@ public fun KNodeGraph(
                 NodeLayer(state, nodeContent)
                 // the node menu lives in the world layer so it opens where the wire was dropped
             }
+            if (state.scopePath.isNotEmpty()) KGraphBreadcrumbs(state, Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(8.dp))
             overlay?.invoke(this)
             val request = state.menuRequest
             if (request != null) NodeTypeMenu(state, nodeTypes, request) { state.menuRequest = null }
@@ -292,6 +298,8 @@ private fun NodeLayer(state: KGraphState, nodeContent: @Composable (GraphNode) -
                         when (node.kind) {
                             KRerouteKind -> KReroute(node)
                             KCommentKind -> KComment(node)
+                            Subgraphs.Kind -> KSubgraphNode(node)
+                            Subgraphs.InputKind, Subgraphs.OutputKind -> KBoundaryNode(node)
                             else -> nodeContent(node)
                         }
                     }
@@ -323,13 +331,22 @@ private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.K
     val command = event.isCtrlPressed || event.isMetaPressed
     return when {
         event.key == Key.Delete || event.key == Key.Backspace -> { state.removeSelection(); true }
-        event.key == Key.Escape -> { if (state.wire != null) state.cancelWire() else state.clearSelection(); true }
+        event.key == Key.Escape -> {
+            if (state.wire != null) state.cancelWire()
+            else if (state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) state.clearSelection()
+            else state.exitSubgraph()
+            true
+        }
         command && event.key == Key.Z -> { if (event.isShiftPressed) state.redo() else state.undo(); true }
         command && event.key == Key.Y -> { state.redo(); true }
         command && event.key == Key.A -> { state.selectAll(); true }
         command && event.key == Key.C -> { state.copySelection(); true }
         command && event.key == Key.V -> { state.paste(); true }
         command && event.key == Key.D -> { state.duplicateSelection(); true }
+        command && event.isAltPressed && event.key == Key.G -> {
+            if (event.isShiftPressed) state.selection.toList().forEach { state.dissolveSubgraph(it) } else state.createSubgraph()
+            true
+        }
         command && event.key == Key.G -> { if (event.isShiftPressed) state.ungroupSelection() else state.groupSelection(); true }
         event.key == Key.F && !command -> { state.fitView(); true }
         event.key == Key.L && !command -> { state.autoLayout(selectedOnly = true, fit = false); true }

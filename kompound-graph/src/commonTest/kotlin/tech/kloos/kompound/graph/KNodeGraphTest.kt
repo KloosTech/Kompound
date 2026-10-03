@@ -607,4 +607,88 @@ class KNodeGraphTest {
         waitForIdle()
         assertEquals(180f, state.graph.node(NodeId("c1"))!!.position.x, 4f)
     }
+
+    private fun wrappedState(): KGraphState {
+        val s = KGraphState(Graph.of(listOf(math("n1", Offset(50f, 50f)), math("n2", Offset(450f, 80f)), math("n3", Offset(50f, 350f))),
+            listOf(Edge(EdgeId("e1"), ref("n1", "out"), ref("n2", "a")), Edge(EdgeId("e2"), ref("n3", "out"), ref("n1", "a")), Edge(EdgeId("e3"), ref("n2", "out"), ref("n3", "b")))))
+        s.select(NodeId("n1")); s.select(NodeId("n2"), additive = true)
+        s.createSubgraph("Calc")
+        s.clearSelection()
+        return s
+    }
+
+    @Test
+    fun aSubgraphNodeReplacesItsContentAtTheTopLevelAndOpensWithItsButton() = runComposeUiTest {
+        val state = wrappedState()
+        show(state)
+        waitForIdle()
+        onNodeWithTag("n1").assertDoesNotExist()
+        onNodeWithTag("n3").assertExists()
+        onNodeWithText("Calc").assertExists()
+        onNodeWithContentDescription("Open Calc").performClick()
+        waitForIdle()
+        onNodeWithTag("n1").assertExists()
+        onNodeWithTag("n2").assertExists()
+        onNodeWithTag("n3").assertDoesNotExist()
+        onNodeWithContentDescription("Input a").assertExists()
+        onNodeWithContentDescription("Output out").assertExists()
+        // breadcrumbs show where we are and lead back
+        onNodeWithText("Top level").assertExists()
+        onNodeWithText("Top level").performClick()
+        waitForIdle()
+        onNodeWithTag("n3").assertExists()
+        assertEquals(null, state.scope)
+    }
+
+    @Test
+    fun doubleClickingASubgraphNodeOpensItAndEscapeGoesBack() = runComposeUiTest {
+        val state = wrappedState()
+        show(state)
+        waitForIdle()
+        val id = state.graph.nodes.values.single { it.kind == "subgraph" }.id
+        val bounds = onNodeWithContentDescription("Calc").fetchSemanticsNode().boundsInRoot
+        onRoot().performTouchInput { doubleClick(Offset(bounds.left + 60f, bounds.top + 14f)) }
+        waitForIdle()
+        assertEquals(id, state.scope)
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { pressKey(Key.Escape) }
+        waitForIdle()
+        assertEquals(null, state.scope)
+    }
+
+    @Test
+    fun wiringInsideASubgraphWorksAndNeverReachesTheLevelAbove() = runComposeUiTest {
+        val state = wrappedState()
+        show(state)
+        waitForIdle()
+        state.enterSubgraph(state.graph.nodes.values.single { it.kind == "subgraph" }.id)
+        waitForIdle()
+        assertNotNull(state.anchorOf(ref("n1", "out")))
+        assertTrue(state.anchorOf(ref("n3", "out")) == null || state.graph.node(NodeId("n3"))!!.scope != state.scope)
+        val from = state.viewport.worldToScreen(state.anchorOf(ref("n2", "out"))!!)
+        val outBoundary = state.graph.nodes.values.single { it.kind == "subgraph.output" }
+        val to = state.viewport.worldToScreen(state.anchorOf(tech.kloos.kompound.graph.model.PortRef(outBoundary.id, tech.kloos.kompound.graph.model.PortId("value")))!!)
+        onRoot().performTouchInput { swipe(from, to, durationMillis = 300) }
+        waitForIdle()
+        assertTrue(state.graph.edges.values.any { it.from == ref("n2", "out") && it.to.node == outBoundary.id })
+    }
+
+    @Test
+    fun ctrlAltGWrapsTheSelectionInASubgraph() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        state.select(NodeId("n1")); state.select(NodeId("n2"), additive = true)
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); keyDown(Key.AltLeft); pressKey(Key.G); keyUp(Key.AltLeft); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(1, state.graph.nodes.values.count { it.kind == "subgraph" })
+        onNodeWithContentDescription("Open Subgraph").assertExists()
+        canvas.performKeyInput { keyDown(Key.CtrlLeft); keyDown(Key.AltLeft); keyDown(Key.ShiftLeft); pressKey(Key.G); keyUp(Key.ShiftLeft); keyUp(Key.AltLeft); keyUp(Key.CtrlLeft) }
+        waitForIdle()
+        assertEquals(0, state.graph.nodes.values.count { it.kind == "subgraph" })
+        onNodeWithTag("n1").assertExists()
+    }
 }

@@ -11,6 +11,7 @@ import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphCommand
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortRef
+import tech.kloos.kompound.graph.model.Subgraphs
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.math
 import tech.kloos.kompound.graph.model.ref
@@ -583,5 +584,160 @@ class KGraphGroupStateTest {
         val before = s.graph.node(NodeId("n1"))!!.position
         s.autoLayout()
         assertEquals(before, s.graph.node(NodeId("n1"))!!.position)
+    }
+}
+
+class KGraphSubgraphStateTest {
+    private val num = tech.kloos.kompound.graph.model.PortType.of("number")
+    private fun calc(id: String, at: Offset) = tech.kloos.kompound.graph.model.node(id, PortSpec.input("a", "A", num), PortSpec.input("b", "B", num), PortSpec.output("out", "Result", num), at = at)
+    private fun src(id: String, at: Offset) = tech.kloos.kompound.graph.model.node(id, PortSpec.output("out", "Value", num), at = at)
+
+    private fun state(): KGraphState {
+        val g = Graph.of(
+            listOf(src("s1", Offset(0f, 0f)), src("s2", Offset(0f, 150f)), calc("add", Offset(300f, 50f)), calc("mul", Offset(600f, 80f)), tech.kloos.kompound.graph.model.node("sink", PortSpec.input("in", type = num), at = Offset(900f, 80f))),
+            listOf(
+                Edge(EdgeId("e1"), ref("s1", "out"), ref("add", "a")), Edge(EdgeId("e2"), ref("s2", "out"), ref("add", "b")),
+                Edge(EdgeId("e3"), ref("add", "out"), ref("mul", "a")), Edge(EdgeId("e4"), ref("mul", "out"), ref("sink", "in")),
+            ),
+        )
+        val s = KGraphState(g)
+        for (n in g.nodes.keys) s.sizes[n] = Size(200f, 100f)
+        return s
+    }
+
+    private fun wrapAddMul(s: KGraphState): NodeId {
+        s.select(NodeId("add")); s.select(NodeId("mul"), additive = true)
+        return s.createSubgraph("Calc")!!
+    }
+
+    @Test
+    fun creatingASubgraphFromTheSelectionSelectsItAndHidesNothingAtTheTopLevel() {
+        val s = state()
+        val id = wrapAddMul(s)
+        assertEquals(setOf(id), s.selection)
+        assertEquals(null, s.scope)
+        assertTrue(s.isHidden(s.graph.node(NodeId("add"))!!), "the content belongs to the subgraph")
+        assertFalse(s.isHidden(s.graph.node(id)!!))
+        s.selectAll()
+        assertEquals(setOf("s1", "s2", "sink", id.value), s.selection.map { it.value }.toSet())
+        for (n in s.graph.nodes.values) for (p in n.ports) s.anchors[PortRef(n.id, p.id)] = n.position   // the editor reports these once laid out
+        assertEquals(3, s.resolvedEdges().size, "s1->calc, s2->calc, calc->sink")
+        s.undo()
+        assertEquals(5, s.graph.nodes.size)
+    }
+
+    @Test
+    fun enteringAndLeavingSwitchesWhatIsVisibleAndClearsTheSelection() {
+        val s = state()
+        val id = wrapAddMul(s)
+        s.enterSubgraph(id)
+        assertEquals(id, s.scope)
+        assertEquals(listOf(id), s.scopePath)
+        assertTrue(s.selection.isEmpty())
+        assertFalse(s.isHidden(s.graph.node(NodeId("add"))!!))
+        assertTrue(s.isHidden(s.graph.node(NodeId("s1"))!!))
+        s.selectAll()
+        assertTrue(NodeId("s1") !in s.selection && NodeId("add") in s.selection)
+        assertTrue(s.resolvedEdges().all { r -> s.graph.node(r.edge.from.node)!!.scope == id && s.graph.node(r.edge.to.node)!!.scope == id })
+        assertEquals("Calc", s.subgraphTitle(id))
+        assertTrue(s.exitSubgraph())
+        assertEquals(null, s.scope)
+        assertFalse(s.exitSubgraph())
+        s.enterSubgraph(NodeId("add"))   // not a subgraph node
+        assertEquals(null, s.scope)
+    }
+
+    @Test
+    fun wiresAndMarqueeOnlySeeTheOpenLevel() {
+        val s = state()
+        val id = wrapAddMul(s)
+        s.enterSubgraph(id)
+        for (n in s.graph.nodes.values) if (n.scope == id) { for (p in n.ports) s.anchors[PortRef(n.id, p.id)] = n.position }
+        s.beginWire(ref("add", "out"))
+        assertTrue(s.wire!!.compatible.all { s.graph.node(it.node)!!.scope == id }, "no ports of other levels are offered")
+        s.cancelWire()
+        assertTrue(s.nodesIn(Rect(-1000f, -1000f, 5000f, 5000f)).all { s.graph.node(it)!!.scope == id })
+    }
+
+    @Test
+    fun undoingTheCreationWhileInsideLeavesTheSubgraph() {
+        val s = state()
+        val id = wrapAddMul(s)
+        s.enterSubgraph(id)
+        s.undo()
+        assertEquals(null, s.scope)
+        assertTrue(s.scopePath.isEmpty())
+        s.redo()
+        assertEquals(null, s.scope, "redo does not reopen the subgraph")
+    }
+
+    @Test
+    fun breadcrumbsFollowNestedLevelsAndExitToJumpsUp() {
+        val s = state()
+        val outer = wrapAddMul(s)
+        s.enterSubgraph(outer)
+        s.select(NodeId("add"))
+        val inner = s.createSubgraph("Inner")!!
+        s.enterSubgraph(inner)
+        assertEquals(listOf(outer, inner), s.scopePath)
+        s.exitTo(1)
+        assertEquals(listOf(outer), s.scopePath)
+        s.exitTo(0)
+        assertTrue(s.scopePath.isEmpty())
+        s.exitTo(5)
+        assertTrue(s.scopePath.isEmpty())
+    }
+
+    @Test
+    fun duplicatingASubgraphCopiesItsContentAndKeepsTheCopyIndependent() {
+        val s = state()
+        val id = wrapAddMul(s)
+        s.duplicateSelection(Offset(0f, 400f))
+        val copy = s.graph.nodes.values.single { it.kind == Subgraphs.Kind && it.id != id }
+        assertEquals("subgraph_2", s.graph.nodes.keys.map { it.value }.first { it.startsWith("subgraph_") && it != id.value && !it.contains("/") })
+        assertEquals(setOf(copy.id), s.selection, "only the copy at the visible level is selected")
+        val inside = s.graph.nodes.values.filter { it.scope == copy.id }
+        assertEquals(s.graph.nodes.values.count { it.scope == id }, inside.size, "everything inside came along")
+        assertTrue(inside.filter { Subgraphs.isBoundary(it) }.all { it.id.value.startsWith("${copy.id}/") }, "boundary ids follow the new id")
+        assertTrue(s.graph.edges.values.any { it.from.node == NodeId("add_2") && it.to.node == NodeId("mul_2") }, "inner wires were copied")
+        assertFalse(s.graph.edges.values.any { (it.from.node.value.endsWith("_2") && it.to.node.value.startsWith("mul") && !it.to.node.value.endsWith("_2")) }, "no wire between original and copy")
+        s.undo()
+        assertEquals(9, s.graph.nodes.size, "the 5 originals, the subgraph node and its 3 boundary nodes")
+    }
+
+    @Test
+    fun deletingASubgraphWithTheKeyboardRemovesItsContentAndUndoBringsItBack() {
+        val s = state()
+        val id = wrapAddMul(s)
+        val wrapped = s.graph
+        s.select(id)
+        s.removeSelection()
+        assertEquals(3, s.graph.nodes.size)
+        s.undo()
+        assertEquals(wrapped, s.graph)
+    }
+
+    @Test
+    fun dissolvingSelectsTheFreedNodes() {
+        val s = state()
+        val id = wrapAddMul(s)
+        s.dissolveSubgraph(id)
+        assertEquals(setOf(NodeId("add"), NodeId("mul")), s.selection)
+        assertEquals(5, s.graph.nodes.size)
+    }
+
+    @Test
+    fun theViewportOfEachLevelIsRemembered() {
+        val s = state()
+        s.canvasSize = Size(1000f, 600f)
+        val id = wrapAddMul(s)
+        s.viewport.set(Offset(123f, 45f), 1f)
+        s.enterSubgraph(id)
+        s.viewport.set(Offset(7f, 8f), 2f)
+        s.exitSubgraph()
+        assertEquals(Offset(123f, 45f), s.viewport.offset)
+        s.enterSubgraph(id)
+        assertEquals(Offset(7f, 8f), s.viewport.offset)
+        assertEquals(2f, s.viewport.zoom)
     }
 }

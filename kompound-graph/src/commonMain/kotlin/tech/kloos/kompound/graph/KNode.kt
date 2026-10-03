@@ -90,6 +90,7 @@ public interface KNodeScope {
  * @param width Width of the node in world units; its height follows the content.
  * @param style Overrides merged over [KNodeDefaults.style].
  * @param headerStyle Overrides merged over [KNodeDefaults.headerStyle].
+ * @param onDoubleClick Called when the node is double-clicked or double-tapped.
  * @param actions Optional content at the end of the title bar (a badge, a menu button).
  * @param content The body; call `Input`, `Output` and `Content` on the scope.
  */
@@ -101,6 +102,7 @@ public fun KNode(
     width: Dp = KNodeDefaults.Width,
     style: Style = Style,
     headerStyle: Style = Style,
+    onDoubleClick: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
     content: @Composable KNodeScope.() -> Unit,
 ) {
@@ -126,14 +128,14 @@ public fun KNode(
                     Key.DirectionRight -> Offset(step, 0f)
                     Key.DirectionUp -> Offset(0f, -step)
                     Key.DirectionDown -> Offset(0f, step)
-                    Key.Enter -> { state.select(node.id); return@onKeyEvent true }
+                    Key.Enter -> { state.select(node.id); onDoubleClick?.invoke(); return@onKeyEvent true }
                     else -> return@onKeyEvent false
                 }
                 val targets = if (node.id in state.selection) state.selection else setOf(node.id)
                 state.execute(GraphCommand.MoveNodes(targets.associateWith { delta }))
                 true
             }
-            .nodeSelectOnClick(state, node.id)
+            .nodeSelectOnClick(state, node.id, onDoubleClick)
             .styleable(nodeState, KNodeDefaults.style(), style),
     ) {
         Row(
@@ -202,13 +204,26 @@ private fun Modifier.halfWidth(direction: PortDirection): Modifier = layout { me
     layout(reported, p.height) { p.place(if (direction == PortDirection.Input) -reported else 0, 0) }
 }
 
-/** Clicking the node selects it; with Shift, Ctrl or Cmd held it toggles the node in the selection. */
-internal fun Modifier.nodeSelectOnClick(state: KGraphState, id: NodeId): Modifier = pointerInput(id) {
+/**
+ * Clicking the node selects it; with Shift, Ctrl or Cmd held it toggles the node in the selection. A second click within the
+ * double-click time calls [onDoubleClick].
+ */
+internal fun Modifier.nodeSelectOnClick(state: KGraphState, id: NodeId, onDoubleClick: (() -> Unit)? = null): Modifier = pointerInput(id, onDoubleClick) {
+    var lastUp = -1L
     awaitEachGesture {
         awaitFirstDown(requireUnconsumed = false)
         val additive = currentEvent.isAdditive()
         val up = waitForUpOrCancellation()
-        if (up != null) { up.consume(); state.select(id, additive) }
+        if (up != null) {
+            up.consume()
+            if (onDoubleClick != null && lastUp >= 0 && up.uptimeMillis - lastUp <= viewConfiguration.doubleTapTimeoutMillis) {
+                lastUp = -1L
+                onDoubleClick()
+            } else {
+                lastUp = up.uptimeMillis
+                state.select(id, additive)
+            }
+        }
     }
 }
 

@@ -89,6 +89,7 @@ public fun KMiniMap(
     ) {
         val map = miniMapTransform(state, this.size) ?: return@Canvas
         for (n in state.graph.nodes.values) {
+            if (state.isHidden(n)) continue
             val r = Rect(n.position, state.sizes[n.id] ?: Size(220f, 120f))
             val a = map.toMap(r.topLeft)
             val b = map.toMap(r.bottomRight)
@@ -113,7 +114,7 @@ private class MiniMapTransform(val bounds: Rect, val scale: Float, val origin: O
 
 private fun miniMapTransform(state: KGraphState, mapSize: Size): MiniMapTransform? {
     if (mapSize.width <= 0f || mapSize.height <= 0f) return null
-    val nodes = state.graph.nodes.values.map { Rect(it.position, state.sizes[it.id] ?: Size(220f, 120f)) }
+    val nodes = state.graph.nodes.values.filter { !state.isHidden(it) }.map { Rect(it.position, state.sizes[it.id] ?: Size(220f, 120f)) }
     var bounds = state.viewport.visibleWorld(state.canvasSize)
     for (r in nodes) bounds = Rect(minOf(bounds.left, r.left), minOf(bounds.top, r.top), maxOf(bounds.right, r.right), maxOf(bounds.bottom, r.bottom))
     val w = bounds.width.coerceAtLeast(1f)

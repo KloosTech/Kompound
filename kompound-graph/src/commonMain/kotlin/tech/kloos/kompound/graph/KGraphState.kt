@@ -28,6 +28,7 @@ import tech.kloos.kompound.graph.model.GroupId
 import tech.kloos.kompound.graph.model.NodeGroup
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortRef
+import tech.kloos.kompound.graph.model.Subgraphs
 import kotlin.math.roundToInt
 
 /**
@@ -144,6 +145,8 @@ public class KGraphState(
     public fun load(graph: Graph) {
         val old = document.graph
         document.reset(graph)
+        scopePath = emptyList()
+        savedViews.clear()
         selection = emptySet()
         selectedEdges = emptySet()
         sync(old)
@@ -161,6 +164,7 @@ public class KGraphState(
     private fun sync(old: Graph) {
         val g = document.graph
         graph = g
+        if (scopePath.any { it !in g.nodes }) scopePath = scopePath.takeWhile { it in g.nodes }
         canUndo = document.canUndo
         canRedo = document.canRedo
         selection = selection.filterTo(HashSet()) { it in g.nodes }
@@ -170,10 +174,91 @@ public class KGraphState(
         if (old != g) onGraphChange?.invoke(old, g)
     }
 
+    // --- subgraphs ------------------------------------------------------------------------------------------
+
+    /** The subgraph node that is open (its content fills the canvas), or `null` at the top level. */
+    public val scope: NodeId? get() = scopePath.lastOrNull()
+
+    /** The open subgraph nodes from the outermost to the innermost; empty at the top level. */
+    public var scopePath: List<NodeId> by mutableStateOf(emptyList())
+        private set
+
+    private val savedViews = HashMap<NodeId?, Pair<Offset, Float>>()
+
+    private fun switchScope(path: List<NodeId>) {
+        if (path == scopePath) return
+        savedViews[scope] = viewport.offset to viewport.zoom
+        cancelWire(); cancelNodeDrag()
+        scopePath = path
+        clearSelection()
+        savedViews[scope]?.let { (offset, zoom) -> viewport.set(offset, zoom) } ?: fitViewSoon()
+    }
+
+    private var pendingFit = false
+    private fun fitViewSoon() { pendingFit = true }
+
+    /** Called by the editor once the nodes of the new level were measured, to frame a level that was never shown before. */
+    internal fun applyPendingFit() {
+        if (pendingFit && canvasSize != Size.Zero && graph.nodes.values.filter { !isHidden(it) }.all { it.id in sizes }) {
+            pendingFit = false
+            fitView()
+        }
+    }
+
+    /** Opens the subgraph node [id] (it must be shown at the current level). */
+    public fun enterSubgraph(id: NodeId) {
+        val node = graph.node(id) ?: return
+        if (!Subgraphs.isSubgraph(node) || node.scope != scope) return
+        switchScope(scopePath + id)
+    }
+
+    /** Goes up one level; `false` at the top level. */
+    public fun exitSubgraph(): Boolean {
+        if (scopePath.isEmpty()) return false
+        switchScope(scopePath.dropLast(1))
+        return true
+    }
+
+    /** Goes up to the level with [depth] open subgraphs (0 = top level). */
+    public fun exitTo(depth: Int) {
+        if (depth in 0 until scopePath.size) switchScope(scopePath.take(depth))
+    }
+
+    /** Title of the subgraph node [id] (its data when that is text, else its id). */
+    public fun subgraphTitle(id: NodeId): String = graph.node(id)?.data as? String ?: id.value
+
+    /** Wraps the selected nodes in a new subgraph node and returns its id (one undo step); `null` when nothing can be wrapped. */
+    public fun createSubgraph(title: String = "Subgraph"): NodeId? {
+        var n = graph.nodes.size + 1
+        while (NodeId("subgraph_$n") in graph.nodes) n++
+        val id = NodeId("subgraph_$n")
+        val command = Subgraphs.create(graph, selection, id, title) ?: return null
+        if (!execute(command)) return null
+        select(id)
+        return id
+    }
+
+    /** Opens the subgraph node [id] up: its content moves to its level and the wires are joined (one undo step). */
+    public fun dissolveSubgraph(id: NodeId) {
+        val command = Subgraphs.dissolve(graph, id) ?: return
+        val inner = graph.nodes.values.filter { it.scope == id && !Subgraphs.isBoundary(it) }.map { it.id }.toSet()
+        if (execute(command)) setSelection(inner)
+    }
+
+    /** Adds an input port to the subgraph node [id] (with its boundary node inside). */
+    public fun addSubgraphInput(id: NodeId, label: String, type: tech.kloos.kompound.graph.model.PortType = tech.kloos.kompound.graph.model.PortType.Any) {
+        Subgraphs.addInput(graph, id, label, type)?.let { execute(it) }
+    }
+
+    /** Adds an output port to the subgraph node [id] (with its boundary node inside). */
+    public fun addSubgraphOutput(id: NodeId, label: String, type: tech.kloos.kompound.graph.model.PortType = tech.kloos.kompound.graph.model.PortType.Any) {
+        Subgraphs.addOutput(graph, id, label, type)?.let { execute(it) }
+    }
+
     // --- groups --------------------------------------------------------------------------------------------
 
-    /** Whether [node] is hidden because it belongs to a collapsed group. */
-    public fun isHidden(node: GraphNode): Boolean = node.group?.let { graph.group(it)?.collapsed } == true
+    /** Whether [node] is not shown at the moment: it belongs to a collapsed group, or to another subgraph than the one open. */
+    public fun isHidden(node: GraphNode): Boolean = node.scope != scope || node.group?.let { graph.group(it)?.collapsed } == true
 
     /** Frame around the members of [id] (padded, with room for the title bar on top), or `null` for a group without members. */
     public fun groupBounds(id: GroupId): Rect? {
@@ -252,6 +337,7 @@ public class KGraphState(
         val rects = HashMap<GroupId, Rect?>()
         fun collapsedOf(node: NodeId): GroupId? = graph.node(node)?.group?.takeIf { graph.group(it)?.collapsed == true }
         for (e in graph.edges.values) {
+            if (graph.node(e.from.node)?.scope != scope || graph.node(e.to.node)?.scope != scope) continue
             val gFrom = collapsedOf(e.from.node)
             val gTo = collapsedOf(e.to.node)
             if (gFrom != null && gFrom == gTo) continue
@@ -327,17 +413,18 @@ public class KGraphState(
     /** Whether [paste] has something to paste. */
     public val canPaste: Boolean get() = clipboard != null
 
-    /** Remembers the selected nodes and the wires between them. */
+    /** Remembers the selected nodes (with everything inside selected subgraph nodes) and the wires between them. */
     public fun copySelection() {
         if (selection.isEmpty()) return
-        val nodes = graph.nodes.values.filter { it.id in selection }
-        val edges = graph.edges.values.filter { it.from.node in selection && it.to.node in selection }
+        val closure = selection + graph.descendantsOf(selection)
+        val nodes = graph.nodes.values.filter { it.id in closure }
+        val edges = graph.edges.values.filter { it.from.node in closure && it.to.node in closure }
         clipboard = GraphClipboard(nodes, edges)
     }
 
     /**
      * Pastes the copied nodes (and the wires between them) as new nodes, shifted by [offset] world units, and selects them.
-     * Ids get a numeric suffix so they stay unique. One undo step.
+     * Ids get a numeric suffix so they stay unique; a copied subgraph node takes its content along. One undo step.
      */
     public fun paste(offset: Offset = Offset(32f, 32f)) {
         val board = clipboard ?: return
@@ -347,15 +434,22 @@ public class KGraphState(
     /** Copies and pastes the selection in one go (the clipboard is left alone). */
     public fun duplicateSelection(offset: Offset = Offset(32f, 32f)) {
         if (selection.isEmpty()) return
-        val nodes = graph.nodes.values.filter { it.id in selection }
-        val edges = graph.edges.values.filter { it.from.node in selection && it.to.node in selection }
+        val closure = selection + graph.descendantsOf(selection)
+        val nodes = graph.nodes.values.filter { it.id in closure }
+        val edges = graph.edges.values.filter { it.from.node in closure && it.to.node in closure }
         insertCopies(nodes, edges, offset)
     }
 
     private fun insertCopies(nodes: List<GraphNode>, edges: List<tech.kloos.kompound.graph.model.Edge>, offset: Offset) {
         val taken = graph.nodes.keys.mapTo(HashSet()) { it.value }
         val renamed = HashMap<NodeId, NodeId>()
-        for (n in nodes) {
+        val ordered = nodes.sortedBy { graph.depthOf(it.id) }
+        for (n in ordered) {
+            if (Subgraphs.isBoundary(n) && n.scope != null && n.scope in renamed) {
+                // boundary ids are built from the id of their subgraph node, so they follow its new id
+                renamed[n.id] = NodeId(n.id.value.replaceFirst(n.scope.value, renamed.getValue(n.scope).value))
+                continue
+            }
             val base = n.id.value.replace(Regex("_\\d+$"), "")
             var i = 2
             while ("${base}_$i" in taken) i++
@@ -364,7 +458,9 @@ public class KGraphState(
             renamed[n.id] = id
         }
         val commands = ArrayList<GraphCommand>()
-        for (n in nodes) commands += GraphCommand.AddNode(n.copy(id = renamed.getValue(n.id), position = n.position + offset, group = null))
+        for (n in ordered) {
+            commands += GraphCommand.AddNode(n.copy(id = renamed.getValue(n.id), position = n.position + offset, group = null, scope = n.scope?.let { renamed[it] ?: it }))
+        }
         for (e in edges) {
             val from = PortRef(renamed.getValue(e.from.node), e.from.port)
             val to = PortRef(renamed.getValue(e.to.node), e.to.port)
@@ -373,7 +469,8 @@ public class KGraphState(
         if (commands.isEmpty()) return
         execute(GraphCommand.Batch(commands, "Paste"))
         selectedEdges = emptySet()
-        selection = renamed.values.toSet()
+        // only the copies at the visible level are selected (what is inside a copied subgraph stays closed)
+        selection = ordered.map { renamed.getValue(it.id) }.filter { id -> graph.node(id)?.scope == scope }.toSet()
     }
 
     // --- dragging nodes -----------------------------------------------------------------------------------------
