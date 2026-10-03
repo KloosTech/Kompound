@@ -4,12 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Rect
 import tech.kloos.kompound.graph.model.ConnectionCheck
 import tech.kloos.kompound.graph.model.ConnectionPolicy
 import tech.kloos.kompound.graph.model.EdgeId
@@ -146,8 +150,8 @@ public class KGraphState(
         canRedo = document.canRedo
         selection = selection.filterTo(HashSet()) { it in g.nodes }
         selectedEdges = selectedEdges.filterTo(HashSet()) { it in g.edges }
-        val gone = anchors.keys.filter { it.node !in g.nodes }
-        gone.forEach { anchors.remove(it) }
+        anchors.keys.filter { it.node !in g.nodes }.forEach { anchors.remove(it) }
+        sizes.keys.filter { it !in g.nodes }.forEach { sizes.remove(it) }
         if (old != g) onGraphChange?.invoke(old, g)
     }
 
@@ -245,6 +249,38 @@ public class KGraphState(
 
     /** World positions of the port centres, reported by the ports themselves once they are laid out. */
     internal val anchors = mutableStateMapOf<PortRef, Offset>()
+
+    /** Measured sizes of the nodes in world units. */
+    internal val sizes = mutableStateMapOf<NodeId, Size>()
+
+    /** Coordinates of the world layer; ports measure their centre relative to it. Set by the editor. */
+    internal var layer: LayoutCoordinates? = null
+
+    /** Bumped when [layer] changes so ports re-report their anchors. */
+    internal var layerTick: Int by mutableIntStateOf(0)
+
+    /** Size of the canvas in pixels. */
+    internal var canvasSize: Size = Size.Zero
+
+    /** Records where the centre of a port is, from its layout coordinates. */
+    internal fun reportPort(ref: PortRef, coordinates: LayoutCoordinates) {
+        val l = layer ?: return
+        if (!l.isAttached || !coordinates.isAttached) return
+        val centre = Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
+        val world = l.localPositionOf(coordinates, centre)
+        if (anchors[ref] != world) anchors[ref] = world
+    }
+
+    /** Zooms and pans so every node is visible. */
+    public fun fitView(padding: Float = 48f) {
+        val rects = graph.nodes.values.map { n ->
+            val size = sizes[n.id] ?: Size(220f, 120f)
+            Rect(n.position, size)
+        }
+        if (rects.isEmpty() || canvasSize == Size.Zero) return
+        val bounds = Rect(rects.minOf { it.left }, rects.minOf { it.top }, rects.maxOf { it.right }, rects.maxOf { it.bottom })
+        viewport.fit(bounds, canvasSize, padding)
+    }
 
     /** World position of the centre of the port [ref], or `null` before it was laid out. */
     public fun anchorOf(ref: PortRef): Offset? = anchors[ref]
