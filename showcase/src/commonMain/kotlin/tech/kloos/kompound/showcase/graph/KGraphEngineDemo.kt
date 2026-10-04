@@ -161,6 +161,7 @@ private fun StatusLine(run: NodeRun) {
             is NodeRun.Blocked -> KText("Blocked by ${run.by}")
             is NodeRun.Done -> KText("Done")
             NodeRun.Declined -> KText("Not run")
+            NodeRun.Skipped -> KText("Skipped")
             is NodeRun.Failed -> KText(run.error.message ?: "Failed", maxLines = 2)
         }
     }

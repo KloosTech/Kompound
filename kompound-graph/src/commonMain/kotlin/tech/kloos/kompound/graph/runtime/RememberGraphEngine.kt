@@ -8,6 +8,9 @@ import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import tech.kloos.kompound.graph.KGraphState
+import tech.kloos.kompound.graph.model.GraphNode
+import tech.kloos.kompound.graph.model.PortSpec
+import tech.kloos.kompound.graph.model.SignalMode
 
 /**
  * A [GraphEngine] that follows the editor: every change of [state]'s graph is handed to [GraphEngine.update], and running stops when the
@@ -18,6 +21,9 @@ import tech.kloos.kompound.graph.KGraphState
  * @param autoRun Whether edits start runs by themselves; with `false` call [GraphEngine.start] (a Run button).
  * @param maxConcurrency How many runners may be active at once.
  * @param runDispatcher Where runners execute.
+ * @param trace What is recorded (history size, value capture, redaction).
+ * @param beforeRun Gate asked before a runner starts (see [GraphEngine]).
+ * @param signalMode Which signal mode an input port uses (see [GraphEngine]).
  */
 @Composable
 public fun rememberGraphEngine(
@@ -26,9 +32,12 @@ public fun rememberGraphEngine(
     autoRun: Boolean = true,
     maxConcurrency: Int = 4,
     runDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    trace: TraceOptions = TraceOptions(),
+    beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
+    signalMode: (node: GraphNode, port: PortSpec) -> SignalMode = { _, port -> port.signal },
 ): GraphEngine {
     val scope = rememberCoroutineScope()
-    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher) }
+    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode) }
     LaunchedEffect(engine) { snapshotFlow { state.graph }.collect { engine.update(it) } }
     return engine
 }

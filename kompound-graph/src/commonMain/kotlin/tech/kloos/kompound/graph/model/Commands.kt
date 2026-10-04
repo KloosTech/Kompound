@@ -28,6 +28,13 @@ public sealed interface GraphCommand {
     /** Replaces the payload of a node. */
     public data class UpdateNodeData(public val id: NodeId, public val data: Any?) : GraphCommand
 
+    /**
+     * Replaces the ports of a node (a node whose ports depend on something else: a reference to another document, a node with a variable
+     * number of inputs). Wires on ports that still exist (same id and direction) are kept; the others are removed, and undo brings them
+     * back together with the old ports. The node's data and pin are left alone.
+     */
+    public data class UpdateNodePorts(public val id: NodeId, public val ports: List<PortSpec>) : GraphCommand
+
     /** Pins the output values of a node (see [GraphNode.pin]), or removes the pin with `null`. */
     public data class SetPin(public val id: NodeId, public val pin: Map<PortId, Any?>?) : GraphCommand
 
@@ -97,6 +104,18 @@ public fun GraphCommand.applyTo(graph: Graph): AppliedCommand? = when (this) {
         val node = graph.node(id)
         if (node == null || node.data == data) null
         else AppliedCommand(graph.withNode(node.copy(data = data)), GraphCommand.UpdateNodeData(id, node.data))
+    }
+    is GraphCommand.UpdateNodePorts -> {
+        val node = graph.node(id)
+        if (node == null || node.ports == ports) null
+        else {
+            fun survives(ref: PortRef, direction: PortDirection): Boolean = ports.any { it.id == ref.port && it.direction == direction }
+            val lost = graph.edgesOf(id).filter { e ->
+                !(e.from.node != id || survives(e.from, PortDirection.Output)) || !(e.to.node != id || survives(e.to, PortDirection.Input))
+            }
+            val after = graph.withoutEdges(lost.map { it.id }.toSet()).withNode(node.copy(ports = ports))
+            AppliedCommand(after, GraphCommand.Batch(listOf(GraphCommand.UpdateNodePorts(id, node.ports)) + lost.map { GraphCommand.Connect(it) }))
+        }
     }
     is GraphCommand.SetPin -> {
         val node = graph.node(id)

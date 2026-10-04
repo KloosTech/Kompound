@@ -348,3 +348,49 @@ class GroupModelTest {
         assertNull(g.node(NodeId("n1"))!!.group)
     }
 }
+
+class UpdateNodePortsTest {
+    private val out = tech.kloos.kompound.graph.model.PortId("out")
+
+    private fun graph(): Graph = Graph.of(
+        listOf(node("a", PortSpec.output("out"), PortSpec.output("extra")), node("b", PortSpec.input("in"), PortSpec.input("old"), PortSpec.output("out"))),
+        listOf(
+            Edge(EdgeId("e1"), ref("a", "out"), ref("b", "in")),
+            Edge(EdgeId("e2"), ref("a", "extra"), ref("b", "old")),
+        ),
+    )
+
+    @Test
+    fun newPortsKeepTheWiresOnPortsThatStillExistAndUndoBringsEverythingBack() {
+        val g = graph()
+        val newPorts = listOf(PortSpec.input("in"), PortSpec.input("fresh"), PortSpec.output("out"))
+        val applied = GraphCommand.UpdateNodePorts(NodeId("b"), newPorts).applyTo(g)!!
+        assertEquals(newPorts, applied.graph.node(NodeId("b"))!!.ports)
+        assertEquals(setOf("e1"), applied.graph.edges.keys.map { it.value }.toSet(), "wires to the removed port are gone")
+        val undone = applied.inverse.applyTo(applied.graph)!!.graph
+        assertEquals(g.node(NodeId("b"))!!.ports, undone.node(NodeId("b"))!!.ports)
+        assertEquals(g.edges.keys, undone.edges.keys)
+    }
+
+    @Test
+    fun aPortThatChangesDirectionLosesItsWireAndSamePortsAreANoOp() {
+        val g = graph()
+        val flipped = listOf(PortSpec.output("in"), PortSpec.input("old"), PortSpec.output("out"))
+        val applied = GraphCommand.UpdateNodePorts(NodeId("b"), flipped).applyTo(g)!!
+        assertEquals(setOf("e2"), applied.graph.edges.keys.map { it.value }.toSet(), "the wire into the port that turned into an output is dropped")
+        assertEquals(null, GraphCommand.UpdateNodePorts(NodeId("b"), g.node(NodeId("b"))!!.ports).applyTo(g))
+        assertEquals(null, GraphCommand.UpdateNodePorts(NodeId("nope"), flipped).applyTo(g))
+    }
+
+    @Test
+    fun theDocumentRecordsItAsOneUndoStepAndKeepsDataAndPin() {
+        val doc = GraphDocument(Graph.of(listOf(node("n", PortSpec.input("a")).copy(data = 7, pin = mapOf(out to 1)))))
+        doc.execute(GraphCommand.UpdateNodePorts(NodeId("n"), listOf(PortSpec.input("a"), PortSpec.input("b"))))
+        val n = doc.graph.node(NodeId("n"))!!
+        assertEquals(2, n.ports.size)
+        assertEquals(7, n.data)
+        assertEquals(mapOf(out to 1), n.pin)
+        doc.undo()
+        assertEquals(1, doc.graph.node(NodeId("n"))!!.ports.size)
+    }
+}

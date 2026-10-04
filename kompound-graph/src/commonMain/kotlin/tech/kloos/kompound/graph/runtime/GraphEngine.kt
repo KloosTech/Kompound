@@ -60,6 +60,8 @@ import tech.kloos.kompound.graph.model.PortId
  * @param runDispatcher Where runners execute.
  * @param trace What is recorded in [executions].
  * @param clock Epoch milliseconds for trace timestamps (replace it in tests).
+ * @param signalMode Which [SignalMode] an input port uses. Defaults to what is saved in the port's spec; give a function (for example one
+ * that looks at the node kind) to change the behaviour of nodes already saved in old graphs.
  * @param beforeRun Asked just before a node's runner would start, with what started the run (see [TraceTrigger]); return `false` to refuse.
  * A refused node is [NodeRun.Declined], nodes after it are [NodeRun.Blocked], and it is asked again on the next [start] or [rerun]. Use it
  * to keep runners with side effects (processes, network) from running on an automatic run, or to ask the user first. Also asked for
@@ -75,6 +77,7 @@ public class GraphEngine(
     private val trace: TraceOptions = TraceOptions(),
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
+    private val signalMode: (node: GraphNode, port: PortSpec) -> SignalMode = { _, port -> port.signal },
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private val lockWord = AtomicInt(0)
@@ -151,13 +154,17 @@ public class GraphEngine(
         if (own.any { it is NodeRun.Idle }) return NodeRun.Idle
         val router = Router(graph)
         val outputs = LinkedHashMap<PortId, Any?>()
+        var skipped = false
         for (spec in node.ports) {
             if (spec.direction != PortDirection.Output) continue
             val source = router.source(PortRef(Subgraphs.outputBoundary(node.id, spec.id), Subgraphs.BoundaryPort)) ?: continue
-            val done = states[source.node] as? NodeRun.Done ?: return NodeRun.Waiting
-            outputs[spec.id] = done.outputs[source.port]
+            when (val st = states[source.node]) {
+                is NodeRun.Done -> outputs[spec.id] = st.outputs[source.port]
+                NodeRun.Skipped -> skipped = true
+                else -> return NodeRun.Waiting
+            }
         }
-        return NodeRun.Done(outputs)
+        return if (outputs.isEmpty() && skipped) NodeRun.Skipped else NodeRun.Done(outputs)
     }
 
     private fun boundaryRun(node: GraphNode): NodeRun {
@@ -170,6 +177,7 @@ public class GraphEngine(
         return when (val up = states[source.node]) {
             is NodeRun.Done -> NodeRun.Done(mapOf(Subgraphs.BoundaryPort to up.outputs[source.port]))
             is NodeRun.Failed, is NodeRun.Declined -> NodeRun.Blocked(source.node)
+            NodeRun.Skipped -> NodeRun.Skipped
             is NodeRun.Blocked -> up
             else -> NodeRun.Waiting
         }
@@ -474,6 +482,8 @@ public class GraphEngine(
         val cursor = HashMap<PortId, Int>()
         var started = false
         var complete = false
+        /** Output ports a runner reported [NoSignal] at: they stay empty instead of getting the `null` fill. */
+        val silent = HashSet<PortId>()
     }
 
     private fun rt(id: NodeId): Rt = rts.getOrPut(id) { Rt() }
@@ -485,6 +495,10 @@ public class GraphEngine(
     }
 
     private fun publish(node: NodeId, port: PortId, value: Any?) {
+        if (value === NoSignal) {
+            rt(node).also { it.feeds.getOrPut(port) { Feed() }; it.silent += port }
+            return
+        }
         val feed = rt(node).feeds.getOrPut(port) { Feed() }
         feed.values += value
         val ref = PortRef(node, port)
@@ -510,9 +524,10 @@ public class GraphEngine(
         if (wires.isEmpty()) return if (rt.started) null else Plan(NodeInputs(emptyMap()), false) { rt.started = true }
         for (w in wires) {
             val feed = w.feed ?: return null
-            val ready = when (w.spec.signal) {
+            val ready = when (signalMode(node, w.spec)) {
                 SignalMode.Latest, SignalMode.Each -> feed.values.isNotEmpty()
-                SignalMode.Collect, SignalMode.Final -> feed.complete
+                SignalMode.Collect -> feed.complete
+                SignalMode.Final -> feed.complete && feed.values.isNotEmpty()
             }
             if (!ready) return null
         }
@@ -521,7 +536,7 @@ public class GraphEngine(
         for (w in wires) {
             val feed = w.feed!!
             val taken = rt.cursor[w.spec.id] ?: 0
-            when (w.spec.signal) {
+            when (signalMode(node, w.spec)) {
                 SignalMode.Each -> if (feed.values.size > taken) { pending = true; if (eachPort == null) eachPort = w.spec.id }
                 SignalMode.Latest -> if (feed.values.size > taken) pending = true
                 SignalMode.Collect, SignalMode.Final -> if (taken != Used) pending = true
@@ -534,7 +549,7 @@ public class GraphEngine(
             val feed = w.feed!!
             val id = w.spec.id
             val taken = rt.cursor[id] ?: 0
-            when (w.spec.signal) {
+            when (signalMode(node, w.spec)) {
                 SignalMode.Each -> {
                     if (id == eachPort) { values[id] = feed.values[taken]; commits += { rt.cursor[id] = taken + 1 } }
                     else values[id] = feed.values[(taken - 1).coerceAtLeast(0)]
@@ -569,7 +584,7 @@ public class GraphEngine(
                 val id = node.id
                 if (id in cycle) continue
                 val current = states[id] ?: NodeRun.Idle
-                if (current is NodeRun.Done || current is NodeRun.Failed || current is NodeRun.Declined) continue
+                if (current is NodeRun.Done || current is NodeRun.Failed || current is NodeRun.Declined || current is NodeRun.Skipped) continue
                 if (id !in demanded) {
                     // Only pinned nodes would have read it: nothing needs its output, so it stays idle.
                     if (jobs[id] != null || current != NodeRun.Idle) {
@@ -626,6 +641,15 @@ public class GraphEngine(
                 }
                 if (running) continue
                 val upstreamDone = wires.all { it.feed?.complete == true }
+                if (!rt(id).started && wires.any { w -> w.feed?.complete == true && w.feed.values.isEmpty() && signalMode(node, w.spec) != SignalMode.Collect }) {
+                    // An input that can never get a value (no signal upstream): this node cannot run, and neither can what follows.
+                    val rt = rt(id)
+                    for (spec in node.ports) if (spec.direction == PortDirection.Output) rt.feeds.getOrPut(spec.id) { Feed() }.complete = true
+                    rt.complete = true
+                    states[id] = NodeRun.Skipped
+                    changed = true
+                    continue
+                }
                 val finished = upstreamDone && (wires.isNotEmpty() || rt(id).started)
                 if (finished) {
                     val rt = rt(id)
@@ -751,7 +775,7 @@ public class GraphEngine(
             val feeds = rt(id).feeds
             for ((port, value) in returned) publish(id, port, value)
             // A port nothing was ever produced at reads as one null, so downstream nodes are not left waiting.
-            for (spec in node.ports) if (spec.direction == PortDirection.Output && feeds[spec.id]?.values.isNullOrEmpty()) publish(id, spec.id, null)
+            for (spec in node.ports) if (spec.direction == PortDirection.Output && spec.id !in rt(id).silent && feeds[spec.id]?.values.isNullOrEmpty()) publish(id, spec.id, null)
             val last = context.emitted + returned
             attempt.outputs = if (trace.captureValues) last.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
             attempt.status = TraceStatus.Succeeded
