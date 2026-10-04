@@ -39,6 +39,9 @@ public enum class KNodeStatus(internal val description: String) {
 
     /** Was cancelled before it finished. */
     Cancelled("Cancelled"),
+
+    /** Was not started because the app refused it (see `GraphEngine`'s `beforeRun`). */
+    Declined("Not run"),
 }
 
 internal val LocalNodeStatus = compositionLocalOf<((GraphNode) -> KNodeStatus?)?> { null }
@@ -80,6 +83,7 @@ internal fun KNodeStatusBadge(status: KNodeStatus, modifier: Modifier = Modifier
                 drawCircle(tone, s * 0.22f, Offset(s * 0.5f, s * 0.35f))
                 drawLine(tone, Offset(s * 0.5f, s * 0.5f), Offset(s * 0.5f, s * 0.92f), w, StrokeCap.Round)
             }
+            KNodeStatus.Declined -> drawCircle(tone, s * 0.38f, center, style = stroke)
             KNodeStatus.Cancelled -> {
                 drawLine(tone, Offset(s * 0.2f, s * 0.5f), Offset(s * 0.8f, s * 0.5f), w, StrokeCap.Round)
             }

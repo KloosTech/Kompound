@@ -21,6 +21,7 @@ public fun GraphEngine.nodeStatus(node: GraphNode, execution: Execution? = null)
             NodeRun.Running -> KNodeStatus.Running
             is NodeRun.Done -> if (node.pin != null) KNodeStatus.Pinned else KNodeStatus.Done
             is NodeRun.Failed -> KNodeStatus.Failed
+            NodeRun.Declined -> KNodeStatus.Declined
             is NodeRun.Blocked -> KNodeStatus.Blocked.also { run.by }
         }
     }

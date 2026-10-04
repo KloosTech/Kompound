@@ -81,6 +81,10 @@ public class KNodeInspectorLabels(
  * @param execution A recorded run to show instead of the newest one.
  * @param parameters The middle column: the node's settings editor, for example the same content as in the canvas node.
  * @param valueJson How values are read back from the input editor and shown; pass one with your codecs for custom types.
+ * @param onTest Replaces what "Test step" does (default: `engine.testNode`). Receives the inputs; return the started [NodeTestRun] to have
+ * it shown, or `null` (for example after asking the user, or when the engine's `beforeRun` refused).
+ * @param onRerun Replaces what "Run from here" does (default: `engine.rerun`).
+ * @param onPin Replaces what "Pin output" does (default: `state.pin`); with it the Pin button shows even without a [state].
  * @param parseInput Turns the text typed in the input editor into the value for a port; the default reads JSON (numbers become
  * `Double`, use `{"$int": 5}` or your own parser for other types).
  */
@@ -95,6 +99,9 @@ public fun KNodeInspector(
     parameters: (@Composable () -> Unit)? = null,
     valueJson: ValueJson = ValueJson(),
     labels: KNodeInspectorLabels = KNodeInspectorLabels(),
+    onTest: ((inputs: Map<String, Any?>) -> NodeTestRun?)? = null,
+    onRerun: (() -> Unit)? = null,
+    onPin: ((outputs: Map<PortId, Any?>) -> Unit)? = null,
     parseInput: (port: PortId, text: String) -> Any? = { _, text -> valueJson.decode(JsonValue.parse(text)) },
 ) {
     var test by remember(node.id) { mutableStateOf<NodeTestRun?>(null) }
@@ -129,7 +136,8 @@ public fun KNodeInspector(
                         val merged = LinkedHashMap<PortId, Any?>(engine.currentInputs(node.id)).also { it.putAll(inputs) }
                         try {
                             for ((port, text) in edits) merged[port] = parseInput(port, text)
-                            test = engine.testNode(node.id, merged.mapKeys { it.key.value })
+                            val inputsByName = merged.mapKeys { it.key.value }
+                            test = if (onTest != null) onTest(inputsByName) else engine.testNode(node.id, inputsByName)
                         } catch (e: GraphJsonException) {
                             editError = "${labels.invalidJson}: ${e.message}"
                         }
@@ -138,9 +146,11 @@ public fun KNodeInspector(
                 ) { KText(labels.testStep) }
                 if (state != null) {
                     if (node.pin != null) KButton({ state.unpin(node.id) }, variant = KButtonVariant.Outlined) { KText(labels.unpin) }
-                    else KButton({ realOutputs?.let { state.pin(node.id, it) } }, variant = KButtonVariant.Outlined, enabled = realOutputs != null) { KText(labels.pin) }
+                    else KButton({ realOutputs?.let { if (onPin != null) onPin(it) else state.pin(node.id, it) } }, variant = KButtonVariant.Outlined, enabled = realOutputs != null) { KText(labels.pin) }
+                } else if (onPin != null && node.pin == null) {
+                    KButton({ realOutputs?.let(onPin) }, variant = KButtonVariant.Outlined, enabled = realOutputs != null) { KText(labels.pin) }
                 }
-                KButton({ test = null; engine.rerun(node.id) }, variant = KButtonVariant.Outlined) { KText(labels.rerun) }
+                KButton({ test = null; if (onRerun != null) onRerun() else engine.rerun(node.id) }, variant = KButtonVariant.Outlined) { KText(labels.rerun) }
             }
             if (!wide) {
                 KSegmentedControl(listOf(labels.input, labels.parameters, labels.output), column, { column = it }, Modifier.fillMaxWidth())

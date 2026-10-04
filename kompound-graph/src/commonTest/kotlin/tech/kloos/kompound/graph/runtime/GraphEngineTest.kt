@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -835,5 +836,160 @@ class GraphEngineThreadingTest {
         } finally {
             scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         }
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineRunControlTest {
+    private val out = tech.kloos.kompound.graph.model.PortId("out")
+
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<String> = emptyList()) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it) } + PortSpec.output("out"), data)
+
+    private fun wire(from: String, to: String) = Edge(
+        EdgeId("$from->$to"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), out),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId("a")),
+    )
+
+    private val chain = Graph.of(
+        listOf(node("src", "work", 1), node("mid", "work", ins = listOf("a"))),
+        listOf(wire("src", "mid")),
+    )
+
+    private fun TestScope.engine(
+        autoRun: Boolean,
+        log: MutableList<String> = mutableListOf(),
+        gate: ((GraphNode, TraceTrigger) -> Boolean)? = null,
+    ) = GraphEngine(
+        this,
+        mapOf(
+            "work" to singleOutputRunner { n, i -> log += "run ${n.id}"; delay(100); n.data ?: i["a"] },
+            "boom" to singleOutputRunner { _, _ -> error("boom") },
+        ),
+        autoRun = autoRun,
+        runDispatcher = StandardTestDispatcher(testScheduler),
+        beforeRun = gate,
+    )
+
+    @Test
+    fun manualModeOnlyMarksResultsStaleOnEditAndRunsOnceOnStart() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(autoRun = false, log = log)
+        e.update(chain)
+        advanceUntilIdle()
+        assertTrue(log.isEmpty() && !e.isActive)
+        e.start()
+        assertTrue(e.isActive && e.isBusy)
+        advanceUntilIdle()
+        assertEquals(listOf("run src", "run mid"), log)
+        assertTrue(!e.isActive && !e.isBusy, "back to idle once the run is over")
+        // an edit afterwards invalidates (results go stale) but starts nothing, however often it happens
+        repeat(3) { n -> e.update(Graph.of(listOf(node("src", "work", n + 10), chain.node(NodeId("mid"))!!), chain.edges.values.toList())) }
+        advanceUntilIdle()
+        assertEquals(2, log.size)
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("src")))
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("mid")))
+        e.start()
+        advanceUntilIdle()
+        assertEquals(12, e.output(NodeId("mid"), "out"))
+    }
+
+    @Test
+    fun rerunInManualModeIsAlsoOneShot() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(autoRun = false, log = log)
+        e.update(chain)
+        e.rerun(NodeId("src"))
+        advanceUntilIdle()
+        assertEquals(2, log.size)
+        assertTrue(!e.isActive)
+        e.update(Graph.of(listOf(node("src", "work", 5), chain.node(NodeId("mid"))!!), chain.edges.values.toList()))
+        advanceUntilIdle()
+        assertEquals(2, log.size, "no run on its own after the one-shot")
+    }
+
+    @Test
+    fun stopKeepsFailedBlockedAndFinishedStatesButResetsUnfinishedNodes() = runTest {
+        val e = GraphEngine(
+            this,
+            mapOf("boom" to singleOutputRunner { _, _ -> error("boom") }, "work" to singleOutputRunner { n, _ -> delay(1000); n.data }, "const" to singleOutputRunner { n, _ -> n.data }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        e.update(Graph.of(
+            listOf(node("bad", "boom"), node("after", "const", ins = listOf("a")), node("ok", "const", 1), node("slow", "work", 2)),
+            listOf(wire("bad", "after")),
+        ))
+        advanceTimeBy(100)
+        e.stop()
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("bad")) is NodeRun.Failed, "error kept")
+        assertEquals(NodeRun.Blocked(NodeId("bad")), e.runOf(NodeId("after")))
+        assertTrue(e.runOf(NodeId("ok")) is NodeRun.Done)
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("slow")), "was running: starts over")
+        assertTrue(!e.isActive && !e.isBusy)
+    }
+
+    @Test
+    fun deactivateLetsTheRunFinishButStopsReactingToEdits() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(autoRun = true, log = log)
+        e.update(chain)
+        advanceTimeBy(50)
+        e.deactivate()
+        assertTrue(!e.isActive)
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("mid")) is NodeRun.Done, "the run in progress finished")
+        e.update(Graph.of(listOf(node("src", "work", 7), chain.node(NodeId("mid"))!!), chain.edges.values.toList()))
+        advanceUntilIdle()
+        assertEquals(2, log.size, "edit did not start anything")
+        e.start()
+        assertTrue(e.isActive)
+        advanceUntilIdle()
+        assertEquals(7, e.output(NodeId("mid"), "out"))
+    }
+
+    @Test
+    fun awaitIdleAndRunToCompletionReturnWhenTheWorkIsDone() = runTest {
+        val e = engine(autoRun = false)
+        e.update(chain)
+        e.awaitIdle()   // nothing running: returns at once
+        var done = false
+        val job = launch { e.runToCompletion(); done = true }
+        advanceTimeBy(50)
+        assertTrue(!done && e.isBusy)
+        advanceUntilIdle()
+        job.join()
+        assertTrue(done && !e.isBusy)
+        assertEquals(1, e.output(NodeId("mid"), "out"))
+    }
+
+    @Test
+    fun theGateDecidesPerNodeAndTriggerAndDeclinedNodesAreAskedAgainOnStart() = runTest {
+        val log = mutableListOf<String>()
+        val asked = mutableListOf<String>()
+        val e = engine(autoRun = true, log = log, gate = { n, t -> asked += "${n.id}:$t"; t != TraceTrigger.Auto })
+        e.update(chain)
+        advanceUntilIdle()
+        assertTrue(log.isEmpty(), "automatic run refused")
+        assertEquals(NodeRun.Declined, e.runOf(NodeId("src")))
+        assertEquals(NodeRun.Blocked(NodeId("src")), e.runOf(NodeId("mid")))
+        assertEquals(listOf("src:Auto"), asked, "asked once, not on every sweep")
+        e.start()
+        advanceUntilIdle()
+        assertEquals(listOf("run src", "run mid"), log)
+        assertEquals(listOf("src:Auto", "src:Manual", "mid:Manual"), asked)
+        e.rerun(NodeId("mid"))
+        advanceUntilIdle()
+        assertEquals("mid:Rerun", asked.last())
+    }
+
+    @Test
+    fun aGateThatRefusesTestsMakesTestNodeReturnNull() = runTest {
+        val e = engine(autoRun = true, gate = { _, t -> t != TraceTrigger.Test })
+        e.update(chain)
+        advanceUntilIdle()
+        assertEquals(null, e.testNode(NodeId("mid"), mapOf("a" to 1)))
+        assertTrue(e.executions.none { it.trigger == TraceTrigger.Test })
     }
 }
