@@ -279,7 +279,8 @@ val engine = rememberGraphEngine(state, runners)         // follows the editor: 
 
 - Result per node: `engine.runOf(id)`: `Idle | Waiting | Running | Done(outputs) | Failed(error) | Blocked(by)`. Read it in composables; it is observable.
 - Edits cancel stale runs and re-run what is downstream. A failure blocks only downstream nodes. Cycles fail with `CycleException`.
-- `rememberGraphEngine(state, runners, autoRun = false)` plus `engine.start()`, `stop()`, `rerun(id)`, `rerunAll()`.
+- **Manual mode**: `rememberGraphEngine(state, runners, autoRun = false)`: edits only mark results stale; `engine.start()`, `rerun(id)`, `rerunAll()` run once and return to idle. `stop()` cancels and keeps `Failed`/`Blocked` states; `deactivate()` just stops reacting to edits. `engine.isBusy`/`isActive` are observable; `awaitIdle()` and `runToCompletion()` suspend until done (headless use).
+- **Gate runs with side effects**: `GraphEngine(..., beforeRun = { node, trigger -> trigger != TraceTrigger.Auto })` refuses or asks before a runner starts (`Auto`, `Manual`, `Rerun`, `Test`); refused nodes are `NodeRun.Declined`, later nodes `Blocked`, and `start()`/`rerun()` ask again. Pass `onTest`/`onRerun`/`onPin` to `KNodeInspector` to take over its buttons.
 - **Streaming**: a node may `emit` many times. Each input port has `PortSpec.input(..., signal = SignalMode.X)`: `Latest` (default, re-run on each value, cancelling the one in progress), `Each` (one run per value, in order), `Collect` (wait for the end, get a list), `Final` (wait for the end, get the last).
 - **Subgraphs** are routed through at any depth. **Pins**: `state.pin(id, outputs)` fixes a node's outputs (the node and nodes only it would feed are not run); `state.unpin(id)`.
 - **Test one node alone**: `engine.testNode(id, mapOf("a" to 41))` returns a `NodeTestRun` (status, attempt, real outputs, `cancel()`), recorded as an execution with trigger `Test`.

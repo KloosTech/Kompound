@@ -54,11 +54,16 @@ import tech.kloos.kompound.graph.model.PortId
  *
  * @param scope Owns the runner coroutines; cancelling it cancels all runs. Its dispatcher must be single threaded.
  * @param runners Runner per node kind.
- * @param autoRun Whether changes and the first graph start runs automatically.
+ * @param autoRun Whether changes and the first graph start runs automatically. With `false` (manual mode) edits only mark results stale;
+ * nothing runs until [start], [rerun] or [rerunAll], which run once and then return to idle.
  * @param maxConcurrency How many runners may be active at once.
  * @param runDispatcher Where runners execute.
  * @param trace What is recorded in [executions].
  * @param clock Epoch milliseconds for trace timestamps (replace it in tests).
+ * @param beforeRun Asked just before a node's runner would start, with what started the run (see [TraceTrigger]); return `false` to refuse.
+ * A refused node is [NodeRun.Declined], nodes after it are [NodeRun.Blocked], and it is asked again on the next [start] or [rerun]. Use it
+ * to keep runners with side effects (processes, network) from running on an automatic run, or to ask the user first. Also asked for
+ * [testNode] (with [TraceTrigger.Test]).
  */
 @OptIn(ExperimentalAtomicApi::class)
 public class GraphEngine(
@@ -69,6 +74,7 @@ public class GraphEngine(
     private val runDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val trace: TraceOptions = TraceOptions(),
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    private val beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private val lockWord = AtomicInt(0)
@@ -80,7 +86,12 @@ public class GraphEngine(
     }
     // Observable so that a composable asking about a node before the first graph arrived is told when it does.
     private var graph: Graph by mutableStateOf(Graph.Empty)
-    private var active = autoRun
+    // Edits start runs while autoRun is on and the engine is not deactivated; a requested one-shot run (start, rerun) is active until it finishes.
+    private var deactivated by mutableStateOf(false)
+    private var runRequested by mutableStateOf(false)
+    private var busy by mutableStateOf(false)
+    private val idleWaiters = ArrayList<kotlinx.coroutines.CompletableDeferred<Unit>>()
+    private val active: Boolean get() = (autoRun && !deactivated) || runRequested
     private val jobs = HashMap<NodeId, Job>()
     private val generation = HashMap<NodeId, Int>()
     private val states = mutableStateMapOf<NodeId, NodeRun>()
@@ -133,6 +144,7 @@ public class GraphEngine(
         val inner = graph.nodes.values.filter { isReal(it) && withinScope(it, node.id) }
         val own = inner.map { states[it.id] ?: NodeRun.Idle }
         own.filterIsInstance<NodeRun.Failed>().firstOrNull()?.let { return it }
+        own.filterIsInstance<NodeRun.Declined>().firstOrNull()?.let { return it }
         own.filterIsInstance<NodeRun.Blocked>().firstOrNull()?.let { return it }
         if (own.any { it is NodeRun.Running }) return NodeRun.Running
         if (own.any { it is NodeRun.Waiting }) return NodeRun.Waiting
@@ -157,7 +169,7 @@ public class GraphEngine(
         val source = feeding?.let { router.source(it) } ?: return NodeRun.Done(emptyMap())
         return when (val up = states[source.node]) {
             is NodeRun.Done -> NodeRun.Done(mapOf(Subgraphs.BoundaryPort to up.outputs[source.port]))
-            is NodeRun.Failed -> NodeRun.Blocked(source.node)
+            is NodeRun.Failed, is NodeRun.Declined -> NodeRun.Blocked(source.node)
             is NodeRun.Blocked -> up
             else -> NodeRun.Waiting
         }
@@ -173,11 +185,32 @@ public class GraphEngine(
         return false
     }
 
-    /** Whether a run is wanted (started, or [autoRun]). */
+    /**
+     * Whether the engine is running things on its own right now: [autoRun] and not [deactivate]d or [stop]ped, or a requested run
+     * ([start], [rerun]) is in progress. Observable.
+     */
     public val isActive: Boolean get() = active
 
-    /** Whether any runner is still working. */
-    public val isBusy: Boolean get() = jobs.isNotEmpty()
+    /** Whether any runner is still working. Observable. */
+    public val isBusy: Boolean get() = busy
+
+    /** Suspends until no runner is working (returns at once when none is). Nodes waiting for permission or input do not count as working. */
+    public suspend fun awaitIdle() {
+        val waiter = locked { if (jobs.isEmpty()) null else kotlinx.coroutines.CompletableDeferred<Unit>().also { idleWaiters += it } } ?: return
+        waiter.await()
+    }
+
+    /** [start]s and suspends until the run has finished (headless use: tests, command line tools). */
+    public suspend fun runToCompletion() {
+        start()
+        awaitIdle()
+    }
+
+    /**
+     * Stops reacting to edits (an [autoRun] engine behaves like a manual one) without cancelling or discarding anything: runs in
+     * progress finish, results and errors stay. [start] turns it back on.
+     */
+    public fun deactivate(): Unit = locked { deactivated = true }
 
     /**
      * Tells the engine the graph is now [new]: cancels what became stale, forgets removed nodes, and (when active) starts what can start.
@@ -212,23 +245,35 @@ public class GraphEngine(
         refresh()
     }
 
-    /** Starts running: every node that has not finished runs as soon as what it needs is there. Stays active for later edits. */
+    /**
+     * Runs every node that has not finished, as soon as what it needs is there, and asks [beforeRun] again for nodes it refused. In
+     * manual mode ([autoRun] false) it is a one-shot run: the engine goes back to idle when it is done. With [autoRun] it also turns
+     * reacting to edits back on after a [stop] or [deactivate].
+     */
     public fun start(): Unit = locked { startLocked() }
 
     private fun startLocked() {
-        active = true
+        deactivated = false
+        runRequested = true
         pendingTrigger = TraceTrigger.Manual
+        val declined = states.filterValues { it is NodeRun.Declined }.keys
+        if (declined.isNotEmpty()) invalidate(declined, listOf(Router(graph)), graph)
         refresh()
     }
 
-    /** Cancels everything that is running and stops reacting to edits (until [start]). Finished results are kept. */
+    /**
+     * Cancels everything that is running and stops reacting to edits (until [start]). Finished results are kept, and so are the errors of
+     * nodes that failed (and the [NodeRun.Blocked] and [NodeRun.Declined] states); nodes that were unfinished go back to [NodeRun.Idle].
+     */
     public fun stop(): Unit = locked { stopLocked() }
 
     private fun stopLocked() {
-        active = false
-        // Whatever has not finished starts over on the next start(): a half-consumed stream cannot be resumed.
+        deactivated = true
+        runRequested = false
+        // Whatever was unfinished starts over on the next start(): a half-consumed stream cannot be resumed.
         for (node in graph.nodes.values) {
-            if (!isReal(node) || states[node.id] is NodeRun.Done) continue
+            val state = states[node.id]
+            if (!isReal(node) || state is NodeRun.Done || state is NodeRun.Failed || state is NodeRun.Blocked || state is NodeRun.Declined) continue
             cancel(node.id)
             dropSignals(node.id)
             states[node.id] = NodeRun.Idle
@@ -242,7 +287,7 @@ public class GraphEngine(
     private fun rerunLocked(id: NodeId) {
         if (id !in graph.nodes) return
         invalidate(setOf(id), listOf(Router(graph)), graph)
-        active = true
+        runRequested = true
         pendingTrigger = TraceTrigger.Rerun
         refresh()
     }
@@ -252,7 +297,7 @@ public class GraphEngine(
 
     private fun rerunAllLocked() {
         invalidate(graph.nodes.keys.filter { isReal(graph.nodes.getValue(it)) }.toSet(), listOf(Router(graph)), graph)
-        active = true
+        runRequested = true
         pendingTrigger = TraceTrigger.Rerun
         refresh()
     }
@@ -274,8 +319,14 @@ public class GraphEngine(
     }
 
     private fun finishIfIdle(cancelled: Boolean) {
-        val execution = currentExecution ?: return
+        busy = jobs.isNotEmpty()
         if (jobs.isNotEmpty()) return
+        runRequested = false   // a requested one-shot run is over
+        if (idleWaiters.isNotEmpty()) {
+            idleWaiters.forEach { it.complete(Unit) }
+            idleWaiters.clear()
+        }
+        val execution = currentExecution ?: return
         val failed = execution.anyLatestFailed()
         execution.status = when {
             cancelled -> TraceStatus.Cancelled
@@ -497,7 +548,8 @@ public class GraphEngine(
     }
 
     private fun schedule() {
-        if (!active) return
+        // A run already in progress carries on to the nodes that depend on it even after deactivate().
+        if (!active && currentExecution == null) return
         val cycle = cyclic()
         for (id in cycle) {
             if (states[id] !is NodeRun.Failed) {
@@ -517,7 +569,7 @@ public class GraphEngine(
                 val id = node.id
                 if (id in cycle) continue
                 val current = states[id] ?: NodeRun.Idle
-                if (current is NodeRun.Done || current is NodeRun.Failed) continue
+                if (current is NodeRun.Done || current is NodeRun.Failed || current is NodeRun.Declined) continue
                 if (id !in demanded) {
                     // Only pinned nodes would have read it: nothing needs its output, so it stays idle.
                     if (jobs[id] != null || current != NodeRun.Idle) {
@@ -541,7 +593,7 @@ public class GraphEngine(
                 val wires = wiresOf(node, router)
                 val blocker = wires.firstNotNullOfOrNull { w ->
                     when (val up = states[w.source.node]) {
-                        is NodeRun.Failed -> up.let { w.source.node }
+                        is NodeRun.Failed, is NodeRun.Declined -> w.source.node
                         is NodeRun.Blocked -> up.by
                         else -> null
                     }
@@ -559,6 +611,13 @@ public class GraphEngine(
                     if (running && plan.streaming) continue
                     val runner = runnerFor(node)
                     if (runner == null) { states[id] = NodeRun.Failed(MissingRunnerException(node.kind)); changed = true; continue }
+                    val gate = beforeRun
+                    if (gate != null && !gate(node, currentExecution?.trigger ?: pendingTrigger)) {
+                        if (running) cancel(id)
+                        states[id] = NodeRun.Declined
+                        changed = true
+                        continue
+                    }
                     if (running) cancel(id)
                     plan.commit()
                     launchRun(node, runner, plan.inputs)
@@ -614,12 +673,13 @@ public class GraphEngine(
     /**
      * Runs the single node [id] once with [inputs] (by port name), outside the graph: nothing upstream runs, nothing downstream sees the
      * result, the node's state in the graph does not change. It is recorded as an [Execution] with trigger [TraceTrigger.Test], so the
-     * inspector shows its logs, progress and output like any other run. Returns `null` for an unknown or non-running node.
+     * inspector shows its logs, progress and output like any other run. Returns `null` for an unknown or non-running node, or when [beforeRun] refuses.
      */
     public fun testNode(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? = locked { testNodeLocked(id, inputs) }
 
     private fun testNodeLocked(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? {
         val node = graph.node(id)?.takeIf { isReal(it) } ?: return null
+        if (beforeRun?.invoke(node, TraceTrigger.Test) == false) return null
         val values = inputs.mapKeys { PortId(it.key) }
         val execution = Execution(++executionCounter, TraceTrigger.Test, clock())
         history += execution

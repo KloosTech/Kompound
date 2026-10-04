@@ -21,6 +21,9 @@ public sealed interface NodeRun {
     /** Finished; [outputs] holds a value per output port the runner produced. */
     public data class Done(public val outputs: Map<PortId, Any?>) : NodeRun
 
+    /** [GraphEngine]'s `beforeRun` refused to start this node. It is asked again on the next start or re-run. */
+    public data object Declined : NodeRun
+
     /** The runner threw [error]. */
     public data class Failed(public val error: Throwable) : NodeRun
 }
