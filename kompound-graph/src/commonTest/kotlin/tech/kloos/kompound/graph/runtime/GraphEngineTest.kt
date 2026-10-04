@@ -1,0 +1,205 @@
+package tech.kloos.kompound.graph.runtime
+
+import androidx.compose.ui.geometry.Offset
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runTest
+import tech.kloos.kompound.graph.model.Edge
+import tech.kloos.kompound.graph.model.EdgeId
+import tech.kloos.kompound.graph.model.Graph
+import tech.kloos.kompound.graph.model.GraphNode
+import tech.kloos.kompound.graph.model.NodeId
+import tech.kloos.kompound.graph.model.PortSpec
+import tech.kloos.kompound.graph.rerouteNode
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineTest {
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<String> = emptyList()) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it) } + PortSpec.output("out"), data)
+
+    private fun wire(from: String, to: String, port: String = "a") =
+        Edge(EdgeId("$from->$to.$port"), tech.kloos.kompound.graph.model.PortRef(NodeId(from), tech.kloos.kompound.graph.model.PortId("out")), tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)))
+
+    /** Slow source (`delay` ms from data), add (a + b), fail. */
+    private fun TestScope.engine(autoRun: Boolean = true, log: MutableList<String> = mutableListOf(), concurrency: Int = 4) = GraphEngine(
+        this,
+        mapOf(
+            "const" to singleOutputRunner { n, _ -> n.data },
+            "slow" to singleOutputRunner { n, _ ->
+                val (ms, value) = n.data as Pair<*, *>
+                log += "start ${n.id}"
+                try { delay(ms as Long) } catch (e: CancellationException) { log += "cancel ${n.id}"; throw e }
+                log += "end ${n.id}"
+                value
+            },
+            "add" to singleOutputRunner { _, i -> (i["a"] as Int) + (i["b"] as Int) },
+            "boom" to singleOutputRunner { _, _ -> error("boom") },
+        ),
+        autoRun = autoRun,
+        maxConcurrency = concurrency,
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    @Test
+    fun resultsFlowDownstreamInDependencyOrder() = runTest {
+        val e = engine()
+        e.update(Graph.of(
+            listOf(node("a", "const", 2), node("b", "const", 3), node("sum", "add", ins = listOf("a", "b")), node("twice", "add", ins = listOf("a", "b"))),
+            listOf(wire("a", "sum", "a"), wire("b", "sum", "b"), wire("sum", "twice", "a"), wire("sum", "twice", "b")),
+        ))
+        advanceUntilIdle()
+        assertEquals(5, e.output(NodeId("sum"), "out"))
+        assertEquals(10, e.output(NodeId("twice"), "out"))
+        assertTrue(e.runs.values.all { it is NodeRun.Done })
+    }
+
+    @Test
+    fun aSuspendedNodeDelaysOnlyItsDownstreamAndTheResultArrivesLater() = runTest {
+        val e = engine()
+        e.update(Graph.of(
+            listOf(node("fast", "const", 1), node("slow", "slow", 1000L to 10), node("sum", "add", ins = listOf("a", "b")), node("other", "const", 7)),
+            listOf(wire("fast", "sum", "a"), wire("slow", "sum", "b")),
+        ))
+        advanceTimeBy(100)
+        assertEquals(NodeRun.Running, e.runOf(NodeId("slow")))
+        assertEquals(NodeRun.Waiting, e.runOf(NodeId("sum")))
+        assertEquals(7, e.output(NodeId("other"), "out"), "independent branch is not held up")
+        advanceTimeBy(1000)
+        assertEquals(11, e.output(NodeId("sum"), "out"))
+    }
+
+    @Test
+    fun independentNodesRunConcurrentlyUpToTheLimit() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log = log, concurrency = 2)
+        e.update(Graph.of((1..4).map { node("s$it", "slow", 100L to it) }))
+        advanceTimeBy(50)
+        assertEquals(2, log.count { it.startsWith("start") })
+        advanceUntilIdle()
+        assertEquals(200L, currentTime, "two waves of two")
+        assertEquals(4, log.count { it.startsWith("end") })
+    }
+
+    @Test
+    fun changingASourceCancelsTheStaleRunAndRerunsDownstream() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log = log)
+        val a = node("a", "slow", 1000L to 1)
+        val b = node("b", "const", 5)
+        val sum = node("sum", "add", ins = listOf("a", "b"))
+        val edges = listOf(wire("a", "sum", "a"), wire("b", "sum", "b"))
+        e.update(Graph.of(listOf(a, b, sum), edges))
+        advanceTimeBy(500)
+        e.update(Graph.of(listOf(a.copy(data = 200L to 2), b, sum), edges))
+        advanceUntilIdle()
+        assertTrue("cancel a" in log)
+        assertEquals(7, e.output(NodeId("sum"), "out"), "uses the new value, never the cancelled one")
+    }
+
+    @Test
+    fun movingANodeDoesNotRestartAnything() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log = log)
+        val a = node("a", "slow", 100L to 1)
+        e.update(Graph.of(listOf(a)))
+        advanceUntilIdle()
+        e.update(Graph.of(listOf(a.copy(position = Offset(50f, 50f)))))
+        advanceUntilIdle()
+        assertEquals(1, log.count { it == "start a" })
+    }
+
+    @Test
+    fun aFailureBlocksDownstreamButNotOtherBranches() = runTest {
+        val e = engine()
+        e.update(Graph.of(
+            listOf(node("bad", "boom"), node("ok", "const", 1), node("sum", "add", ins = listOf("a", "b")), node("after", "add", ins = listOf("a", "b"))),
+            listOf(wire("bad", "sum", "a"), wire("ok", "sum", "b"), wire("sum", "after", "a"), wire("ok", "after", "b")),
+        ))
+        advanceUntilIdle()
+        assertTrue((e.runOf(NodeId("bad")) as NodeRun.Failed).error.message == "boom")
+        assertEquals(NodeRun.Blocked(NodeId("bad")), e.runOf(NodeId("sum")))
+        assertEquals(NodeRun.Blocked(NodeId("bad")), e.runOf(NodeId("after")))
+        assertEquals(1, e.output(NodeId("ok"), "out"))
+    }
+
+    @Test
+    fun cyclesFailInsteadOfHanging() = runTest {
+        val e = engine()
+        e.update(Graph.of(
+            listOf(node("x", "add", ins = listOf("a")), node("y", "add", ins = listOf("a")), node("free", "const", 1)),
+            listOf(wire("x", "y"), wire("y", "x")),
+        ))
+        advanceUntilIdle()
+        assertTrue((e.runOf(NodeId("x")) as NodeRun.Failed).error is CycleException)
+        assertTrue(e.runOf(NodeId("y")) is NodeRun.Failed)
+        assertTrue(e.runOf(NodeId("free")) is NodeRun.Done)
+    }
+
+    @Test
+    fun manualModeWaitsForStartAndStopCancelsWhatRuns() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(autoRun = false, log = log)
+        e.update(Graph.of(listOf(node("a", "slow", 1000L to 1))))
+        advanceUntilIdle()
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("a")))
+        e.start()
+        advanceTimeBy(100)
+        assertEquals(NodeRun.Running, e.runOf(NodeId("a")))
+        e.stop()
+        advanceUntilIdle()
+        assertTrue("cancel a" in log)
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("a")))
+        assertTrue(!e.isBusy)
+    }
+
+    @Test
+    fun rerunRecomputesANodeAndEverythingAfterIt() = runTest {
+        var calls = 0
+        val e = GraphEngine(
+            this,
+            mapOf("count" to singleOutputRunner { _, _ -> ++calls }, "add" to singleOutputRunner { _, i -> (i["a"] as Int) * 10 }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        e.update(Graph.of(listOf(node("c", "count"), node("m", "add", ins = listOf("a"))), listOf(wire("c", "m"))))
+        advanceUntilIdle()
+        assertEquals(10, e.output(NodeId("m"), "out"))
+        e.rerun(NodeId("c"))
+        advanceUntilIdle()
+        assertEquals(20, e.output(NodeId("m"), "out"))
+    }
+
+    @Test
+    fun removingANodeDropsItsStateAndInvalidatesWhatItFed() = runTest {
+        val e = engine()
+        val a = node("a", "const", 1)
+        val m = node("m", "add", ins = listOf("a", "b"))
+        val b = node("b", "const", 2)
+        e.update(Graph.of(listOf(a, b, m), listOf(wire("a", "m", "a"), wire("b", "m", "b"))))
+        advanceUntilIdle()
+        e.update(Graph.of(listOf(b, m), listOf()))
+        advanceUntilIdle()
+        assertTrue(NodeId("a") !in e.runs)
+        assertTrue(e.runOf(NodeId("m")) is NodeRun.Failed, "add needs input a, which is gone: ${e.runOf(NodeId("m"))}")
+    }
+
+    @Test
+    fun reroutesPassTheirValueAndUnknownKindsFail() = runTest {
+        val e = engine()
+        e.update(Graph.of(
+            listOf(node("a", "const", 4), rerouteNode("r", Offset.Zero), node("mystery", "nope")),
+            listOf(Edge(EdgeId("e"), tech.kloos.kompound.graph.model.PortRef(NodeId("a"), tech.kloos.kompound.graph.model.PortId("out")), tech.kloos.kompound.graph.model.PortRef(NodeId("r"), tech.kloos.kompound.graph.model.PortId("in")))),
+        ))
+        advanceUntilIdle()
+        assertEquals(4, e.output(NodeId("r"), "out"))
+        assertTrue((e.runOf(NodeId("mystery")) as NodeRun.Failed).error is MissingRunnerException)
+    }
+}
