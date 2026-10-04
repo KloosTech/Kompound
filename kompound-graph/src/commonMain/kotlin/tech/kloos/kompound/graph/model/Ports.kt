@@ -31,6 +31,24 @@ private data class SimpleType(override val id: String) : PortType {
 }
 
 /**
+ * What an input port does with the values its upstream node produces over time (a node may emit several, see the runtime's
+ * `NodeRunContext.emit`; a node that emits nothing produces one value when it finishes). Only the execution engine looks at it.
+ */
+public enum class SignalMode {
+    /** Run again on every new value (a run that is still going is cancelled); uses the newest value. The default. */
+    Latest,
+
+    /** Run once per value, in order, one after the other; none is dropped. */
+    Each,
+
+    /** Wait until the upstream node has finished, then run once with the list of all its values. */
+    Collect,
+
+    /** Wait until the upstream node has finished, then run once with its last value. */
+    Final,
+}
+
+/**
  * Declaration of one port of a node.
  *
  * @property id Identity inside the node.
@@ -38,6 +56,7 @@ private data class SimpleType(override val id: String) : PortType {
  * @property direction [PortDirection.Input] or [PortDirection.Output].
  * @property type Value type, used for compatibility and colour.
  * @property capacity How many edges it takes: inputs default to [PortCapacity.One], outputs to [PortCapacity.Many].
+ * @property signal For inputs: how the engine treats a stream of values arriving here.
  */
 public data class PortSpec(
     public val id: PortId,
@@ -45,11 +64,12 @@ public data class PortSpec(
     public val label: String = id.value,
     public val type: PortType = PortType.Any,
     public val capacity: PortCapacity = if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
+    public val signal: SignalMode = SignalMode.Latest,
 ) {
     public companion object {
         /** An input port. */
-        public fun input(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.One): PortSpec =
-            PortSpec(PortId(id), PortDirection.Input, label, type, capacity)
+        public fun input(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.One, signal: SignalMode = SignalMode.Latest): PortSpec =
+            PortSpec(PortId(id), PortDirection.Input, label, type, capacity, signal)
 
         /** An output port. */
         public fun output(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.Many): PortSpec =

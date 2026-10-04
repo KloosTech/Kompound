@@ -54,8 +54,9 @@ public interface NodeRunContext {
     public fun progress(fraction: Float?, message: String? = null)
 
     /**
-     * Emits [value] at the output [port]. Every emission is recorded in the trace. Until signal modes arrive, downstream nodes read the
-     * last value emitted per port (overridden by anything the runner returns) when the runner finishes.
+     * Emits [value] at the output [port] right away. Every emission is a signal: downstream nodes see it according to the
+     * [tech.kloos.kompound.graph.model.SignalMode] of their input, and it is recorded in the trace. What the runner returns at the end is
+     * one more signal per port. A node that emits and returns nothing at a port gives downstream one `null` there.
      */
     public fun emit(port: String, value: Any?)
 }

@@ -484,3 +484,161 @@ class GraphEngineTraceTest {
         assertEquals("x!", silent.output(NodeId("w"), "out"))
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineSignalTest {
+    private fun ticker(id: String, count: Int) =
+        GraphNode(NodeId(id), "ticker", Offset.Zero, listOf(PortSpec.output("out")), count)
+
+    private fun worker(id: String, mode: tech.kloos.kompound.graph.model.SignalMode, kind: String = "double") =
+        GraphNode(NodeId(id), kind, Offset.Zero, listOf(PortSpec.input("a", signal = mode), PortSpec.output("out")))
+
+    private fun wire(from: String, to: String, port: String = "a") = Edge(
+        EdgeId("$from->$to.$port"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), tech.kloos.kompound.graph.model.PortId("out")),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)),
+    )
+
+    private val mode = tech.kloos.kompound.graph.model.SignalMode.entries.associateBy { it.name }
+
+    private fun TestScope.engine(log: MutableList<String> = mutableListOf()) = GraphEngine(
+        this,
+        mapOf(
+            // emits 1..n, one every 100 ms, returns nothing
+            "ticker" to NodeRunner { ctx ->
+                repeat(ctx.node.data as Int) { i -> delay(100); ctx.emit("out", i + 1) }
+                emptyMap()
+            },
+            "double" to singleOutputRunner { _, i -> delay(150); (i["a"] as Int) * 2 },
+            "failOnTwo" to singleOutputRunner { _, i -> if (i["a"] == 2) error("two") else i["a"] },
+            "sum" to singleOutputRunner { n, i -> log += "sum ${n.id} ${i["a"]}"; (i["a"] as List<*>).sumOf { it as Int } },
+            "last" to singleOutputRunner { n, i -> log += "last ${n.id} ${i["a"]}"; i["a"] },
+            "add" to singleOutputRunner { _, i -> (i["a"] as Int) + (i["b"] as Int) },
+        ),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    private fun run(vararg nodes: GraphNode, edges: List<Edge>) = Graph.of(nodes.toList(), edges)
+
+    @Test
+    fun latestRestartsOnEveryNewValueAndOnlyTheNewestRunSurvives() = runTest {
+        val e = engine()
+        e.update(run(ticker("t", 3), worker("w", mode.getValue("Latest")), edges = listOf(wire("t", "w"))))
+        advanceTimeBy(150)
+        assertEquals(1, e.signalCount(NodeId("t"), "out"))
+        assertEquals(1, e.latest(NodeId("t"), "out"))
+        advanceUntilIdle()
+        val attempts = e.executions.single().attemptsOf(NodeId("w"))
+        assertEquals(listOf(TraceStatus.Cancelled, TraceStatus.Cancelled, TraceStatus.Succeeded), attempts.map { it.status })
+        assertEquals(listOf(1, 2, 3), attempts.map { it.inputs.values.single() })
+        assertEquals(6, e.output(NodeId("w"), "out"))
+        assertEquals(1, e.signalCount(NodeId("w"), "out"), "only the surviving run produced a value")
+    }
+
+    @Test
+    fun eachProcessesEveryValueInOrderOneAfterTheOther() = runTest {
+        val e = engine()
+        e.update(run(ticker("t", 3), worker("w", mode.getValue("Each")), edges = listOf(wire("t", "w"))))
+        advanceUntilIdle()
+        val attempts = e.executions.single().attemptsOf(NodeId("w"))
+        assertEquals(listOf(1, 2, 3), attempts.map { it.inputs.values.single() })
+        assertTrue(attempts.all { it.status == TraceStatus.Succeeded })
+        assertEquals(3, e.signalCount(NodeId("w"), "out"))
+        assertEquals(6, e.latest(NodeId("w"), "out"))
+        assertEquals(550L, currentTime, "100 + 3 sequential runs of 150")
+        assertTrue(attempts.zipWithNext().all { (a, b) -> b.startedAt >= a.finishedAt!! }, "never two at once")
+        assertTrue(e.runOf(NodeId("w")) is NodeRun.Done)
+    }
+
+    @Test
+    fun collectWaitsForTheEndAndGetsEveryValue() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(run(ticker("t", 3), worker("s", mode.getValue("Collect"), "sum"), edges = listOf(wire("t", "s"))))
+        advanceTimeBy(250)
+        assertEquals(NodeRun.Waiting, e.runOf(NodeId("s")))
+        assertTrue(log.isEmpty())
+        advanceUntilIdle()
+        assertEquals(listOf("sum s [1, 2, 3]"), log)
+        assertEquals(6, e.output(NodeId("s"), "out"))
+    }
+
+    @Test
+    fun finalWaitsForTheEndAndGetsTheLastValue() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(run(ticker("t", 3), worker("l", mode.getValue("Final"), "last"), edges = listOf(wire("t", "l"))))
+        advanceUntilIdle()
+        assertEquals(listOf("last l 3"), log)
+    }
+
+    @Test
+    fun aNodeWithTwoLatestInputsWaitsForBothThenFollowsEither() = runTest {
+        val e = engine()
+        val add = GraphNode(NodeId("add"), "add", Offset.Zero, listOf(PortSpec.input("a"), PortSpec.input("b"), PortSpec.output("out")))
+        e.update(run(ticker("x", 2), ticker("y", 1), add, edges = listOf(wire("x", "add", "a"), wire("y", "add", "b"))))
+        advanceTimeBy(50)
+        assertEquals(NodeRun.Waiting, e.runOf(NodeId("add")))
+        advanceUntilIdle()
+        val inputs = e.executions.single().attemptsOf(NodeId("add")).map { it.inputs.values.toList() }
+        assertEquals(listOf(listOf(1, 1), listOf(2, 1)), inputs, "first run needs both; the next follows x")
+        assertEquals(3, e.output(NodeId("add"), "out"))
+    }
+
+    @Test
+    fun valuesStreamThroughReroutesAndSubgraphBoundaries() = runTest {
+        val e = engine()
+        val reroute = tech.kloos.kompound.graph.rerouteNode("r", Offset.Zero)
+        val g = run(
+            ticker("t", 3), reroute, worker("w", mode.getValue("Each")),
+            edges = listOf(
+                Edge(EdgeId("a"), tech.kloos.kompound.graph.model.PortRef(NodeId("t"), tech.kloos.kompound.graph.model.PortId("out")), tech.kloos.kompound.graph.model.PortRef(NodeId("r"), tech.kloos.kompound.graph.model.PortId("in"))),
+                Edge(EdgeId("b"), tech.kloos.kompound.graph.model.PortRef(NodeId("r"), tech.kloos.kompound.graph.model.PortId("out")), tech.kloos.kompound.graph.model.PortRef(NodeId("w"), tech.kloos.kompound.graph.model.PortId("a"))),
+            ),
+        )
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(3, e.signalCount(NodeId("w"), "out"))
+        assertEquals(6, e.output(NodeId("w"), "out"))
+    }
+
+    @Test
+    fun aFailureInTheMiddleOfAStreamBlocksWhatFollows() = runTest {
+        val e = engine()
+        e.update(run(
+            ticker("t", 3), worker("f", mode.getValue("Each"), "failOnTwo"), worker("after", mode.getValue("Latest")),
+            edges = listOf(wire("t", "f"), wire("f", "after")),
+        ))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("f")) is NodeRun.Failed)
+        assertEquals(NodeRun.Blocked(NodeId("f")), e.runOf(NodeId("after")))
+        assertEquals(TraceStatus.Failed, e.executions.single().status)
+    }
+
+    @Test
+    fun editingTheSourceMidStreamDropsEverythingItProducedAndStartsOver() = runTest {
+        val e = engine()
+        val consumer = worker("w", mode.getValue("Each"))
+        e.update(run(ticker("t", 3), consumer, edges = listOf(wire("t", "w"))))
+        advanceTimeBy(250)
+        assertEquals(2, e.signalCount(NodeId("t"), "out"))
+        e.update(run(ticker("t", 2), consumer, edges = listOf(wire("t", "w"))))
+        assertEquals(0, e.signalCount(NodeId("t"), "out"))
+        advanceUntilIdle()
+        assertEquals(2, e.signalCount(NodeId("t"), "out"))
+        assertEquals(4, e.latest(NodeId("w"), "out"))
+    }
+
+    @Test
+    fun aNodeThatEmitsNothingStillGivesDownstreamOneNullValue() = runTest {
+        val e = GraphEngine(
+            this,
+            mapOf("silent" to NodeRunner { emptyMap() }, "echo" to singleOutputRunner { _, i -> if (i.has("a")) "got ${i["a"]}" else "none" }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        val silent = GraphNode(NodeId("s"), "silent", Offset.Zero, listOf(PortSpec.output("out")))
+        e.update(run(silent, worker("e", mode.getValue("Latest"), "echo"), edges = listOf(wire("s", "e"))))
+        advanceUntilIdle()
+        assertEquals("got null", e.output(NodeId("e"), "out"))
+    }
+}
