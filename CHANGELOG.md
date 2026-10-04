@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- `PortEditor(collapsedAdd = true)`: only a small `+` at the end until it is clicked; then the name field (with cancel) appears and folds away again after adding.
 - Graph engine: `SignalMode.Any` (an optional input: the node waits until the input has a value or its upstream finished, and gets `null` when none came, so a `Merge` of branches is two `Any` inputs); `NodeRun.Blocked(by, declined)` so a node behind a refused node is not shown like one behind a failure (`KNodeStatus.Declined`).
 - Graph nodes: `Input(..., trailing = { })` (always shown), public `Modifier.straddleNodeEdge(direction)` for rows built by hand, `KNodeScope.node`, `KNodeScope.PortEditor(direction, reserved)` (add, rename and remove user-defined ports as `UpdateNodePorts` undo steps; `portIdFromName`), and resizable nodes: `KNode(resizable = true, minWidth, maxWidth)` with a corner handle, the width kept in `GraphNode.width` (`GraphCommand.ResizeNodes`, saved in the JSON).
 - `KIconButton(size = KIconButtonSize.Small)` (28dp circle, 32dp target) for dense places.

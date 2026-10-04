@@ -1113,4 +1113,36 @@ class KNodeGraphTest {
         waitForIdle()
         assertTrue(state.graph.node(NodeId("n1"))!!.position.x - 50f > 60f)
     }
+
+    @Test
+    fun aCollapsedPortEditorShowsOnlyAPlusUntilItIsClickedAndFoldsAwayAfterAdding() = runComposeUiTest {
+        val state = twoNodes()
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 700.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Node ${node.id}") {
+                            Input("a", "Fixed")
+                            if (node.id.value == "n2") PortEditor(tech.kloos.kompound.graph.model.PortDirection.Input, reserved = setOf("a", "b"), collapsedAdd = true)
+                            Output("out")
+                        }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        assertEquals(0, onAllNodes(androidx.compose.ui.test.hasSetTextAction()).fetchSemanticsNodes().size, "no field while idle")
+        onNodeWithContentDescription("Add").performClick()
+        waitForIdle()
+        onAllNodes(androidx.compose.ui.test.hasSetTextAction()).onFirst().performTextInput("extra")
+        onAllNodesWithContentDescription("Add").onFirst().performClick()
+        waitForIdle()
+        assertNotNull(state.graph.node(NodeId("n2"))!!.port("extra"))
+        assertEquals(0, onAllNodes(androidx.compose.ui.test.hasSetTextAction()).fetchSemanticsNodes().size, "the field is gone again")
+        onNodeWithContentDescription("Add").performClick()
+        waitForIdle()
+        onNodeWithContentDescription("Cancel").performClick()
+        waitForIdle()
+        assertEquals(0, onAllNodes(androidx.compose.ui.test.hasSetTextAction()).fetchSemanticsNodes().size)
+    }
 }

@@ -42,6 +42,7 @@ public class KPortEditorLabels(
     public val cancelDescription: String = "Cancel",
     public val emptyName: String = "Enter a name",
     public val nameTaken: String = "Already used",
+    public val showAddDescription: String = "Add",
 )
 
 /**
@@ -55,6 +56,8 @@ public class KPortEditorLabels(
  * @param type Type of a new port.
  * @param signal [SignalMode] of a new input.
  * @param idOf Makes the id of a new port from its name ([portIdFromName] by default).
+ * @param collapsedAdd Show only a small `+` at the end until the user clicks it; then the name field appears (with a cancel button) and goes
+ * away again after adding or cancelling. For nodes where the editor should take no room when idle.
  * @param labels The words.
  */
 @Composable
@@ -64,6 +67,7 @@ public fun KNodeScope.PortEditor(
     type: PortType = PortType.Any,
     signal: SignalMode = SignalMode.Latest,
     idOf: (String) -> String = ::portIdFromName,
+    collapsedAdd: Boolean = false,
     labels: KPortEditorLabels = KPortEditorLabels(),
 ) {
     val state = LocalKGraphState.current ?: error("PortEditor must be used inside KNodeGraph")
@@ -104,6 +108,7 @@ public fun KNodeScope.PortEditor(
         }
         var name by remember { mutableStateOf("") }
         var error by remember { mutableStateOf<String?>(null) }
+        var adding by remember { mutableStateOf(!collapsedAdd) }
         fun add() {
             val id = idOf(name)
             error = when {
@@ -116,10 +121,20 @@ public fun KNodeScope.PortEditor(
             else PortSpec(PortId(id), PortDirection.Output, name.trim(), type)
             update(ports() + spec)
             name = ""
+            if (collapsedAdd) adding = false
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
-            KTextField(name, { name = it; error = null }, Modifier.weight(1f), placeholder = labels.addPlaceholder, isError = error != null, supportingText = error)
-            KIconButton(::add, labels.addDescription, variant = KButtonVariant.Tonal, size = KIconButtonSize.Small) { KIcon(GraphIcons.Add, null) }
+        if (!adding) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.End) {
+                KIconButton({ adding = true }, labels.showAddDescription, variant = KButtonVariant.Tonal, size = KIconButtonSize.Small) { KIcon(GraphIcons.Add, null) }
+            }
+        } else {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+                KTextField(name, { name = it; error = null }, Modifier.weight(1f), placeholder = labels.addPlaceholder, isError = error != null, supportingText = error)
+                KIconButton(::add, labels.addDescription, variant = KButtonVariant.Tonal, size = KIconButtonSize.Small) { KIcon(GraphIcons.Add, null) }
+                if (collapsedAdd) {
+                    KIconButton({ adding = false; name = ""; error = null }, labels.cancelDescription, variant = KButtonVariant.Text, size = KIconButtonSize.Small) { KIcon(GraphIcons.Close, null) }
+                }
+            }
         }
     }
 }
