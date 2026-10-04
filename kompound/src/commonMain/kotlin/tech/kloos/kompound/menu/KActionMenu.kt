@@ -88,14 +88,20 @@ public fun KActionMenu(
         KIconButton(onClick = { expanded = !expanded }, contentDescription = contentDescription, enabled = enabled, style = style) { icon() }
         if (showBadge) KBadgeDot(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp), contentDescription = badgeContentDescription)
         KMenu(expanded = expanded, onDismissRequest = { expanded = false }, style = menuStyle) {
-            val visible = actions.filterNotNull()
-            visible.forEachIndexed { index, action ->
-                when (action) {
-                    is KMenuActionItem -> ActionItem(action, indent = false) { expanded = false }
-                    is KMenuActionGroup -> ActionGroup(action) { expanded = false }
-                    KMenuActionDivider -> if (index != 0 && index != visible.lastIndex) KDivider(Modifier.padding(vertical = 4.dp))
-                }
-            }
+            MenuActionEntries(actions) { expanded = false }
+        }
+    }
+}
+
+/** The rows of a menu of [actions] (items, unfolding groups, dividers); [close] is called after an item that closes the menu. Shared by [KActionMenu] and the context menu. */
+@Composable
+internal fun MenuActionEntries(actions: List<KMenuAction?>, close: () -> Unit) {
+    val visible = actions.filterNotNull()
+    visible.forEachIndexed { index, action ->
+        when (action) {
+            is KMenuActionItem -> ActionItem(action, indent = false, close = close)
+            is KMenuActionGroup -> ActionGroup(action, close)
+            KMenuActionDivider -> if (index != 0 && index != visible.lastIndex) KDivider(Modifier.padding(vertical = 4.dp))
         }
     }
 }

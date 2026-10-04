@@ -164,10 +164,20 @@ Exact parameters in the source file; this lists what each is for and the paramet
 ### Layout and navigation
 | Composable | Use |
 |---|---|
+| `KTabRow(tabs: List<KTab>, selectedIndex, onSelectedIndexChange, scrollable)` with `KTab(label, icon, badge, enabled)` | tabs with a sliding underline; arrows, Home and End move; show the selected tab's content yourself |
+| `KNavigationBar(items: List<KNavItem>, selectedKey, onSelect)` / `KNavigationRail(items, selectedKey, onSelect, header, footer)` | bottom bar for phones, side rail for tablets and desktop; `KNavItem(key, label, icon, selectedIcon, badge, enabled)`; the selection is a key |
+| `KNavigationDrawer(entries: List<KNavEntry>, selectedKey, onSelect, header)` and `KModalNavigationDrawer(open, onDismissRequest, drawer, content)` | permanent list (`KNavEntry.Item`, `.Section`, `.Divider`), or a drawer sliding over the screen |
+| `KSplitPane(first, second, state = rememberKSplitPaneState(), orientation, minFirst, minSecond)` | two panes with a draggable divider |
 | `KScaffold(topBar, bottomBar, snackbarHost, floatingActionButton, contentWindowInsets, style, content: (PaddingValues))` | screen frame; apply the `PaddingValues` to your content |
 | `KTopBar(title: String \| @Composable, navigation, actions: RowScope, windowInsets)` | |
 | `KMenu(expanded, onDismissRequest, …) { KMenuItem(text, onClick, enabled, selected, showCheck, leading, trailing, supportingText) }` | anchored dropdown menu |
+| `KContextMenuArea(actions: () -> List<KMenuAction?>, enabled) { content }` | menu at the pointer on right-click, long press or the Menu key (content must be focusable for the keyboard) |
 | `KActionMenu(actions: List<KMenuAction?>, contentDescription, …)` | overflow menu from data: `KMenuActionItem(text, onClick, supportingText, icon, badge, selected, closeOnClick, enabled)` and `KMenuActionGroup(text, items)`; `null` entries are ignored (build the list with conditionals); groups render with dividers |
+
+### Loading placeholders
+| Composable | Use |
+|---|---|
+| `KSkeleton(modifier, shape, animated)`, `KSkeletonCircle(size)`, `KSkeletonText(lines, lastLineFraction)`, `KSkeletonGroup { }`, `Modifier.kShimmer(enabled)` | shimmering placeholders; the group announces "Loading" once |
 
 ### Overlays and feedback
 | Composable | Use |

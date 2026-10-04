@@ -28,9 +28,10 @@ or grab the Android APK and desktop installers from the [Releases](https://githu
 | **Text input** | `KTextField`, `KTextArea`, `KNumberField`, `KSearchBar`, `KInlineEdit` |
 | **Pickers** | `KDropdown`, `KMultiDropdown`, `KMenu` / `KMenuItem`, `KDateField`, `KDateRangeField` |
 | **Display** | `KBadge`, `KAvatar`, `KListItem`, `KLinearProgress`, `KCircularProgress`, `KEmptyState`, `KErrorState` |
-| **Layout** | `KScaffold`, `KTopBar` |
+| **Layout** | `KScaffold`, `KTopBar`, `KSplitPane` |
+| **Navigation** | `KTabRow`, `KNavigationBar`, `KNavigationRail`, `KNavigationDrawer`, `KModalNavigationDrawer` |
 | **Node graph** (`kompound-graph`) | `KNodeGraph`, `KNode`, groups and subgraphs, auto layout, JSON, `GraphEngine` (suspending nodes, traces, pins), `KNodeInspector` |
-| **Overlays and feedback** | `KDialog`, `KAlertDialog`, `KBottomSheet` (adaptive), `KSnackbar`, `KTooltip` |
+| **Overlays and feedback** | `KDialog`, `KAlertDialog`, `KBottomSheet` (adaptive), `KSnackbar`, `KTooltip`, `KContextMenuArea`, `KSkeleton` (shimmer placeholders) |
 
 Every component is tested on desktop and the iOS simulator (pixel checks, semantics, hit areas, state layers), has a demo,
 and follows the [component contract](docs/COMPONENT_SPEC.md).
