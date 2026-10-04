@@ -1,6 +1,10 @@
 package tech.kloos.kompound.graph
 
 import androidx.compose.foundation.focusable
+import tech.kloos.kompound.icon.KIcon
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
@@ -73,6 +77,34 @@ public interface KNodeScope {
     @Composable
     public fun Content(content: @Composable ColumnScope.() -> Unit)
 
+    /**
+     * A titled section the user can fold away with a click. The node grows and shrinks with it (its wires follow, and a port inside a
+     * closed section keeps its wire, attached at the fold). Whether it is open is remembered in the [KGraphState] under [key]
+     * (the node id plus [key]), so it survives recomposition and scrolling out of view; use [KGraphState.setExpanded] to change it from code.
+     */
+    @Composable
+    public fun Collapsible(
+        title: String,
+        modifier: Modifier = Modifier,
+        key: String = title,
+        initiallyExpanded: Boolean = true,
+        expandedDescription: String = "Expanded",
+        collapsedDescription: String = "Collapsed",
+        content: @Composable ColumnScope.() -> Unit,
+    )
+
+    /** Like the other [Collapsible] but you own the state: the section is open while [expanded] is true. */
+    @Composable
+    public fun Collapsible(
+        title: String,
+        expanded: Boolean,
+        onExpandedChange: (Boolean) -> Unit,
+        modifier: Modifier = Modifier,
+        expandedDescription: String = "Expanded",
+        collapsedDescription: String = "Collapsed",
+        content: @Composable ColumnScope.() -> Unit,
+    )
+
     /** The bare port handle, for building your own rows. Place it at the very start (input) or end (output) of a full-width row. */
     @Composable
     public fun PortHandle(port: String, modifier: Modifier = Modifier)
@@ -92,6 +124,9 @@ public interface KNodeScope {
  * @param headerStyle Overrides merged over [KNodeDefaults.headerStyle].
  * @param onDoubleClick Called when the node is double-clicked or double-tapped.
  * @param actions Optional content at the end of the title bar (a badge, a menu button).
+ * @param collapsible Adds a chevron to the title bar that folds the whole body away (only the title bar stays); wires keep their ends at the node's edges. See [KGraphState.setCollapsed].
+ * @param expandedDescription Accessibility label of the chevron while the body is open.
+ * @param collapsedDescription Accessibility label of the chevron while the body is folded.
  * @param content The body; call `Input`, `Output` and `Content` on the scope.
  */
 @Composable
@@ -104,6 +139,9 @@ public fun KNode(
     headerStyle: Style = Style,
     onDoubleClick: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
+    collapsible: Boolean = false,
+    expandedDescription: String = "Collapse node",
+    collapsedDescription: String = "Expand node",
     content: @Composable KNodeScope.() -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -146,12 +184,22 @@ public fun KNode(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (collapsible) {
+                val open = !state.isCollapsed(node.id)
+                KIcon(
+                    if (open) GraphIcons.ExpandMore else GraphIcons.ChevronRight,
+                    if (open) expandedDescription else collapsedDescription,
+                    Modifier.size(18.dp).clickable(role = Role.Button) { state.setCollapsed(node.id, open) },
+                )
+            }
             KText(title, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             LocalNodeStatus.current?.invoke(node)?.let { KNodeStatusBadge(it) }
             actions?.invoke()
         }
-        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            CompositionLocalProvider(LocalKNodeScope provides scope) { scope.content() }
+        CollapseContainer(expanded = !collapsible || !state.isCollapsed(node.id)) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                CompositionLocalProvider(LocalKNodeScope provides scope) { scope.content() }
+            }
         }
     }
 }
@@ -187,6 +235,26 @@ private class NodeScopeImpl(private val id: tech.kloos.kompound.graph.model.Node
     @Composable
     override fun Content(content: @Composable ColumnScope.() -> Unit) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
+
+    @Composable
+    override fun Collapsible(
+        title: String, modifier: Modifier, key: String, initiallyExpanded: Boolean,
+        expandedDescription: String, collapsedDescription: String, content: @Composable ColumnScope.() -> Unit,
+    ) {
+        val open = state.isExpanded(id, key, initiallyExpanded)
+        Collapsible(title, open, { state.setExpanded(id, key, it) }, modifier, expandedDescription, collapsedDescription, content)
+    }
+
+    @Composable
+    override fun Collapsible(
+        title: String, expanded: Boolean, onExpandedChange: (Boolean) -> Unit, modifier: Modifier,
+        expandedDescription: String, collapsedDescription: String, content: @Composable ColumnScope.() -> Unit,
+    ) {
+        Column(modifier.fillMaxWidth()) {
+            SectionHeader(title, expanded, { onExpandedChange(!expanded) }, expandedDescription, collapsedDescription)
+            CollapseContainer(expanded) { content() }
+        }
     }
 
     @Composable
