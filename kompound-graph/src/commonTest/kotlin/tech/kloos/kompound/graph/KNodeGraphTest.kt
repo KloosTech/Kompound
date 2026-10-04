@@ -899,4 +899,74 @@ class KNodeGraphTest {
         assertTrue(state.isExpanded(NodeId("n1"), "x"), "back to the default")
         assertTrue(state.isCollapsed(NodeId("n2")))
     }
+
+    @Test
+    fun aReadOnlyCanvasPansZoomsAndSelectsButChangesNothing() = runComposeUiTest {
+        val state = twoNodes()
+        state.connect(ref("n1", "out"), ref("n2", "a"))
+        state.clearHistory()
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize(), readOnly = true) { node ->
+                        KNode(node, "Node ${node.id}", modifier = Modifier.testTag(node.id.value)) { Input("a"); Input("b"); Output("out") }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        // dragging a node does not move it
+        onNodeWithTag("n1").performTouchInput { swipe(Offset(60f, 14f), Offset(160f, 74f), durationMillis = 200) }
+        waitForIdle()
+        assertEquals(Offset(50f, 50f), state.graph.node(NodeId("n1"))!!.position)
+        // wiring does nothing
+        val from = state.viewport.worldToScreen(state.anchorOf(ref("n1", "out"))!!)
+        val to = state.viewport.worldToScreen(state.anchorOf(ref("n2", "b"))!!)
+        onRoot().performTouchInput { swipe(from, to, durationMillis = 300) }
+        waitForIdle()
+        assertEquals(1, state.graph.edges.size)
+        // selecting works, deleting does not
+        onNodeWithTag("n2").performTouchInput { click(Offset(60f, 14f)) }
+        waitForIdle()
+        assertEquals(setOf(NodeId("n2")), state.selection)
+        onNodeWithTag("n2").requestFocus()
+        onNodeWithTag("n2").performKeyInput { pressKey(Key.Delete) }
+        waitForIdle()
+        assertEquals(2, state.graph.nodes.size)
+        // interactive edits are refused, programmatic ones still apply
+        state.removeSelection(); state.paste(); state.duplicateSelection(); state.undo()
+        assertEquals(2, state.graph.nodes.size)
+        assertTrue(state.groupSelection() == null && state.createSubgraph() == null && !state.autoLayout())
+        assertTrue(state.execute(tech.kloos.kompound.graph.model.GraphCommand.UpdateNodeData(NodeId("n1"), "x")))
+        // panning and zooming still work
+        onRoot().performTouchInput { swipe(Offset(600f, 450f), Offset(700f, 480f), durationMillis = 200) }
+        waitForIdle()
+        assertTrue(state.viewport.offset.x > 60f, "panning still works: ${state.viewport.offset}")
+        onRoot().performMouseInput { moveTo(Offset(300f, 300f)); scroll(-3f) }
+        waitForIdle()
+        assertTrue(state.viewport.zoom > 1f, "zooming still works")
+    }
+
+    @Test
+    fun theNodeSelectOpensAMenuAndReportsThePick() = runComposeUiTest {
+        val state = twoNodes()
+        val chosenState = androidx.compose.runtime.mutableStateOf<String?>("add")
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Node ${node.id}") { Select("Operation", listOf("add", "multiply", "divide"), chosenState.value, { chosenState.value = it }) }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        onAllNodesWithText("add", useUnmergedTree = true).onFirst().assertExists()
+        onAllNodesWithText("add", useUnmergedTree = true).onFirst().performClick()
+        waitForIdle()
+        onNodeWithText("multiply").performClick()
+        waitForIdle()
+        assertEquals("multiply", chosenState.value)
+        onAllNodesWithText("multiply", useUnmergedTree = true).onFirst().assertExists()
+    }
 }

@@ -235,14 +235,14 @@ KNodeGraph(state, Modifier.fillMaxWidth().height(480.dp), fitOnFirstLayout = tru
 }
 ```
 
-`KNode`'s scope offers `Input(port, label, editor)`, `Output(port, label)`, `Content { }`, `PortHandle(port)` and `Collapsible(title) { }`.
+`KNode`'s scope offers `Input(port, label, editor)`, `Output(port, label)`, `Content { }`, `PortHandle(port)`, `Collapsible(title) { }` and `Select(label, options, selected, onSelect)` (a choice field sized for a node row; `KNodeSelect` works anywhere, for example as an `Input` editor).
 `KNode(collapsible = true)` adds a chevron that folds the whole body. Node height follows its content, wires follow resizes.
 
 Edit from code: `state.connect(a, b)`, `state.execute(cmd)`, `state.undo()`, `state.redo()`, `state.removeSelection()`, `state.fitView()`,
 `state.autoLayout()`, `state.groupSelection()`, `state.createSubgraph("name")`, `state.load(graph)`, `state.clearHistory()`.
 React to edits with `state.onGraphChange = { old, new -> … }`.
 
-Useful `KNodeGraph` parameters: `nodeTypes` (menu to add nodes), `edgeStyle = { edge -> KEdgeStyle(color, animated, dashed) }`,
+Useful `KNodeGraph` parameters: `readOnly` (look but do not touch; check `state.readOnly` in your node bodies), `nodeTypes` (menu to add nodes), `edgeStyle = { edge -> KEdgeStyle(color, animated, dashed) }`,
 `portColor`, `nodeStatus`, `edgeLabel`, `overlay = { KGraphControls(state, …); KMiniMap(state, …) }`, `virtualizeAbove` (default 150 nodes).
 Mouse: drag background selects; hand tool (key H, button in `KGraphControls`), middle/right button or Space+drag pans; wheel zooms. Keys: Delete, Ctrl/Cmd+Z/Shift+Z/C/V/D/G/A, F fit, L arrange.
 

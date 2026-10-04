@@ -13,6 +13,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
@@ -206,5 +209,33 @@ class InspectorUiTest {
         waitForIdle()
         assertTrue(pickedSomething)
         assertEquals(1, picked?.id)
+    }
+
+    @Test
+    fun theListFiltersByTriggerAndNamesTheNodeThatFailed() = runComposeUiTest {
+        var engine: GraphEngine? = null
+        val failing = Graph.of(listOf(GraphNode(NodeId("gen::up"), "boom", Offset.Zero, listOf(PortSpec.output("out")))))
+        setContent {
+            MaterialTheme(scheme) {
+                val state = remember { KGraphState(failing) }
+                engine = rememberGraphEngine(state, mapOf("boom" to singleOutputRunner { _, _ -> error("no") }))
+                Box(Modifier.size(600.dp, 400.dp)) {
+                    KExecutionList(engine!!, null, {}, showTriggerFilter = true, nodeLabel = { if (it.value == "gen::up") "Upload step" else it.value })
+                }
+            }
+        }
+        waitUntil(timeoutMillis = 5_000) { engine?.executions?.firstOrNull()?.finishedAt != null }
+        engine!!.rerun(NodeId("gen::up"))
+        waitUntil(timeoutMillis = 5_000) { (engine?.executions?.size ?: 0) >= 2 && engine!!.executions.last().finishedAt != null }
+        waitForIdle()
+        onAllNodesWithText("failed: Upload step", substring = true, useUnmergedTree = true).onFirst().assertExists()
+        onNodeWithText("#1 edit").assertIsDisplayed()
+        onNodeWithText("#2 re-run").assertIsDisplayed()
+        onAllNodesWithText("edit", useUnmergedTree = true).onFirst().assertExists()
+        // narrowing with the chip hides the other kind
+        onNode(androidx.compose.ui.test.hasText("re-run") and androidx.compose.ui.test.hasClickAction()).performClick()
+        waitForIdle()
+        onNodeWithText("#1 edit").assertDoesNotExist()
+        onNodeWithText("#2 re-run").assertIsDisplayed()
     }
 }

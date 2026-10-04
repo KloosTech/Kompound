@@ -155,9 +155,9 @@ public fun KGraphControls(
         if (state.tool == KGraphTool.Select) KIconButton({ state.tool = KGraphTool.Pan }, panToolDescription) { KIcon(GraphIcons.PanTool, null) }
         else KIconButton({ state.tool = KGraphTool.Select }, selectToolDescription) { KIcon(GraphIcons.Select, null) }
         KIconButton({ state.fitView() }, fitDescription) { KIcon(GraphIcons.FitScreen, null) }
-        KIconButton({ state.autoLayout(selectedOnly = true, fit = true) }, layoutDescription) { KIcon(GraphIcons.AccountTree, null) }
-        KIconButton({ state.undo() }, undoDescription, enabled = state.canUndo) { KIcon(GraphIcons.Undo, null) }
-        KIconButton({ state.redo() }, redoDescription, enabled = state.canRedo) { KIcon(GraphIcons.Redo, null) }
+        KIconButton({ state.autoLayout(selectedOnly = true, fit = true) }, layoutDescription, enabled = !state.readOnly) { KIcon(GraphIcons.AccountTree, null) }
+        KIconButton({ state.undo() }, undoDescription, enabled = state.canUndo && !state.readOnly) { KIcon(GraphIcons.Undo, null) }
+        KIconButton({ state.redo() }, redoDescription, enabled = state.canRedo && !state.readOnly) { KIcon(GraphIcons.Redo, null) }
     }
 }
 
