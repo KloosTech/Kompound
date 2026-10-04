@@ -75,7 +75,7 @@ The node graph framework (editor canvas, execution engine, inspector; experiment
 | Android | minSdk 24, compileSdk 37 |
 | iOS | 15+ (`iosArm64`, `iosSimulatorArm64`) |
 | Desktop | JVM 11+ |
-| Web | `wasmJs` |
+| Web | `wasmJs` and `js` (IR, browser) |
 
 Kompound depends only on Compose Multiplatform (runtime, foundation, ui, animation, Material 3 for theme tokens and the
 date picker calendar). No other third-party libraries.

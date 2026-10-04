@@ -51,7 +51,7 @@ kotlin {
 }
 ```
 
-Requirements: Kotlin 2.4.20+, Compose Multiplatform 1.12.1+, Android minSdk 24, iOS 15+, JVM 11+.
+Requirements: Kotlin 2.4.20+, Compose Multiplatform 1.12.1+, Android minSdk 24, iOS 15+, JVM 11+. Targets published: android, desktop (jvm), iosArm64, iosSimulatorArm64, `wasmJs` and `js` (from `0.1.0-alpha03`; a project created from the KMP wizard with a `js` target resolves).
 
 Minimal app:
 

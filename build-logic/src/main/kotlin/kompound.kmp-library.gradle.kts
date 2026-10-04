@@ -28,6 +28,11 @@ kotlin {
         wasmJs { browser() }
     }
 
+    // Plain Kotlin/JS (browsers without Wasm GC, projects created from the KMP wizard with a `js` target).
+    if (providers.gradleProperty("kompound.js").orNull != "false") {
+        js { browser() }
+    }
+
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
