@@ -67,10 +67,26 @@ Desktop installers are unsigned and not notarised until the Apple secrets exist.
 
 In [Obtainium](https://obtainium.imranr.dev/) add the app with the source `https://github.com/KloosTech/Kompound`. Because the library's `v*` releases live in the same repo (notes only, no APK), set *Filter release titles by regular expression* to `Catalog`. Only the APK matches the APK filter; the desktop installers are ignored. Obtainium then installs each new catalog release as an update. If it keeps offering an update right after installing, the release tag (`catalog-v1.0.0`) and the app's version name (`1.0.0`) are being compared literally; Obtainium's version-detection options for the app fix that.
 
+## Choosing where to publish (local, Central, both)
+
+One switch decides it, on the command line or through the wrapper script:
+
+```bash
+scripts/publish.sh local                    # ~/.m2 only: try the libraries in another project (default version from gradle.properties)
+scripts/publish.sh local 0.1.0-alpha03      # same, with a version
+scripts/publish.sh central 0.1.0-alpha03    # upload to Maven Central, release by hand in the portal
+scripts/publish.sh release 0.1.0-alpha03    # upload and release automatically (asks first; immutable)
+scripts/publish.sh both 0.1.0-alpha03       # local first, then Central
+
+./gradlew publishLibraries -PpublishTo=local|central|release|both -PVERSION_NAME=0.1.0-alpha03   # what the script runs
+```
+
+`local` needs no credentials and is the default. `central`, `release` and `both` stop immediately, before building, if the Central credentials or the signing key are missing or the version is a `SNAPSHOT`. Export them as `ORG_GRADLE_PROJECT_mavenCentralUsername`, `_mavenCentralPassword`, `_signingInMemoryKey`, `_signingInMemoryKeyId` and `_signingInMemoryKeyPassword`, or put `export` lines for them in `~/.kompound/publish.env` (outside the repo; the script sources it). The tag-triggered `release.yml` uses the same switch (`central`, or `release` when *Run workflow* is started with `auto_release`).
+
 ## Local equivalents
 
 ```bash
-./gradlew publishToMavenLocalAll                 # all libraries + Gradle plugins into ~/.m2
+./gradlew publishLibraries                       # all libraries + Gradle plugins into ~/.m2 (same as -PpublishTo=local)
 cd samples/consumer && ./gradlew desktopTest     # consume them like an external project would
 ./gradlew :catalog:desktopApp:run                # run the catalog
 ./gradlew :catalog:androidApp:assembleRelease    # APK (debug-signed without ANDROID_KEYSTORE_PATH)

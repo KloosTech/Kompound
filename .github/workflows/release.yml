@@ -58,9 +58,9 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
         run: |
           V="${VERSION#v}"
-          TASK=publishToMavenCentralAll
-          if [ "${{ inputs.auto_release }}" = "true" ]; then TASK=publishAndReleaseToMavenCentralAll; fi
-          ./gradlew "$TASK" -PVERSION_NAME="$V" --stacktrace
+          TARGET=central                                   # upload only; release by hand in the portal
+          if [ "${{ inputs.auto_release }}" = "true" ]; then TARGET=release; fi
+          ./gradlew publishLibraries -PpublishTo="$TARGET" -PVERSION_NAME="$V" --stacktrace
 
   github-release:
     name: GitHub Release (notes only)
