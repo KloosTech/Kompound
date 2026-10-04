@@ -41,11 +41,11 @@ Kompound is published to Maven Central under the namespace `tech.kloos.kompound`
 
 ```kotlin
 // build.gradle.kts of a Kotlin Multiplatform module (commonMain)
+plugins {
+    // Opts the module in to the Compose Styles API (see below). Available from 0.1.0-alpha03.
+    id("tech.kloos.kompound") version "0.1.0-alpha03"
+}
 kotlin {
-    compilerOptions {
-        // The Compose Styles API is experimental; Kompound's `style` parameters use it.
-        optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi")
-    }
     sourceSets {
         commonMain.dependencies {
             implementation("tech.kloos.kompound:kompound:0.1.0-alpha02")
@@ -55,6 +55,14 @@ kotlin {
 ```
 
 An Android-only or desktop-only project adds the same `implementation(...)` line; Gradle picks the right variant.
+
+**Why the plugin?** Every Kompound composable has a `style: Style` parameter and Compose's `Style` is still experimental, so the Kotlin compiler
+reports "This foundation style API is experimental" for *every* Kompound call, even one that passes no style, unless the calling module opts in.
+A library cannot opt its callers in, so apply the `tech.kloos.kompound` plugin (above), or add the opt-in yourself, which is what the plugin does:
+
+```kotlin
+kotlin { compilerOptions { optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi") } }
+```
 
 The node graph framework (editor canvas, execution engine, inspector; experimental) is a separate artifact: `implementation("tech.kloos.kompound:kompound-graph:0.1.0-alpha02")`. Start with [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) section 7.
 

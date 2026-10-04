@@ -23,7 +23,7 @@ Status: alpha. The Styles API is experimental, so APIs can still change.
    typography the component's `Style` provides, so text comes out in the wrong colour (dark text on dark backgrounds).
 2. **Style through the `style: Style` parameter only.** There are no `colors =`, `shape =`, `elevation =` parameters. Your `Style` is merged *over* the component default, so set only what you change.
 3. **State-dependent looks go inside the `Style`** (`pressed { }`, `hovered { }`, `focused { }`, `disabled { }`, `selected { }`), not in `if (isPressed)` branches.
-4. **The Styles API is experimental: opt in once per module**: `optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi")` in the Gradle `compilerOptions`. Without it, every file using `Style` fails to compile.
+4. **The Styles API is experimental: opt in once per module.** Apply the Gradle plugin `id("tech.kloos.kompound")` (it adds the opt-in to every Kotlin compilation) or add `optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi")` to `compilerOptions`. Without it, **every Kompound call fails to compile** ("This foundation style API is experimental"), even with default arguments, because each composable has a `style: Style` parameter.
 5. **Wrap the app in `KompoundTheme { }`.** It wraps `MaterialTheme`, follows the system dark mode and adds `success`/`warning`/`info` colours and spacing/motion tokens. Colours come from your `MaterialTheme.colorScheme`; do not hard-code them.
 6. **Parameters named `contentDescription` are required** on icon-only components (`KIconButton`, `KFab`, `KActionMenu`): give a real description.
 7. **You own the state.** Fields, switches, dropdowns, dialogs are controlled: pass the value and a change callback and keep the state in `remember { mutableStateOf(...) }` or a ViewModel. Dialogs and sheets are shown by *calling* them while a boolean is true.
@@ -39,9 +39,9 @@ plugins {
     kotlin("multiplatform") version "2.4.20"
     id("org.jetbrains.compose") version "1.12.1"
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.20"
+    id("tech.kloos.kompound") version "0.1.0-alpha03"      // adds the Styles API opt-in (from alpha03; before that add optIn.add(...) by hand)
 }
 kotlin {
-    compilerOptions { optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi") }
     sourceSets {
         commonMain.dependencies {
             implementation("tech.kloos.kompound:kompound:0.1.0-alpha02")

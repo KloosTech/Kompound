@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Build: one switch for publishing, `./gradlew publishLibraries -PpublishTo=local|central|release|both` (or `scripts/publish.sh`), with a preflight that stops before building when Central credentials, the signing key or a real version are missing. `release.yml` uses it.
+- New Gradle plugin `tech.kloos.kompound`: opts the module in to the Compose Styles API (`ExperimentalFoundationStyleApi`), which every Kompound call needs because each composable has a `style: Style` parameter (the compiler reported "This foundation style API is experimental" even for calls with default arguments). The `tech.kloos.kompound.demos` plugin applies it too; the consumer sample builds without a manual opt-in.
 
 ## 0.1.0-alpha02 (2026-10-04)
 First release that includes `kompound-graph`, plus everything below.
