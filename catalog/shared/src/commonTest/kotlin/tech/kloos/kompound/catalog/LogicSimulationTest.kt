@@ -102,4 +102,14 @@ class LogicSimulationTest {
         assertEquals(true, g.settle()[out("g")])
         assertEquals(7, LogicKinds.Gates.size)
     }
+
+    @Test
+    fun everyPresetSurvivesAJsonRoundTrip() {
+        for (preset in LogicPreset.entries) {
+            val g = logicCircuit(preset)
+            val back = tech.kloos.kompound.showcase.graph.LogicJson.let { it.decode(it.encode(g)).graph }
+            assertEquals(g.nodes, back.nodes, preset.name)
+            assertEquals(g.edges, back.edges, preset.name)
+        }
+    }
 }

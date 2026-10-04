@@ -199,7 +199,7 @@ fun DemoScope.KLogicGatesDemo() {
             KButton({ state.removeSelection() }, variant = KButtonVariant.Text, enabled = state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) { KText("Delete") }
         }
         KText("Flip the switches to change the inputs. Double-click the canvas (or drop a wire on it) to add gates, switches and lamps; drag from an output to an input to wire them, drag a wire off the end to remove it. Feedback loops are allowed: in the SR latch, Set and Reset make the lamps remember their state.")
-        GraphFrame(state, 540) { frame ->
+        GraphFrame(state, 540, LogicJson) { frame ->
             KNodeGraph(
                 state,
                 frame,
