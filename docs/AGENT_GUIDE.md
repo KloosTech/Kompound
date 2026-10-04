@@ -12,8 +12,8 @@ Two artifacts matter to app code:
 
 | Artifact | Contents |
 |---|---|
-| `tech.kloos.kompound:kompound` | the component library (published, `0.1.0-alpha01`) |
-| `tech.kloos.kompound:kompound-graph` | node graph framework (editor, execution engine, inspector). In the repo; not in `alpha01`: depend on it as `project(":kompound-graph")` or a later alpha |
+| `tech.kloos.kompound:kompound` | the component library (published, `0.1.0-alpha02`) |
+| `tech.kloos.kompound:kompound-graph` | node graph framework (editor, execution engine, inspector). Published since `0.1.0-alpha02`; `implementation("tech.kloos.kompound:kompound-graph:0.1.0-alpha02")` |
 
 Status: alpha. The Styles API is experimental, so APIs can still change.
 
@@ -44,7 +44,7 @@ kotlin {
     compilerOptions { optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi") }
     sourceSets {
         commonMain.dependencies {
-            implementation("tech.kloos.kompound:kompound:0.1.0-alpha01")
+            implementation("tech.kloos.kompound:kompound:0.1.0-alpha02")
             implementation(compose.foundation)
         }
     }
@@ -313,7 +313,7 @@ KNodeInspector(engine, node, state = state, execution = selectedExecution, param
 
 ```kotlin
 // build.gradle.kts of the module that contains demos
-plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha01" }   // applies KSP, the processor and dependencies
+plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha02" }   // applies KSP, the processor and dependencies
 
 @KompoundDemo(id = "my.button", title = "My button", category = KompoundCategory.Buttons, tags = ["button"])
 @Composable
