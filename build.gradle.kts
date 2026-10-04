@@ -60,3 +60,29 @@ tasks.register("publishLibraries") {
 // the check runs before anything is built, and with `both` local goes first so a broken artifact never reaches Central
 chosen?.forEach { name -> tasks.named(name) { dependsOn(preflightPublish) } }
 if (target == "both") tasks.named("publishToMavenCentralAll") { mustRunAfter("publishToMavenLocalAll") }
+
+// The Gradle plugin and the KSP processor run inside the consumer's build, so they must not need a newer JDK than the consumer has.
+tasks.register("verifyBytecodeTarget") {
+    group = "verification"
+    description = "Fails when the Gradle plugin or the KSP processor were compiled for a Java version above 11."
+    dependsOn(":kompound-processor:jar")
+    dependsOn(gradle.includedBuild("kompound-gradle-plugin").task(":jar"))
+    doLast {
+        val files = listOf(
+            project(":kompound-processor").layout.buildDirectory.dir("libs").get().asFile,
+            file("kompound-gradle-plugin/build/libs"),
+        ).mapNotNull { dir ->
+            // the jar that was just built (older versions may still lie around in build/libs)
+            dir.listFiles { f -> f.name.endsWith(".jar") && !f.name.contains("sources") && !f.name.contains("javadoc") }?.maxByOrNull { it.lastModified() }
+        }
+        check(files.isNotEmpty()) { "no jars found to check" }
+        for (jar in files) {
+            java.util.zip.ZipFile(jar).use { zip ->
+                val entry = zip.entries().asSequence().firstOrNull { it.name.endsWith(".class") && !it.name.startsWith("META-INF") } ?: return@use
+                val header = zip.getInputStream(entry).use { it.readNBytes(8) }
+                val major = ((header[6].toInt() and 0xFF) shl 8) or (header[7].toInt() and 0xFF)
+                check(major <= 55) { "${jar.name} is compiled for class version $major (Java ${major - 44}); it must be 55 (Java 11) or lower" }
+            }
+        }
+    }
+}

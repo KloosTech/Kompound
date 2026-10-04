@@ -7,6 +7,8 @@
 - `KCode`: `KCodeLanguage.Shell`, `KCodeLanguage.cLike(keywords)` and `KCodeLexing` helpers for writing languages; a `KCode(value: TextFieldValue, onValueChange)` overload and a `focusRequester` parameter so code outside the editor can insert at the caret (`TextFieldValue.insertAtCursor`).
 - Fixed: the inspector's Pin button pinned the engine's current output even while a recorded run was shown (the data on screen was older, possibly redacted); it is now disabled in that view. Fixed: `GraphJson(migrate = ...)` renaming a kind with typed data left the data as raw JSON; when migrate leaves the data alone, it is read again with the new kind's `nodeData` codec.
 
+- Fixed: a node that was already selected did not follow the pointer while it was dragged (it jumped to the cursor on release): the drag state is observable now, so starting a drag places the node again. Fixed: the Gradle plugin `tech.kloos.kompound` and the KSP processor were compiled for the JDK of the build machine (Java 23) and failed to load on a Gradle daemon with an older JDK; both target Java 11 now, and CI checks it (`verifyBytecodeTarget`).
+
 ## 0.1.0-alpha03 (2026-10-04)
 Main changes since alpha02: the `tech.kloos.kompound` Gradle plugin (adds the Styles API opt-in), a Kotlin/JS target for every library, graph engine run control (manual mode, `beforeRun`, observable state, `awaitIdle`), `NoSignal` branching, `UpdateNodePorts`, read-only canvas, `KNodeSelect`, collapsible node sections, and the publish switch.
 - Build: one switch for publishing, `./gradlew publishLibraries -PpublishTo=local|central|release|both` (or `scripts/publish.sh`), with a preflight that stops before building when Central credentials, the signing key or a real version are missing. `release.yml` uses it.
