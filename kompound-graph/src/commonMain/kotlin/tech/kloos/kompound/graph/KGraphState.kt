@@ -414,6 +414,12 @@ public class KGraphState(
     public var marquee: Rect? by mutableStateOf(null)
         internal set
 
+    /**
+     * What a plain mouse drag on the background does: [KGraphTool.Select] draws a selection rectangle, [KGraphTool.Pan] pans the canvas
+     * (middle or right button and Space+drag always pan). Keys V and H switch; [KGraphControls] has a button.
+     */
+    public var tool: KGraphTool by mutableStateOf(KGraphTool.Select)
+
     /** Whether Space is held (the editor then pans with a mouse drag instead of selecting). */
     internal var spaceHeld: Boolean = false
 
@@ -787,3 +793,6 @@ public fun rememberKGraphState(
     val viewport = rememberSaveable(saver = KViewportState.Saver) { KViewportState() }
     return remember(viewport) { KGraphState(initial, policy, viewport, gridStep) }
 }
+
+/** Mouse tool of the node graph canvas. */
+public enum class KGraphTool { Select, Pan }
