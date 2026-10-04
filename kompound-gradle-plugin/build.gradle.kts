@@ -20,6 +20,10 @@ dependencies {
 
 gradlePlugin {
     plugins {
+        register("kompound") {
+            id = "tech.kloos.kompound"
+            implementationClass = "tech.kloos.kompound.gradle.KompoundPlugin"
+        }
         register("demos") {
             id = "tech.kloos.kompound.demos"
             implementationClass = "tech.kloos.kompound.gradle.KompoundDemosPlugin"
@@ -31,7 +35,7 @@ gradlePlugin {
     }
 }
 
-description = "Gradle plugins that wire Kompound demo discovery (KSP) and the catalog aggregate registry."
+description = "Gradle plugins: the Styles API opt-in Kompound needs, demo discovery (KSP) and the catalog aggregate registry."
 
 // Same POM as the main build (see build-logic/kompound.publishing). Duplicated because this build
 // is a dependency of build-logic and cannot use it.

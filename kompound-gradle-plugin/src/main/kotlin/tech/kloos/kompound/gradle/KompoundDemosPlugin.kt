@@ -26,6 +26,7 @@ public abstract class KompoundDemosExtension {
 public class KompoundDemosPlugin : Plugin<Project> {
     override fun apply(project: Project): Unit = with(project) {
         pluginManager.apply("com.google.devtools.ksp")
+        optInToStyleApi()
         val version = KompoundDemosPlugin::class.java.`package`.implementationVersion ?: DEFAULT_VERSION
         val ext = extensions.create<KompoundDemosExtension>("kompoundDemos").apply {
             moduleId.convention(sanitizeModuleId(if (project.path == ":") project.name else project.path))
