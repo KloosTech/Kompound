@@ -51,6 +51,7 @@ jobs:
           compileAndroidMain
           compileKotlinWasmJs
           compileKotlinJs
+          verifyBytecodeTarget
           :catalog:androidApp:assembleDebug
           :catalog:webApp:wasmJsBrowserDistribution
           --stacktrace

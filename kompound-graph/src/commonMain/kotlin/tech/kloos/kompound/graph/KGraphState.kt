@@ -514,8 +514,10 @@ public class KGraphState(
     // --- dragging nodes -----------------------------------------------------------------------------------------
 
     private var dragRaw: Offset by mutableStateOf(Offset.Zero)
-    private var dragPrimary: NodeId? = null
-    private var dragSet: Set<NodeId> = emptySet()
+    // Observable: placing a node reads whether it is being dragged. As plain fields a node that was already selected (so nothing else
+    // changes when a drag starts) was never placed again until the drag ended, and did not follow the pointer.
+    private var dragPrimary: NodeId? by mutableStateOf(null)
+    private var dragSet: Set<NodeId> by mutableStateOf(emptySet())
 
     /** Offset in world units currently applied to the nodes being dragged (already snapped to the grid). */
     public var dragDelta: Offset by mutableStateOf(Offset.Zero)

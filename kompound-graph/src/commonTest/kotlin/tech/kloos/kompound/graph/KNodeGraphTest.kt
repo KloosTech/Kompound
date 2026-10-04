@@ -969,4 +969,27 @@ class KNodeGraphTest {
         assertEquals("multiply", chosenState.value)
         onAllNodesWithText("multiply", useUnmergedTree = true).onFirst().assertExists()
     }
+
+    @Test
+    fun aNodeThatIsAlreadySelectedFollowsThePointerWhileItIsDragged() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        // select it first, then drag it: nothing else changes when the drag starts
+        onNodeWithTag("n1").performTouchInput { click(Offset(60f, 14f)) }
+        mainClock.advanceTimeBy(600)
+        waitForIdle()
+        assertEquals(setOf(NodeId("n1")), state.selection)
+        val start = onNodeWithTag("n1").topLeft()
+        onNodeWithTag("n1").performTouchInput {
+            down(Offset(60f, 14f))
+            moveBy(Offset(30f, 0f)); moveBy(Offset(30f, 0f)); moveBy(Offset(30f, 0f))
+        }
+        waitForIdle()
+        val during = onNodeWithTag("n1").topLeft()
+        assertTrue(during.x - start.x > 60f, "the node moves while the pointer is still down: ${start.x} -> ${during.x}")
+        onNodeWithTag("n1").performTouchInput { up() }
+        waitForIdle()
+        assertTrue(state.graph.node(NodeId("n1"))!!.position.x - 50f > 60f)
+    }
 }

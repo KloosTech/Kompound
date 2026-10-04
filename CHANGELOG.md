@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed: a node that was already selected did not follow the pointer while it was dragged (it jumped to the cursor on release): the drag state is observable now, so starting a drag places the node again. Fixed: the Gradle plugin `tech.kloos.kompound` and the KSP processor were compiled for the JDK of the build machine (Java 23) and failed to load on a Gradle daemon with an older JDK; both target Java 11 now, and CI checks it (`verifyBytecodeTarget`).
 
 ## 0.1.0-alpha03 (2026-10-04)
 Main changes since alpha02: the `tech.kloos.kompound` Gradle plugin (adds the Styles API opt-in), a Kotlin/JS target for every library, graph engine run control (manual mode, `beforeRun`, observable state, `awaitIdle`), `NoSignal` branching, `UpdateNodePorts`, read-only canvas, `KNodeSelect`, collapsible node sections, and the publish switch.
