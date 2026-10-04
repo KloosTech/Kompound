@@ -158,7 +158,7 @@ private fun StatusLine(run: NodeRun) {
             NodeRun.Running -> { KCircularProgress(null, size = 16.dp, strokeWidth = 2.dp); KText("Running") }
             NodeRun.Waiting -> KText("Waiting for inputs")
             NodeRun.Idle -> KText("Idle")
-            is NodeRun.Blocked -> KText("Blocked by ${run.by}")
+            is NodeRun.Blocked -> KText(if (run.declined) "Waiting for ${run.by} to be allowed" else "Blocked by ${run.by}")
             is NodeRun.Done -> KText("Done")
             NodeRun.Declined -> KText("Not run")
             NodeRun.Skipped -> KText("Skipped")

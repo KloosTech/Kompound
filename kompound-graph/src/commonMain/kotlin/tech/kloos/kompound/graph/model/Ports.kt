@@ -46,6 +46,13 @@ public enum class SignalMode {
 
     /** Wait until the upstream node has finished, then run once with its last value. */
     Final,
+
+    /**
+     * An optional input: the node does not wait for a value here. It runs once every `Any` input has a value or its upstream node has
+     * finished, and gets `null` for an input that never got one (a branch not taken). Like [Latest] it runs again on a newer value. A node
+     * whose inputs are all `Any` runs only when at least one has a value, so `Merge` (take whichever branch has a value) is two `Any` inputs.
+     */
+    Any,
 }
 
 /**

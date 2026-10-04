@@ -12,6 +12,7 @@ import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.PortType
+import tech.kloos.kompound.graph.model.SignalMode
 import tech.kloos.kompound.graph.model.math
 import tech.kloos.kompound.graph.model.applyTo
 import tech.kloos.kompound.graph.model.ref
@@ -163,10 +164,10 @@ class GraphJsonTest {
 
     @Test
     fun signalModesOfPortsRoundTripAndTheDefaultIsLeftOut() {
-        val ports = tech.kloos.kompound.graph.model.SignalMode.entries.map { PortSpec.input(it.name, signal = it) }
+        val ports = SignalMode.entries.map { PortSpec.input(it.name, signal = it) }
         val graph = Graph.of(listOf(GraphNode(NodeId("n"), "k", ports = ports)))
         val text = GraphJson(pretty = false).encode(graph)
-        assertTrue("\"Each\"" in text && text.split("\"signal\"").size - 1 == 3, "Latest is not written")
+        assertTrue("\"Each\"" in text && text.split("\"signal\"").size - 1 == SignalMode.entries.size - 1, "Latest is not written")
         assertEquals(ports, GraphJson().decode(text).graph.node(NodeId("n"))!!.ports)
     }
 

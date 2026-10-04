@@ -12,8 +12,11 @@ public sealed interface NodeRun {
     /** Waiting for the nodes that feed it to finish. */
     public data object Waiting : NodeRun
 
-    /** One of the nodes upstream [by] failed, so this one cannot run. */
-    public data class Blocked(public val by: NodeId) : NodeRun
+    /**
+     * Cannot run because of the node upstream [by]: it failed, or (with [declined]) the app's `beforeRun` refused to start it, so nothing is
+     * wrong, the run just has not been allowed yet. Show the two differently.
+     */
+    public data class Blocked(public val by: NodeId, public val declined: Boolean = false) : NodeRun
 
     /** Its runner is suspended or computing right now. */
     public data object Running : NodeRun
