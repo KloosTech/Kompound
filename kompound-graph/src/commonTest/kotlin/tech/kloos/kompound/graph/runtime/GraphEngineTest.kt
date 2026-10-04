@@ -346,3 +346,141 @@ class GraphEngineSubgraphTest {
         assertTrue(e.runOf(NodeId("inner")) is NodeRun.Failed, "inc needs input a: ${e.runOf(NodeId("inner"))}")
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineTraceTest {
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<String> = emptyList()) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it) } + PortSpec.output("out"), data)
+
+    private fun wire(from: String, to: String, port: String = "a") = Edge(
+        EdgeId("$from->$to.$port"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), tech.kloos.kompound.graph.model.PortId("out")),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)),
+    )
+
+    private fun TestScope.engine(options: TraceOptions = TraceOptions(), autoRun: Boolean = true) = GraphEngine(
+        this,
+        mapOf(
+            "const" to singleOutputRunner { n, _ -> n.data },
+            "work" to NodeRunner { ctx ->
+                ctx.log("starting with ${ctx.inputs["a"]}")
+                ctx.progress(0f, "begin")
+                delay(100)
+                ctx.progress(0.5f)
+                ctx.emit("out", "partial")
+                delay(100)
+                ctx.log("careful", LogLevel.Warn)
+                mapOf("out" to "${ctx.inputs["a"]}!")
+            },
+            "boom" to singleOutputRunner { _, _ -> error("boom") },
+        ),
+        autoRun = autoRun,
+        runDispatcher = StandardTestDispatcher(testScheduler),
+        trace = options,
+        clock = { testScheduler.currentTime },
+    )
+
+    private val chain = Graph.of(
+        listOf(node("a", "const", "x"), node("w", "work", ins = listOf("a"))),
+        listOf(wire("a", "w")),
+    )
+
+    @Test
+    fun anExecutionRecordsInputsOutputsLogsProgressAndEmissions() = runTest {
+        val e = engine()
+        e.update(chain)
+        advanceTimeBy(50)
+        val running = e.currentRun!!
+        val attempt = running.latest(NodeId("w"))!!
+        assertEquals(TraceStatus.Running, attempt.status)
+        assertEquals(TraceTrigger.Auto, running.trigger)
+        assertEquals(mapOf(tech.kloos.kompound.graph.model.PortId("a") to "x"), attempt.inputs)
+        assertEquals("starting with x", attempt.logs.single().message)
+        assertEquals("begin", attempt.progressMessage)
+        advanceUntilIdle()
+        assertEquals(null, e.currentRun)
+        val done = e.executions.single()
+        assertEquals(TraceStatus.Succeeded, done.status)
+        val w = done.latest(NodeId("w"))!!
+        assertEquals(TraceStatus.Succeeded, w.status)
+        assertEquals(mapOf(tech.kloos.kompound.graph.model.PortId("out") to "x!"), w.outputs, "returned value wins over the emission")
+        assertEquals("partial", w.emissions.single().value)
+        assertEquals(listOf(LogLevel.Info, LogLevel.Warn), w.logs.map { it.level })
+        assertEquals(200L, w.durationMillis)
+        assertEquals(0.5f, w.progress)
+        assertEquals(listOf("a", "w"), done.attempts.map { it.nodeId.value })
+        assertEquals(w, e.lastAttempt(NodeId("w")))
+    }
+
+    @Test
+    fun aStaleRunBecomesACancelledAttemptAndTheRestartIsTheNextOne() = runTest {
+        val e = engine()
+        e.update(chain)
+        advanceTimeBy(50)
+        e.update(Graph.of(listOf(node("a", "const", "y"), node("w", "work", ins = listOf("a"))), listOf(wire("a", "w"))))
+        advanceUntilIdle()
+        val execution = e.executions.single()
+        val attempts = execution.attemptsOf(NodeId("w"))
+        assertEquals(listOf(TraceStatus.Cancelled, TraceStatus.Succeeded), attempts.map { it.status })
+        assertEquals(listOf(1, 2), attempts.map { it.number })
+        assertEquals("y!", attempts.last().outputs!![tech.kloos.kompound.graph.model.PortId("out")])
+        assertEquals(TraceStatus.Succeeded, execution.status, "latest attempts decide")
+    }
+
+    @Test
+    fun failuresAreRecordedAndFailTheExecution() = runTest {
+        val e = engine()
+        e.update(Graph.of(listOf(node("b", "boom"))))
+        advanceUntilIdle()
+        val ex = e.executions.single()
+        assertEquals(TraceStatus.Failed, ex.status)
+        assertEquals("boom", ex.latest(NodeId("b"))!!.error!!.message)
+    }
+
+    @Test
+    fun everyBusyPeriodIsItsOwnExecutionWithItsTriggerAndHistoryIsBounded() = runTest {
+        val e = engine(TraceOptions(maxExecutions = 3), autoRun = false)
+        e.update(Graph.of(listOf(node("a", "const", 1))))
+        advanceUntilIdle()
+        assertTrue(e.executions.isEmpty(), "nothing ran yet")
+        e.start()
+        advanceUntilIdle()
+        repeat(4) { e.rerun(NodeId("a")); advanceUntilIdle() }
+        assertEquals(3, e.executions.size)
+        assertEquals(listOf(3, 4, 5), e.executions.map { it.id })
+        assertEquals(setOf(TraceTrigger.Rerun), e.executions.map { it.trigger }.toSet())
+    }
+
+    @Test
+    fun stoppingMarksTheExecutionAndItsRunningAttemptsCancelled() = runTest {
+        val e = engine(autoRun = false)
+        e.update(chain)
+        e.start()
+        advanceTimeBy(50)
+        e.stop()
+        advanceUntilIdle()
+        val ex = e.executions.single()
+        assertEquals(TraceStatus.Cancelled, ex.status)
+        assertEquals(TraceTrigger.Manual, ex.trigger)
+        assertEquals(TraceStatus.Cancelled, ex.latest(NodeId("w"))!!.status)
+        assertEquals(null, e.currentRun)
+    }
+
+    @Test
+    fun redactionAndCaptureOffKeepValuesOutOfTheTraceButNotOutOfTheGraph() = runTest {
+        val redacting = engine(TraceOptions(redact = { _, _, v -> if (v == "x") "***" else v }))
+        redacting.update(chain)
+        advanceUntilIdle()
+        val w = redacting.executions.single().latest(NodeId("w"))!!
+        assertEquals("***", w.inputs.values.single())
+        assertEquals("x!", redacting.output(NodeId("w"), "out"), "the real value flowed on")
+
+        val silent = engine(TraceOptions(captureValues = false))
+        silent.update(chain)
+        advanceUntilIdle()
+        val s = silent.executions.single().latest(NodeId("w"))!!
+        assertTrue(!s.valuesCaptured && s.inputs.isEmpty() && s.outputs!!.isEmpty() && s.emissions.isEmpty())
+        assertEquals("starting with x", s.logs.first().message, "logs are still kept")
+        assertEquals("x!", silent.output(NodeId("w"), "out"))
+    }
+}

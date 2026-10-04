@@ -1,5 +1,6 @@
 package tech.kloos.kompound.graph.runtime
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -10,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
 import tech.kloos.kompound.graph.KRerouteKind
 import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphNode
@@ -44,6 +46,8 @@ import tech.kloos.kompound.graph.model.PortId
  * @param autoRun Whether changes and the first graph start runs automatically.
  * @param maxConcurrency How many runners may be active at once.
  * @param runDispatcher Where runners execute.
+ * @param trace What is recorded in [executions].
+ * @param clock Epoch milliseconds for trace timestamps (replace it in tests).
  */
 public class GraphEngine(
     private val scope: CoroutineScope,
@@ -51,6 +55,8 @@ public class GraphEngine(
     private val autoRun: Boolean = true,
     maxConcurrency: Int = 4,
     private val runDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val trace: TraceOptions = TraceOptions(),
+    private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private var graph: Graph = Graph.Empty
@@ -58,6 +64,20 @@ public class GraphEngine(
     private val jobs = HashMap<NodeId, Job>()
     private val generation = HashMap<NodeId, Int>()
     private val states = mutableStateMapOf<NodeId, NodeRun>()
+    private val history = mutableStateListOf<Execution>()
+    private val liveAttempts = HashMap<NodeId, NodeAttempt>()
+    private var currentExecution: Execution? = null
+    private var executionCounter = 0
+    private var pendingTrigger = TraceTrigger.Auto
+
+    /** Recorded runs, oldest first (at most [TraceOptions.maxExecutions]); the last one may still be running. Observable. */
+    public val executions: List<Execution> get() = history
+
+    /** The execution in progress, or `null` when nothing is running. */
+    public val currentRun: Execution? get() = currentExecution
+
+    /** The newest attempt of [id] across the recorded executions (what the node last did), or `null` if it never ran. */
+    public fun lastAttempt(id: NodeId): NodeAttempt? = history.lastOrNull { it.latest(id) != null }?.latest(id)
 
     /** The state of every node that runs (subgraph, boundary and comment nodes do not run; ask [runOf] for them). */
     public val runs: Map<NodeId, NodeRun> get() = states
@@ -157,13 +177,14 @@ public class GraphEngine(
         }
         invalidate(stale, listOf(newRouter, oldRouter), new)
         for (node in new.nodes.values) if (isReal(node) && node.id !in states) states[node.id] = NodeRun.Idle
-        schedule()
+        refresh()
     }
 
     /** Starts running: every node that has not finished runs as soon as what it needs is there. Stays active for later edits. */
     public fun start() {
         active = true
-        schedule()
+        pendingTrigger = TraceTrigger.Manual
+        refresh()
     }
 
     /** Cancels everything that is running and stops reacting to edits (until [start]). Finished results are kept. */
@@ -173,6 +194,7 @@ public class GraphEngine(
             cancel(id)
             states[id] = NodeRun.Idle
         }
+        finishIfIdle(cancelled = true)
     }
 
     /** Throws away the result of [id] and everything downstream of it and runs them again. */
@@ -180,14 +202,16 @@ public class GraphEngine(
         if (id !in graph.nodes) return
         invalidate(setOf(id), listOf(Router(graph)), graph)
         active = true
-        schedule()
+        pendingTrigger = TraceTrigger.Rerun
+        refresh()
     }
 
     /** Throws away every result and runs the whole graph again. */
     public fun rerunAll() {
         invalidate(graph.nodes.keys.filter { isReal(graph.nodes.getValue(it)) }.toSet(), listOf(Router(graph)), graph)
         active = true
-        schedule()
+        pendingTrigger = TraceTrigger.Rerun
+        refresh()
     }
 
     // --- internals ----------------------------------------------------------------------------------------
@@ -195,6 +219,66 @@ public class GraphEngine(
     private fun cancel(id: NodeId) {
         jobs.remove(id)?.cancel()
         generation[id] = (generation[id] ?: 0) + 1
+        liveAttempts.remove(id)?.let { attempt ->
+            attempt.status = TraceStatus.Cancelled
+            attempt.finishedAt = clock()
+        }
+    }
+
+    private fun refresh() {
+        schedule()
+        finishIfIdle(cancelled = false)
+    }
+
+    private fun finishIfIdle(cancelled: Boolean) {
+        val execution = currentExecution ?: return
+        if (jobs.isNotEmpty()) return
+        val failed = execution.anyLatestFailed()
+        execution.status = when {
+            cancelled -> TraceStatus.Cancelled
+            failed -> TraceStatus.Failed
+            else -> TraceStatus.Succeeded
+        }
+        execution.finishedAt = clock()
+        currentExecution = null
+    }
+
+    private fun beginAttempt(node: GraphNode, inputs: NodeInputs): NodeAttempt {
+        val execution = currentExecution ?: Execution(++executionCounter, pendingTrigger, clock()).also {
+            pendingTrigger = TraceTrigger.Auto
+            currentExecution = it
+            history += it
+            while (history.size > trace.maxExecutions.coerceAtLeast(1)) history.removeAt(0)
+        }
+        val captured = trace.captureValues
+        val stored = if (captured) inputs.all.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
+        val attempt = NodeAttempt(node.id, execution.nextNumber(node.id), execution.attemptCount, clock(), stored, captured)
+        execution.add(attempt)
+        liveAttempts[node.id] = attempt
+        return attempt
+    }
+
+    private inner class Context(
+        override val node: GraphNode,
+        override val inputs: NodeInputs,
+        private val attempt: NodeAttempt,
+    ) : NodeRunContext {
+        val emitted = LinkedHashMap<PortId, Any?>()
+
+        override fun log(message: String, level: LogLevel) {
+            attempt.addLog(LogLine(clock(), level, message))
+        }
+
+        override fun progress(fraction: Float?, message: String?) {
+            attempt.progress = fraction?.coerceIn(0f, 1f)
+            if (message != null) attempt.progressMessage = message
+        }
+
+        override fun emit(port: String, value: Any?) {
+            val id = PortId(port)
+            emitted[id] = value
+            if (trace.captureValues) attempt.addEmission(Emission(clock(), id, trace.redact(node, id, value)))
+        }
     }
 
     /** Resets [ids] and every node that (transitively) reads from them, following the wires of each of [routers] through subgraphs. */
@@ -274,7 +358,7 @@ public class GraphEngine(
     }
 
     private fun runnerFor(node: GraphNode): NodeRunner? = runners[node.kind] ?: when (node.kind) {
-        KRerouteKind -> NodeRunner { _, inputs -> mapOf("out" to inputs["in"]) }
+        KRerouteKind -> NodeRunner { ctx -> mapOf("out" to ctx.inputs["in"]) }
         else -> null
     }
 
@@ -338,10 +422,12 @@ public class GraphEngine(
         val gen = (generation[id] ?: 0) + 1
         generation[id] = gen
         states[id] = NodeRun.Running
+        val attempt = beginAttempt(node, inputs)
+        val context = Context(node, inputs, attempt)
         jobs[id] = scope.launch {
             val result: NodeRun = try {
-                permits.withPermit { withContext(runDispatcher) { runner.run(node, inputs) } }
-                    .let { out -> NodeRun.Done(out.mapKeys { PortId(it.key) }) }
+                val returned = permits.withPermit { withContext(runDispatcher) { runner.run(context) } }
+                NodeRun.Done(context.emitted + returned.mapKeys { PortId(it.key) })
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
@@ -349,8 +435,21 @@ public class GraphEngine(
             }
             if (generation[id] != gen) return@launch
             jobs.remove(id)
+            liveAttempts.remove(id)
+            when (result) {
+                is NodeRun.Done -> {
+                    attempt.outputs = if (trace.captureValues) result.outputs.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
+                    attempt.status = TraceStatus.Succeeded
+                }
+                is NodeRun.Failed -> {
+                    attempt.error = result.error
+                    attempt.status = TraceStatus.Failed
+                }
+                else -> {}
+            }
+            attempt.finishedAt = clock()
             states[id] = result
-            schedule()
+            refresh()
         }
     }
 

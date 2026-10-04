@@ -49,16 +49,21 @@ public class NodeInputs(private val values: Map<PortId, Any?>) {
  * running the rest of the graph and passes the result on when it arrives. Throw to fail the node; cancellation (the node or something
  * upstream changed, or the engine stopped) arrives as a normal `CancellationException`, so use `use`/`finally` for clean-up.
  *
- * The result maps output port ids to values; ports left out read as `null` downstream.
+ * Read what you need from [NodeRunContext] (`node`, `inputs`) and log, report progress or emit through it. The result maps output port
+ * ids to values; ports left out read as `null` downstream.
  */
 public fun interface NodeRunner {
-    /** Runs [node] with [inputs]. */
-    public suspend fun run(node: GraphNode, inputs: NodeInputs): Map<String, Any?>
+    /** Runs the node described by [ctx]. */
+    public suspend fun run(ctx: NodeRunContext): Map<String, Any?>
 }
+
+/** A runner from a block that takes the node and its inputs and returns the output values by port. */
+public fun nodeRunner(block: suspend (node: GraphNode, inputs: NodeInputs) -> Map<String, Any?>): NodeRunner =
+    NodeRunner { ctx -> block(ctx.node, ctx.inputs) }
 
 /** Convenience for a runner with a single output named `out`. */
 public fun singleOutputRunner(block: suspend (node: GraphNode, inputs: NodeInputs) -> Any?): NodeRunner =
-    NodeRunner { node, inputs -> mapOf("out" to block(node, inputs)) }
+    NodeRunner { ctx -> mapOf("out" to block(ctx.node, ctx.inputs)) }
 
 /** A node cannot run because it is part of a cycle: the engine runs acyclic graphs only. */
 public class CycleException(public val nodes: Set<NodeId>) : IllegalStateException("Node is part of a cycle: ${nodes.joinToString()}")
