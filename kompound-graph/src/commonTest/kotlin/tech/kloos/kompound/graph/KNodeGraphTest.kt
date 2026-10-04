@@ -1091,7 +1091,9 @@ class KNodeGraphTest {
         }
         waitForIdle()
         assertEquals(0, onAllNodesWithContentDescription("Resize node").fetchSemanticsNodes().size)
+    }
 
+    @Test
     fun aNodeThatIsAlreadySelectedFollowsThePointerWhileItIsDragged() = runComposeUiTest {
         val state = twoNodes()
         show(state)
