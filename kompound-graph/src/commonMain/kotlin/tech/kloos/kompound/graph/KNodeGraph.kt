@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
@@ -64,6 +65,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
@@ -103,6 +105,8 @@ import kotlin.math.roundToInt
  * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
  * @param virtualizeAbove Above this many nodes only the nodes near the visible area are composed (and wires that cannot be seen are not drawn), so graphs with thousands of nodes stay fast; selected and dragged nodes always stay. `Int.MAX_VALUE` turns it off.
  * @param portColor Overrides the colour of a port's handle (return null for the default, which depends on the port's type); use it to show a port's live value.
+ * @param nodeStatus A progress mark in each [KNode]'s title bar (spinner, check, cross, ...); return `null` for none. Read observable state in it (for example a `GraphEngine`) and it updates live.
+ * @param edgeLabel A short text on the middle of a wire (for example the value that passed it); return `null` for none.
  * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
  * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
  */
@@ -120,6 +124,8 @@ public fun KNodeGraph(
     nodeTypes: List<KNodeType> = emptyList(),
     virtualizeAbove: Int = 150,
     portColor: ((port: PortRef, spec: PortSpec) -> Color?)? = null,
+    nodeStatus: ((node: GraphNode) -> KNodeStatus?)? = null,
+    edgeLabel: ((edge: Edge) -> String?)? = null,
     edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
@@ -130,6 +136,8 @@ public fun KNodeGraph(
     val gridColor = KNodeGraphDefaults.gridColor()
     val scheme = MaterialTheme.colorScheme
     val palette = KNodeGraphDefaults.portPalette()
+    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val labelStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = scheme.onSurfaceVariant)
     val density = LocalDensity.current
     if (fitOnFirstLayout) {
         val measured = state.graph.nodes.isNotEmpty() && state.graph.nodes.keys.all { it in state.sizes }
@@ -146,7 +154,7 @@ public fun KNodeGraph(
     androidx.compose.runtime.LaunchedEffect(state.scopePath, state.canvasSize, state.sizes.size) { state.applyPendingFit() }
     val summary = "Node graph, ${state.graph.nodes.size} nodes, ${state.graph.edges.size} connections"
 
-    CompositionLocalProvider(LocalKGraphState provides state, LocalPortColor provides portColor) {
+    CompositionLocalProvider(LocalKGraphState provides state, LocalPortColor provides portColor, LocalNodeStatus provides nodeStatus) {
         Box(
             modifier
                 .clipToBounds()
@@ -261,6 +269,19 @@ public fun KNodeGraph(
                             androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(on, on * 0.6f), if (look.animated) -flow * on * 1.6f else 0f)
                         } else null
                         drawPath(EdgeGeometry.path(look.shape ?: edgeShape, a, b), colour, style = Stroke(width = lineWidth, cap = if (dashed) StrokeCap.Butt else StrokeCap.Round, pathEffect = effect))
+                        val label = edgeLabel?.invoke(e)
+                        if (label != null) {
+                            val measured = textMeasurer.measure(label, labelStyle)
+                            val middle = Offset((a.x + b.x) / 2f, (a.y + b.y) / 2f)
+                            val pad = 4.dp.toPx()
+                            val topLeft = Offset(middle.x - measured.size.width / 2f, middle.y - measured.size.height / 2f)
+                            drawRoundRect(
+                                scheme.surface.copy(alpha = 0.92f), topLeft - Offset(pad, pad / 2f),
+                                androidx.compose.ui.geometry.Size(measured.size.width + 2 * pad, measured.size.height + pad),
+                                androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()),
+                            )
+                            drawText(measured, topLeft = topLeft)
+                        }
                     }
                     for (g in state.guides) {
                         val line = scheme.primary.copy(alpha = 0.7f)

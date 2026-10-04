@@ -1,7 +1,10 @@
 package tech.kloos.kompound.graph.runtime
 
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +14,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
 import tech.kloos.kompound.graph.KRerouteKind
 import tech.kloos.kompound.graph.model.Graph
@@ -55,6 +60,7 @@ import tech.kloos.kompound.graph.model.PortId
  * @param trace What is recorded in [executions].
  * @param clock Epoch milliseconds for trace timestamps (replace it in tests).
  */
+@OptIn(ExperimentalAtomicApi::class)
 public class GraphEngine(
     private val scope: CoroutineScope,
     private val runners: Map<String, NodeRunner>,
@@ -65,7 +71,15 @@ public class GraphEngine(
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
-    private var graph: Graph = Graph.Empty
+    private val lockWord = AtomicInt(0)
+
+    /** The engine's bookkeeping is not thread safe; entry points (and runner completions) take this short, never-suspending lock. */
+    private inline fun <T> locked(block: () -> T): T {
+        while (!lockWord.compareAndSet(0, 1)) { /* another thread is inside for a few microseconds */ }
+        try { return block() } finally { lockWord.store(0) }
+    }
+    // Observable so that a composable asking about a node before the first graph arrived is told when it does.
+    private var graph: Graph by mutableStateOf(Graph.Empty)
     private var active = autoRun
     private val jobs = HashMap<NodeId, Job>()
     private val generation = HashMap<NodeId, Int>()
@@ -169,7 +183,9 @@ public class GraphEngine(
      * Tells the engine the graph is now [new]: cancels what became stale, forgets removed nodes, and (when active) starts what can start.
      * Cheap to call on every edit.
      */
-    public fun update(new: Graph) {
+    public fun update(new: Graph): Unit = locked { updateLocked(new) }
+
+    private fun updateLocked(new: Graph) {
         val old = graph
         graph = new
         val oldRouter = Router(old)
@@ -197,14 +213,18 @@ public class GraphEngine(
     }
 
     /** Starts running: every node that has not finished runs as soon as what it needs is there. Stays active for later edits. */
-    public fun start() {
+    public fun start(): Unit = locked { startLocked() }
+
+    private fun startLocked() {
         active = true
         pendingTrigger = TraceTrigger.Manual
         refresh()
     }
 
     /** Cancels everything that is running and stops reacting to edits (until [start]). Finished results are kept. */
-    public fun stop() {
+    public fun stop(): Unit = locked { stopLocked() }
+
+    private fun stopLocked() {
         active = false
         // Whatever has not finished starts over on the next start(): a half-consumed stream cannot be resumed.
         for (node in graph.nodes.values) {
@@ -217,7 +237,9 @@ public class GraphEngine(
     }
 
     /** Throws away the result of [id] and everything downstream of it and runs them again. */
-    public fun rerun(id: NodeId) {
+    public fun rerun(id: NodeId): Unit = locked { rerunLocked(id) }
+
+    private fun rerunLocked(id: NodeId) {
         if (id !in graph.nodes) return
         invalidate(setOf(id), listOf(Router(graph)), graph)
         active = true
@@ -226,7 +248,9 @@ public class GraphEngine(
     }
 
     /** Throws away every result and runs the whole graph again. */
-    public fun rerunAll() {
+    public fun rerunAll(): Unit = locked { rerunAllLocked() }
+
+    private fun rerunAllLocked() {
         invalidate(graph.nodes.keys.filter { isReal(graph.nodes.getValue(it)) }.toSet(), listOf(Router(graph)), graph)
         active = true
         pendingTrigger = TraceTrigger.Rerun
@@ -592,7 +616,9 @@ public class GraphEngine(
      * result, the node's state in the graph does not change. It is recorded as an [Execution] with trigger [TraceTrigger.Test], so the
      * inspector shows its logs, progress and output like any other run. Returns `null` for an unknown or non-running node.
      */
-    public fun testNode(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? {
+    public fun testNode(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? = locked { testNodeLocked(id, inputs) }
+
+    private fun testNodeLocked(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? {
         val node = graph.node(id)?.takeIf { isReal(it) } ?: return null
         val values = inputs.mapKeys { PortId(it.key) }
         val execution = Execution(++executionCounter, TraceTrigger.Test, clock())
@@ -644,35 +670,42 @@ public class GraphEngine(
             } catch (e: Throwable) {
                 Result.failure(e)
             }
-            if (generation[id] != gen) return@launch
-            jobs.remove(id)
-            liveAttempts.remove(id)
-            attempt.finishedAt = clock()
-            val failure = outcome.exceptionOrNull()
-            if (failure != null) {
-                attempt.error = failure
-                attempt.status = TraceStatus.Failed
-                states[id] = NodeRun.Failed(failure)
-            } else {
-                val returned = outcome.getOrThrow()
-                val feeds = rt(id).feeds
-                for ((port, value) in returned) publish(id, port, value)
-                // A port nothing was ever produced at reads as one null, so downstream nodes are not left waiting.
-                for (spec in node.ports) if (spec.direction == PortDirection.Output && feeds[spec.id]?.values.isNullOrEmpty()) publish(id, spec.id, null)
-                val last = context.emitted + returned
-                attempt.outputs = if (trace.captureValues) last.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
-                attempt.status = TraceStatus.Succeeded
-                states[id] = NodeRun.Waiting
-            }
-            refresh()
+            locked { finishRun(node, gen, attempt, context, outcome) }
         }
     }
 
-    /** An emission arrives from the runner's thread; the feed is only touched on the engine's. */
-    private fun onEmit(node: NodeId, gen: Int, port: PortId, value: Any?) {
-        if (generation[node] != gen) return
-        publish(node, port, value)
+    /** Records how a run ended and moves on. Called with the lock held, on whichever thread the runner resumed. */
+    private fun finishRun(node: GraphNode, gen: Int, attempt: NodeAttempt, context: Context, outcome: Result<Map<PortId, Any?>>) {
+        val id = node.id
+        if (generation[id] != gen) return
+        jobs.remove(id)
+        liveAttempts.remove(id)
+        attempt.finishedAt = clock()
+        val failure = outcome.exceptionOrNull()
+        if (failure != null) {
+            attempt.error = failure
+            attempt.status = TraceStatus.Failed
+            states[id] = NodeRun.Failed(failure)
+        } else {
+            val returned = outcome.getOrThrow()
+            val feeds = rt(id).feeds
+            for ((port, value) in returned) publish(id, port, value)
+            // A port nothing was ever produced at reads as one null, so downstream nodes are not left waiting.
+            for (spec in node.ports) if (spec.direction == PortDirection.Output && feeds[spec.id]?.values.isNullOrEmpty()) publish(id, spec.id, null)
+            val last = context.emitted + returned
+            attempt.outputs = if (trace.captureValues) last.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
+            attempt.status = TraceStatus.Succeeded
+            states[id] = NodeRun.Waiting
+        }
         refresh()
+    }
+
+    /** An emission arrives from the runner's thread; the feed is only touched on the engine's. */
+    private fun onEmit(node: NodeId, gen: Int, port: PortId, value: Any?) = locked {
+        if (generation[node] == gen) {
+            publish(node, port, value)
+            refresh()
+        }
     }
 
     private companion object {
