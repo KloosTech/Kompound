@@ -1,7 +1,13 @@
 # Changelog
 
 ## Unreleased
+- `PortEditor(collapsedAdd = true)`: only a small `+` at the end until it is clicked; then the name field (with cancel) appears and folds away again after adding.
+- Graph engine: `SignalMode.Any` (an optional input: the node waits until the input has a value or its upstream finished, and gets `null` when none came, so a `Merge` of branches is two `Any` inputs); `NodeRun.Blocked(by, declined)` so a node behind a refused node is not shown like one behind a failure (`KNodeStatus.Declined`).
+- Graph nodes: `Input(..., trailing = { })` (always shown), public `Modifier.straddleNodeEdge(direction)` for rows built by hand, `KNodeScope.node`, `KNodeScope.PortEditor(direction, reserved)` (add, rename and remove user-defined ports as `UpdateNodePorts` undo steps; `portIdFromName`), and resizable nodes: `KNode(resizable = true, minWidth, maxWidth)` with a corner handle, the width kept in `GraphNode.width` (`GraphCommand.ResizeNodes`, saved in the JSON).
+- `KIconButton(size = KIconButtonSize.Small)` (28dp circle, 32dp target) for dense places.
+- `KCode`: `KCodeLanguage.Shell`, `KCodeLanguage.cLike(keywords)` and `KCodeLexing` helpers for writing languages; a `KCode(value: TextFieldValue, onValueChange)` overload and a `focusRequester` parameter so code outside the editor can insert at the caret (`TextFieldValue.insertAtCursor`).
 - Fixed: the inspector's Pin button pinned the engine's current output even while a recorded run was shown (the data on screen was older, possibly redacted); it is now disabled in that view. Fixed: `GraphJson(migrate = ...)` renaming a kind with typed data left the data as raw JSON; when migrate leaves the data alone, it is read again with the new kind's `nodeData` codec.
+- Fixed: a node that was already selected did not follow the pointer while it was dragged (it jumped to the cursor on release): the drag state is observable now, so starting a drag places the node again. Fixed: the Gradle plugin `tech.kloos.kompound` and the KSP processor were compiled for the JDK of the build machine (Java 23) and failed to load on a Gradle daemon with an older JDK; both target Java 11 now, and CI checks it (`verifyBytecodeTarget`).
 
 ## 0.1.0-alpha03 (2026-10-04)
 Main changes since alpha02: the `tech.kloos.kompound` Gradle plugin (adds the Styles API opt-in), a Kotlin/JS target for every library, graph engine run control (manual mode, `beforeRun`, observable state, `awaitIdle`), `NoSignal` branching, `UpdateNodePorts`, read-only canvas, `KNodeSelect`, collapsible node sections, and the publish switch.

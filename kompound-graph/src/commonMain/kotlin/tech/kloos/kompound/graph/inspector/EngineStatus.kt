@@ -23,7 +23,7 @@ public fun GraphEngine.nodeStatus(node: GraphNode, execution: Execution? = null)
             is NodeRun.Failed -> KNodeStatus.Failed
             NodeRun.Declined -> KNodeStatus.Declined
             NodeRun.Skipped -> KNodeStatus.Skipped
-            is NodeRun.Blocked -> KNodeStatus.Blocked.also { run.by }
+            is NodeRun.Blocked -> if (run.declined) KNodeStatus.Declined else KNodeStatus.Blocked
         }
     }
     val attempt = execution.latest(node.id) ?: return if (node.pin != null) KNodeStatus.Pinned else null

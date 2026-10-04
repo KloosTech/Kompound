@@ -514,8 +514,10 @@ public class KGraphState(
     // --- dragging nodes -----------------------------------------------------------------------------------------
 
     private var dragRaw: Offset by mutableStateOf(Offset.Zero)
-    private var dragPrimary: NodeId? = null
-    private var dragSet: Set<NodeId> = emptySet()
+    // Observable: placing a node reads whether it is being dragged. As plain fields a node that was already selected (so nothing else
+    // changes when a drag starts) was never placed again until the drag ended, and did not follow the pointer.
+    private var dragPrimary: NodeId? by mutableStateOf(null)
+    private var dragSet: Set<NodeId> by mutableStateOf(emptySet())
 
     /** Offset in world units currently applied to the nodes being dragged (already snapped to the grid). */
     public var dragDelta: Offset by mutableStateOf(Offset.Zero)
@@ -669,6 +671,14 @@ public class KGraphState(
     // --- collapsible parts of nodes -------------------------------------------------------------------------
 
     private val uiExpanded = mutableStateMapOf<String, Boolean>()
+
+    /** Widths (dp) of nodes being resized right now; committed as one undoable `ResizeNodes` when the drag ends. */
+    internal val liveWidths = mutableStateMapOf<NodeId, Float>()
+
+    internal fun commitWidth(id: NodeId) {
+        val width = liveWidths.remove(id) ?: return
+        if (!readOnly) execute(GraphCommand.ResizeNodes(mapOf(id to width)))
+    }
 
     /** Ports inside collapsed content: they keep reporting an anchor (on the fold) but are not offered as wire targets. */
     internal val hiddenPorts = mutableStateMapOf<PortRef, Boolean>()

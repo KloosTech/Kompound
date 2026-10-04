@@ -19,6 +19,10 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.AnnotatedString
@@ -48,10 +52,11 @@ import tech.kloos.kompound.text.KText
  * @param code The text to show.
  * @param modifier Modifier applied to the outermost node.
  * @param onCodeChange Called with the new text on every edit; `null` makes the view read-only.
- * @param language Tokenizer: [KCodeLanguage.Kotlin] (default), [KCodeLanguage.Json], [KCodeLanguage.Plain] or your own.
+ * @param language Tokenizer: [KCodeLanguage.Kotlin] (default), [KCodeLanguage.Json], [KCodeLanguage.Shell], [KCodeLanguage.Plain] or your own (see [KCodeLexing]).
  * @param showLineNumbers Show a gutter with line numbers.
  * @param colors Token, background and gutter colours; follows the theme by default, see [KCodeColors.OneDark].
  * @param style Overrides merged over [KCodeDefaults.style].
+ * @param focusRequester Request focus for the editor from outside.
  */
 @Composable
 public fun KCode(
@@ -62,6 +67,73 @@ public fun KCode(
     showLineNumbers: Boolean = true,
     colors: KCodeColors = KCodeDefaults.colors(),
     style: Style = Style,
+    focusRequester: FocusRequester? = null,
+) {
+    KCodeFrame(code, modifier, language, showLineNumbers, colors, style) { textStyle, transformation ->
+        BasicTextField(
+            value = code,
+            onValueChange = { onCodeChange?.invoke(it) },
+            modifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            readOnly = onCodeChange == null,
+            textStyle = textStyle,
+            cursorBrush = SolidColor(colors.plain),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+            visualTransformation = transformation,
+        )
+    }
+}
+
+/**
+ * [KCode] as an editor whose caret and selection you can see and change: [value] carries the text, the selection and the IME composition
+ * (a `TextFieldValue`), so code outside the editor can insert at the caret or replace the selection (see [TextFieldValue.insertAtCursor])
+ * and then move the focus back with [focusRequester].
+ *
+ * @param value Text and selection.
+ * @param onValueChange Called with the new value on every edit and selection change.
+ * @param focusRequester Request focus for the editor, for example after inserting text from a button.
+ * @param language See [KCode].
+ */
+@Composable
+public fun KCode(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    modifier: Modifier = Modifier,
+    language: KCodeLanguage = KCodeLanguage.Kotlin,
+    showLineNumbers: Boolean = true,
+    colors: KCodeColors = KCodeDefaults.colors(),
+    style: Style = Style,
+    focusRequester: FocusRequester? = null,
+) {
+    KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style) { textStyle, transformation ->
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            textStyle = textStyle,
+            cursorBrush = SolidColor(colors.plain),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+            visualTransformation = transformation,
+        )
+    }
+}
+
+/** [text] with [inserted] put in place of the selection (at the caret when nothing is selected); the caret ends after it. */
+public fun TextFieldValue.insertAtCursor(inserted: String): TextFieldValue {
+    val start = minOf(selection.start, selection.end).coerceIn(0, text.length)
+    val end = maxOf(selection.start, selection.end).coerceIn(0, text.length)
+    return TextFieldValue(text.substring(0, start) + inserted + text.substring(end), TextRange(start + inserted.length))
+}
+
+/** The frame shared by both [KCode] overloads: container style, line-number gutter, scrolling, and the field the caller supplies. */
+@Composable
+private fun KCodeFrame(
+    code: String,
+    modifier: Modifier,
+    language: KCodeLanguage,
+    showLineNumbers: Boolean,
+    colors: KCodeColors,
+    style: Style,
+    field: @Composable (textStyle: TextStyle, transformation: VisualTransformation) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val styleState = rememberUpdatedStyleState(null) {}
@@ -87,15 +159,7 @@ public fun KCode(
                 )
             }
             Box(Modifier.weight(1f).horizontalScroll(rememberScrollState()).scrollsVertically()) {
-                BasicTextField(
-                    value = code,
-                    onValueChange = { onCodeChange?.invoke(it) },
-                    readOnly = onCodeChange == null,
-                    textStyle = textStyle,
-                    cursorBrush = SolidColor(colors.plain),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
-                    visualTransformation = transformation,
-                )
+                field(textStyle, transformation)
             }
         }
     }

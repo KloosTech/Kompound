@@ -13,6 +13,13 @@ version = providers.gradleProperty("VERSION_NAME").orElse(rootProps.getProperty(
 
 tasks.jar { manifest { attributes("Implementation-Version" to project.version.toString()) } }
 
+// Consumers apply this plugin in their own build: compile for Java 11 so it loads on any Gradle daemon JDK (not only the one used here).
+kotlin { compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11) }
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 dependencies {
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.ksp.gradle.plugin)

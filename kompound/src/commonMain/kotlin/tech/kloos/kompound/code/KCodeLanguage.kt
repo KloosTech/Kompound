@@ -26,9 +26,43 @@ public fun interface KCodeLanguage {
         /** JSON: keys as properties, strings, numbers, `true`/`false`/`null`. */
         public val Json: KCodeLanguage = KCodeLanguage { code -> JsonLexer.tokenize(code) }
 
+        /**
+         * Shell (sh, bash, zsh): comments, `'single'` and `"double"` quoted strings, `$VARIABLES`, `${braced}` and `$(`...`)` starts, keywords
+         * (`if`, `then`, `for`, `do`, `done`, `case`, ...), numbers, the command that starts each statement as a function, and operators.
+         */
+        public val Shell: KCodeLanguage = KCodeLanguage { code -> ShellLexer.tokenize(code) }
+
         /** No highlighting: the code is drawn in the plain colour. */
         public val Plain: KCodeLanguage = KCodeLanguage { emptyList() }
+
+        /**
+         * A language for the C family (`//` and `/* */` comments, `"..."` and `'...'` strings, `@annotations`, numbers, identifiers that are
+         * [keywords], types as capitalised words, functions as words followed by `(`). It is what [Kotlin] is built from: pass your own keyword
+         * set for Java, Swift, Dart, TypeScript and similar languages.
+         */
+        public fun cLike(keywords: Set<String>): KCodeLanguage = KCodeLanguage { code -> CLikeLexer(keywords).tokenize(code) }
     }
+}
+
+/**
+ * Helpers for writing a [KCodeLanguage] as one pass over the text: the same scanning steps the built-in languages use.
+ */
+public object KCodeLexing {
+    /** End (exclusive) of the quoted literal that starts at [start]; stops at the closing [quote], a newline or the end. Backslash escapes the next character. */
+    public fun quotedEnd(code: String, start: Int, quote: Char): Int = quotedEndImpl(code, start, quote)
+
+    /** Index after the last character from [start] that satisfies [part] (at least [start] itself is not required to match). */
+    public fun scanWhile(code: String, start: Int, part: (Char) -> Boolean): Int {
+        var i = start
+        while (i < code.length && part(code[i])) i++
+        return i
+    }
+
+    /** End of the identifier starting at [start] (letters, digits and `_`). */
+    public fun identEnd(code: String, start: Int): Int = scanWhile(code, start) { it == '_' || it.isLetterOrDigit() }
+
+    /** Index of the end of the line containing [from] (the `\n`, or the end of the text). */
+    public fun lineEnd(code: String, from: Int): Int = code.indexOf('\n', from).let { if (it < 0) code.length else it }
 }
 
 private val KotlinKeywords = setOf(
@@ -114,7 +148,9 @@ internal class CLikeLexer(private val keywords: Set<String>) {
 }
 
 /** End (exclusive) of the quoted literal that starts at [start]; stops at the closing quote, a newline or the end. */
-private fun quotedEnd(code: String, start: Int, quote: Char): Int {
+internal fun quotedEnd(code: String, start: Int, quote: Char): Int = quotedEndImpl(code, start, quote)
+
+private fun quotedEndImpl(code: String, start: Int, quote: Char): Int {
     var j = start + 1
     while (j < code.length) {
         val ch = code[j]

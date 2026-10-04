@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
  * within their own scope; removing a subgraph node removes everything inside it.
  * @property pin Fixed output values per port. The execution engine uses a pinned node's pin instead of running it (and does not run
  * nodes only it would have fed), so the nodes after it can be developed against known data. `null` when not pinned.
+ * @property width Width in dp chosen by the user (see `KNode(resizable = true)`), or `null` for the width the node's composable asks for.
  */
 public data class GraphNode(
     public val id: NodeId,
@@ -25,6 +26,7 @@ public data class GraphNode(
     public val group: GroupId? = null,
     public val scope: NodeId? = null,
     public val pin: Map<PortId, Any?>? = null,
+    public val width: Float? = null,
 ) {
     /** The port declared with [portId], or `null`. */
     public fun port(portId: PortId): PortSpec? = ports.firstOrNull { it.id == portId }

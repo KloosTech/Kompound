@@ -34,6 +34,20 @@ public fun KChip(
     return Unit
 }"""
 
+private val ShellSample = """#!/usr/bin/env bash
+# Back up a folder, keep the last 3
+set -e
+SRC="${'$'}{1:-${'$'}HOME/notes}"
+DEST=/var/backups/notes-${'$'}(date +%F).tar.gz
+
+if [ -d "${'$'}SRC" ]; then
+  tar -czf "${'$'}DEST" "${'$'}SRC" && echo "saved ${'$'}DEST"
+else
+  echo 'nothing to back up' >&2
+  exit 1
+fi
+ls -t /var/backups | tail -n +4 | while read old; do rm -- "/var/backups/${'$'}old"; done"""
+
 private const val JsonSample = """{
   "name": "Kompound",
   "version": "0.1.0",
@@ -63,23 +77,25 @@ KCode(
 @KompoundDemo(
     id = "code.view",
     title = "KCode",
-    description = "Syntax-highlighted code in a selectable text field, read-only or editable, with line numbers and Kotlin and JSON built in.",
+    description = "Syntax-highlighted code in a selectable text field, read-only or editable, with line numbers and Kotlin, JSON and shell built in.",
     category = KompoundCategory.Display,
-    tags = ["code", "syntax", "highlight", "editor", "monospace", "text field", "json", "kotlin"],
+    tags = ["code", "syntax", "highlight", "editor", "monospace", "text field", "json", "kotlin", "shell", "bash"],
     since = "0.1.0",
     status = "Beta",
     usage = Usage_code_view,
 )
 @Composable
 fun DemoScope.KCodeDemo() {
-    val language = choiceControl("Language", listOf("Kotlin", "JSON", "Plain"))
+    val language = choiceControl("Language", listOf("Kotlin", "JSON", "Shell", "Plain"))
     val palette = choiceControl("Palette", listOf("Theme", "One Dark"))
     val lineNumbers = boolControl("Line numbers", true)
     val editable = boolControl("Editable", false)
     var kotlin by remember { mutableStateOf(KotlinSample) }
     var json by remember { mutableStateOf(JsonSample) }
+    var shell by remember { mutableStateOf(ShellSample) }
     val (code, setCode) = when (language) {
         "JSON" -> json to { v: String -> json = v }
+        "Shell" -> shell to { v: String -> shell = v }
         else -> kotlin to { v: String -> kotlin = v }
     }
     Column(Modifier.padding(16.dp)) {
@@ -89,6 +105,7 @@ fun DemoScope.KCodeDemo() {
             onCodeChange = if (editable) setCode else null,
             language = when (language) {
                 "JSON" -> KCodeLanguage.Json
+                "Shell" -> KCodeLanguage.Shell
                 "Plain" -> KCodeLanguage.Plain
                 else -> KCodeLanguage.Kotlin
             },

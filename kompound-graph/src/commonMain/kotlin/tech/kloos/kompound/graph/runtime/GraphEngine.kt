@@ -176,7 +176,8 @@ public class GraphEngine(
         val source = feeding?.let { router.source(it) } ?: return NodeRun.Done(emptyMap())
         return when (val up = states[source.node]) {
             is NodeRun.Done -> NodeRun.Done(mapOf(Subgraphs.BoundaryPort to up.outputs[source.port]))
-            is NodeRun.Failed, is NodeRun.Declined -> NodeRun.Blocked(source.node)
+            is NodeRun.Failed -> NodeRun.Blocked(source.node)
+            is NodeRun.Declined -> NodeRun.Blocked(source.node, declined = true)
             NodeRun.Skipped -> NodeRun.Skipped
             is NodeRun.Blocked -> up
             else -> NodeRun.Waiting
@@ -528,9 +529,12 @@ public class GraphEngine(
                 SignalMode.Latest, SignalMode.Each -> feed.values.isNotEmpty()
                 SignalMode.Collect -> feed.complete
                 SignalMode.Final -> feed.complete && feed.values.isNotEmpty()
+                SignalMode.Any -> feed.values.isNotEmpty() || feed.complete
             }
             if (!ready) return null
         }
+        // Inputs that are all optional need at least one value between them.
+        if (wires.all { signalMode(node, it.spec) == SignalMode.Any } && wires.none { it.feed!!.values.isNotEmpty() }) return null
         var eachPort: PortId? = null
         var pending = false
         for (w in wires) {
@@ -538,7 +542,7 @@ public class GraphEngine(
             val taken = rt.cursor[w.spec.id] ?: 0
             when (signalMode(node, w.spec)) {
                 SignalMode.Each -> if (feed.values.size > taken) { pending = true; if (eachPort == null) eachPort = w.spec.id }
-                SignalMode.Latest -> if (feed.values.size > taken) pending = true
+                SignalMode.Latest, SignalMode.Any -> if (feed.values.size > taken) pending = true
                 SignalMode.Collect, SignalMode.Final -> if (taken != Used) pending = true
             }
         }
@@ -555,6 +559,7 @@ public class GraphEngine(
                     else values[id] = feed.values[(taken - 1).coerceAtLeast(0)]
                 }
                 SignalMode.Latest -> { values[id] = feed.values.last(); val n = feed.values.size; commits += { rt.cursor[id] = n } }
+                SignalMode.Any -> { values[id] = feed.values.lastOrNull(); val n = feed.values.size; commits += { rt.cursor[id] = n } }
                 SignalMode.Final -> { values[id] = feed.values.lastOrNull(); commits += { rt.cursor[id] = Used } }
                 SignalMode.Collect -> { values[id] = feed.values.toList(); commits += { rt.cursor[id] = Used } }
             }
@@ -608,14 +613,15 @@ public class GraphEngine(
                 val wires = wiresOf(node, router)
                 val blocker = wires.firstNotNullOfOrNull { w ->
                     when (val up = states[w.source.node]) {
-                        is NodeRun.Failed, is NodeRun.Declined -> w.source.node
-                        is NodeRun.Blocked -> up.by
+                        is NodeRun.Failed -> NodeRun.Blocked(w.source.node)
+                        is NodeRun.Declined -> NodeRun.Blocked(w.source.node, declined = true)
+                        is NodeRun.Blocked -> up
                         else -> null
                     }
                 }
                 if (blocker != null) {
                     cancel(id)
-                    val blocked = NodeRun.Blocked(blocker)
+                    val blocked = blocker
                     if (current != blocked) { states[id] = blocked; changed = true }
                     continue
                 }
@@ -641,7 +647,10 @@ public class GraphEngine(
                 }
                 if (running) continue
                 val upstreamDone = wires.all { it.feed?.complete == true }
-                if (!rt(id).started && wires.any { w -> w.feed?.complete == true && w.feed.values.isEmpty() && signalMode(node, w.spec) != SignalMode.Collect }) {
+                val modes = wires.map { signalMode(node, it.spec) }
+                val neverGetsAValue = wires.indices.any { i -> wires[i].feed?.complete == true && wires[i].feed!!.values.isEmpty() && modes[i] != SignalMode.Collect && modes[i] != SignalMode.Any } ||
+                    (wires.isNotEmpty() && modes.all { it == SignalMode.Any } && wires.all { it.feed?.complete == true && it.feed.values.isEmpty() })
+                if (!rt(id).started && neverGetsAValue) {
                     // An input that can never get a value (no signal upstream): this node cannot run, and neither can what follows.
                     val rt = rt(id)
                     for (spec in node.ports) if (spec.direction == PortDirection.Output) rt.feeds.getOrPut(spec.id) { Feed() }.complete = true

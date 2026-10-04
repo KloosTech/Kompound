@@ -973,7 +973,7 @@ class GraphEngineRunControlTest {
         advanceUntilIdle()
         assertTrue(log.isEmpty(), "automatic run refused")
         assertEquals(NodeRun.Declined, e.runOf(NodeId("src")))
-        assertEquals(NodeRun.Blocked(NodeId("src")), e.runOf(NodeId("mid")))
+        assertEquals(NodeRun.Blocked(NodeId("src"), declined = true), e.runOf(NodeId("mid")), "blocked by a refusal, not by a failure")
         assertEquals(listOf("src:Auto"), asked, "asked once, not on every sweep")
         e.start()
         advanceUntilIdle()
@@ -1105,5 +1105,101 @@ class GraphEngineBranchingTest {
         advanceUntilIdle()
         assertEquals(listOf("echo 0", "echo 1", "echo 2"), log, "Each processed every value although the port says Latest")
         assertTrue(e.runs.isEmpty())
+    }
+}
+
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineAnyInputTest {
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<Pair<String, tech.kloos.kompound.graph.model.SignalMode>> = emptyList(), outs: List<String> = listOf("out")) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it.first, signal = it.second) } + outs.map { PortSpec.output(it) }, data)
+
+    private fun wire(from: String, fromPort: String, to: String, port: String) = Edge(
+        EdgeId("$from.$fromPort->$to.$port"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), tech.kloos.kompound.graph.model.PortId(fromPort)),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)),
+    )
+
+    private val any = tech.kloos.kompound.graph.model.SignalMode.Any
+    private val latest = tech.kloos.kompound.graph.model.SignalMode.Latest
+
+    private fun TestScope.engine(log: MutableList<String>) = GraphEngine(
+        this,
+        mapOf(
+            "const" to singleOutputRunner { n, _ -> n.data },
+            "if" to NodeRunner { ctx -> if (ctx.node.data == true) mapOf("then" to ctx.inputs["a"], "else" to NoSignal) else mapOf("then" to NoSignal, "else" to ctx.inputs["a"]) },
+            "silent" to NodeRunner { mapOf("then" to NoSignal, "else" to NoSignal) },
+            "slow" to singleOutputRunner { _, i -> delay(200); "slow:" + i["a"] },
+            "fast" to singleOutputRunner { _, i -> "fast:" + i["a"] },
+            "merge" to singleOutputRunner { n, i -> log += "merge ${i["x"]} ${i["y"]}"; i["x"] ?: i["y"] },
+        ),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    private fun mergeGraph(flag: Boolean) = Graph.of(
+        listOf(
+            node("v", "const", 7),
+            node("if", "if", flag, ins = listOf("a" to latest), outs = listOf("then", "else")),
+            node("t", "slow", ins = listOf("a" to latest)),
+            node("e", "fast", ins = listOf("a" to latest)),
+            node("m", "merge", ins = listOf("x" to any, "y" to any)),
+        ),
+        listOf(wire("v", "out", "if", "a"), wire("if", "then", "t", "a"), wire("if", "else", "e", "a"), wire("t", "out", "m", "x"), wire("e", "out", "m", "y")),
+    )
+
+    @Test
+    fun anyInputsLetAMergeTakeWhicheverBranchHasAValueEvenWhenTheOtherWasSkipped() = runTest {
+        for (flag in listOf(true, false)) {
+            val log = mutableListOf<String>()
+            val e = engine(log)
+            e.update(mergeGraph(flag))
+            advanceUntilIdle()
+            val expected = if (flag) "slow:7" else "fast:7"
+            assertEquals(expected, e.output(NodeId("m"), "out"), "flag=$flag")
+            assertEquals(1, log.size, "ran once, after both branches settled: $log")
+            assertEquals(if (flag) "merge slow:7 null" else "merge null fast:7", log.single())
+            assertTrue(e.runOf(NodeId(if (flag) "e" else "t")) is NodeRun.Skipped)
+        }
+    }
+
+    @Test
+    fun anyWaitsForAnInputThatIsStillComingAndSkipsWhenNeitherEverGetsAValue() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        // both branches fed by a node that gives no signal on both ports
+        val g = Graph.of(
+            listOf(
+                node("none", "silent", outs = listOf("then", "else")),
+                node("m", "merge", ins = listOf("x" to any, "y" to any)),
+            ),
+            listOf(wire("none", "then", "m", "x"), wire("none", "else", "m", "y")),
+        )
+        e.update(g)
+        advanceUntilIdle()
+        assertTrue(log.isEmpty())
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("m")), "no value on any optional input: nothing to merge")
+        // slow branch: the merge does not run early with two nulls
+        val log2 = mutableListOf<String>()
+        val e2 = engine(log2)
+        e2.update(mergeGraph(true))
+        advanceTimeBy(100)
+        assertTrue(log2.isEmpty(), "the taken branch is still working")
+    }
+
+    @Test
+    fun anOptionalInputNextToRequiredOnesGetsNullWhenItHasNoSignal() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        val g = Graph.of(
+            listOf(
+                node("v", "const", 5),
+                node("if", "if", true, ins = listOf("a" to latest), outs = listOf("then", "else")),
+                node("m", "merge", ins = listOf("x" to latest, "y" to any)),
+            ),
+            listOf(wire("v", "out", "if", "a"), wire("v", "out", "m", "x"), wire("if", "else", "m", "y")),
+        )
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(listOf("merge 5 null"), log)
     }
 }

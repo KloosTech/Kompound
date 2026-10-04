@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,12 +64,16 @@ internal val LocalKGraphState = compositionLocalOf<KGraphState?> { null }
  */
 @Stable
 public interface KNodeScope {
+    /** The node this scope belongs to, as it is now (ports included). */
+    public val node: GraphNode
+
     /**
      * A row with an input port on the node's left edge. [editor] is shown next to the label while the input has no wire
-     * (a number field, a slider...) and replaced by the label alone once something is connected.
+     * (a number field, a slider...) and replaced by the label alone once something is connected. [trailing] is always shown at the end of the
+     * row, wired or not (a remove button, a menu).
      */
     @Composable
-    public fun Input(port: String, label: String? = null, editor: (@Composable () -> Unit)? = null)
+    public fun Input(port: String, label: String? = null, editor: (@Composable () -> Unit)? = null, trailing: (@Composable () -> Unit)? = null)
 
     /** A row with an output port on the node's right edge. */
     @Composable
@@ -119,7 +125,9 @@ public interface KNodeScope {
  * @param node The node this frame represents (usually the one handed to `nodeContent`).
  * @param title Text in the title bar.
  * @param modifier Modifier applied to the outermost node.
- * @param width Width of the node in world units; its height follows the content.
+ * @param width Width of the node in world units when the user has not chosen one; its height follows the content.
+ * @param resizable Shows a handle in the bottom-right corner that the user drags to change the node's width (between [minWidth] and [maxWidth]). The width
+ * is kept in [GraphNode.width] (one undo step, saved with the graph) and wins over [width].
  * @param style Overrides merged over [KNodeDefaults.style].
  * @param headerStyle Overrides merged over [KNodeDefaults.headerStyle].
  * @param onDoubleClick Called when the node is double-clicked or double-tapped.
@@ -139,6 +147,9 @@ public fun KNode(
     headerStyle: Style = Style,
     onDoubleClick: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
+    resizable: Boolean = false,
+    minWidth: Dp = 160.dp,
+    maxWidth: Dp = 1200.dp,
     collapsible: Boolean = false,
     expandedDescription: String = "Collapse node",
     collapsedDescription: String = "Expand node",
@@ -153,9 +164,11 @@ public fun KNode(
     val scope = remember(node.id, state) { NodeScopeImpl(node.id, state) }
     scope.node = node
     val step = if (state.gridStep > 0f) state.gridStep else 10f
+    val chosen = state.liveWidths[node.id] ?: node.width
+    Box(Modifier.width(chosen?.dp ?: width)) {
     Column(
         modifier
-            .width(width)
+            .fillMaxWidth()
             .onSizeChanged { state.sizes[node.id] = Size(it.width.toFloat(), it.height.toFloat()) }
             .semantics { contentDescription = title; this.selected = selected }
             .focusable(true, source)
@@ -203,24 +216,59 @@ public fun KNode(
             }
         }
     }
+    if (resizable && !state.readOnly) {
+        NodeResizeHandle(state, node.id, currentWidth = chosen ?: width.value, minWidth = minWidth.value, maxWidth = maxWidth.value, Modifier.align(Alignment.BottomEnd).padding(end = 8.dp, bottom = 4.dp))
+    }
+    }
+}
+
+/** The corner handle of a resizable node: drag to change its width. */
+@Composable
+private fun NodeResizeHandle(state: KGraphState, id: NodeId, currentWidth: Float, minWidth: Float, maxWidth: Float, modifier: Modifier) {
+    val density = androidx.compose.ui.platform.LocalDensity.current.density
+    val widthNow by androidx.compose.runtime.rememberUpdatedState(currentWidth)
+    val colour = androidx.compose.material3.MaterialTheme.colorScheme.outline
+    androidx.compose.foundation.Canvas(
+        modifier
+            .size(12.dp)
+            .semantics { contentDescription = "Resize node" }
+            .pointerInput(id) {
+                // keyed on the id only: the width changes during the drag and must not restart the gesture
+                var width = widthNow
+                detectDragGestures(
+                    onDragStart = { width = state.liveWidths[id] ?: widthNow },
+                    onDragEnd = { state.commitWidth(id) },
+                    onDragCancel = { state.liveWidths.remove(id) },
+                ) { change, drag ->
+                    change.consume()
+                    width = (width + drag.x / density).coerceIn(minWidth, maxWidth)
+                    state.liveWidths[id] = width
+                }
+            },
+    ) {
+        val w = 1.5.dp.toPx()
+        drawLine(colour, Offset(size.width, size.height * 0.15f), Offset(size.width * 0.15f, size.height), w, androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(colour, Offset(size.width, size.height * 0.55f), Offset(size.width * 0.55f, size.height), w, androidx.compose.ui.graphics.StrokeCap.Round)
+    }
 }
 
 internal val LocalKNodeScope = compositionLocalOf<KNodeScope?> { null }
 
 private class NodeScopeImpl(private val id: tech.kloos.kompound.graph.model.NodeId, private val state: KGraphState) : KNodeScope {
-    var node: GraphNode = GraphNode(id, "")
+    override var node: GraphNode = GraphNode(id, "")
 
     private fun spec(port: String) = node.port(port) ?: error("Node ${node.id} has no port '$port'")
 
     @Composable
-    override fun Input(port: String, label: String?, editor: (@Composable () -> Unit)?) {
+    override fun Input(port: String, label: String?, editor: (@Composable () -> Unit)?, trailing: (@Composable () -> Unit)?) {
         val spec = spec(port)
         val ref = PortRef(id, PortId(port))
         val connected = state.graph.isConnected(ref)
         Row(Modifier.fillMaxWidth().padding(end = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            PortHandle(port, Modifier.halfWidth(PortDirection.Input))
+            PortHandle(port, Modifier.straddleNodeEdge(PortDirection.Input))
             KText(label ?: spec.label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = KNodeDefaults.portLabelStyle())
-            if (editor != null && !connected) Box(Modifier.weight(1f)) { editor() }
+            if (editor != null && !connected) Box(Modifier.weight(1f)) { editor() } else if (trailing != null) Box(Modifier.weight(1f))
+            trailing?.invoke()
         }
     }
 
@@ -229,7 +277,7 @@ private class NodeScopeImpl(private val id: tech.kloos.kompound.graph.model.Node
         val spec = spec(port)
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
             KText(label ?: spec.label, maxLines = 1, overflow = TextOverflow.Ellipsis, style = KNodeDefaults.portLabelStyle())
-            PortHandle(port, Modifier.halfWidth(PortDirection.Output))
+            PortHandle(port, Modifier.straddleNodeEdge(PortDirection.Output))
         }
     }
 
@@ -265,10 +313,10 @@ private class NodeScopeImpl(private val id: tech.kloos.kompound.graph.model.Node
 }
 
 /**
- * Lays the handle out with half its width so its centre sits exactly on the edge of the row: inputs are shifted left by half,
- * outputs keep their place and overflow to the right.
+ * Lays a port handle out with half its width so its centre sits exactly on the edge of the row: inputs are shifted left by half,
+ * outputs keep their place and overflow to the right. Use it on the `PortHandle` of a row you build yourself.
  */
-private fun Modifier.halfWidth(direction: PortDirection): Modifier = layout { measurable, constraints ->
+public fun Modifier.straddleNodeEdge(direction: PortDirection): Modifier = layout { measurable, constraints ->
     val p = measurable.measure(constraints)
     val reported = p.width / 2
     layout(reported, p.height) { p.place(if (direction == PortDirection.Input) -reported else 0, 0) }

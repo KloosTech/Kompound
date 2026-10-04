@@ -148,6 +148,7 @@ public class GraphJson(
         return jsonObjectOf(
             "id" to JsonString(node.id.value),
             "kind" to JsonString(node.kind),
+            "width" to node.width?.let { num(it) },
             "x" to num(node.position.x),
             "y" to num(node.position.y),
             "ports" to JsonArray(node.ports.map(::portToJson)),
@@ -183,6 +184,7 @@ public class GraphJson(
             position = Offset(float(o, "x", at), float(o, "y", at)),
             ports = array(o, "ports", at).mapIndexed { i, v -> portFromJson(obj(v, "$at.ports[$i]"), "$at.ports[$i]") },
             data = data,
+            width = (o["width"] as? JsonNumber)?.value?.toFloat(),
             pin = (o["pin"] as? JsonObject)?.fields?.entries?.associate { (port, v) -> PortId(port) to values.decode(v) },
             group = (o["group"] as? JsonString)?.let { GroupId(it.value) },
             scope = (o["scope"] as? JsonString)?.let { NodeId(it.value) },
