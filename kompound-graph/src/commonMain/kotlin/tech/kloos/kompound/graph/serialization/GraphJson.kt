@@ -16,6 +16,7 @@ import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.PortType
+import tech.kloos.kompound.graph.model.SignalMode
 
 /**
  * Turns a node's [GraphNode.data] into JSON and back. Register one per node kind in [GraphJson]; the codec belongs to the code that
@@ -176,6 +177,7 @@ public class GraphJson(
         "label" to JsonString(p.label),
         "type" to JsonString(p.type.id),
         "capacity" to JsonString(p.capacity.name),
+        "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
     )
 
     private fun portFromJson(o: JsonObject, at: String): PortSpec {
@@ -188,6 +190,7 @@ public class GraphJson(
             (o["label"] as? JsonString)?.value ?: id,
             types[typeId] ?: PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
+            (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
         )
     }
 

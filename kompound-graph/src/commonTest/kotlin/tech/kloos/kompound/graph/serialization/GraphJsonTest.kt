@@ -162,6 +162,15 @@ class GraphJsonTest {
     }
 
     @Test
+    fun signalModesOfPortsRoundTripAndTheDefaultIsLeftOut() {
+        val ports = tech.kloos.kompound.graph.model.SignalMode.entries.map { PortSpec.input(it.name, signal = it) }
+        val graph = Graph.of(listOf(GraphNode(NodeId("n"), "k", ports = ports)))
+        val text = GraphJson(pretty = false).encode(graph)
+        assertTrue("\"Each\"" in text && text.split("\"signal\"").size - 1 == 3, "Latest is not written")
+        assertEquals(ports, GraphJson().decode(text).graph.node(NodeId("n"))!!.ports)
+    }
+
+    @Test
     fun subgraphsWithBoundaryNodesRoundTrip() {
         val base = Graph.of(
             listOf(math("a", Offset(0f, 0f)), math("b", Offset(300f, 0f)), math("c", Offset(600f, 0f))),
