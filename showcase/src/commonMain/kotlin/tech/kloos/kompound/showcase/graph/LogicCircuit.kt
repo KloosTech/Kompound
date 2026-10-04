@@ -11,9 +11,26 @@ import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.PortType
+import tech.kloos.kompound.graph.serialization.GraphJson
+import tech.kloos.kompound.graph.serialization.JsonBool
+import tech.kloos.kompound.graph.serialization.JsonObject
+import tech.kloos.kompound.graph.serialization.JsonString
+import tech.kloos.kompound.graph.serialization.jsonObjectOf
+import tech.kloos.kompound.graph.serialization.nodeDataCodec
 
 /** Data of a `switch` node: a name and whether it is on. */
 data class LogicSwitch(val label: String, val on: Boolean)
+
+/** JSON codec of the logic demo: switches keep their label and state. */
+val LogicJson: GraphJson by lazy { GraphJson(
+    nodeData = mapOf(
+        LogicKinds.Switch to nodeDataCodec<LogicSwitch>(
+            encode = { jsonObjectOf("label" to JsonString(it.label), "on" to JsonBool(it.on)) },
+            decode = { v -> (v as JsonObject).let { LogicSwitch((it["label"] as? JsonString)?.value ?: "Switch", (it["on"] as? JsonBool)?.value ?: false) } },
+        ),
+    ),
+    portTypes = listOf(LogicBit),
+) }
 
 /** Boolean wires: every port of the logic demo has this type. */
 val LogicBit: PortType = PortType.of("bit")

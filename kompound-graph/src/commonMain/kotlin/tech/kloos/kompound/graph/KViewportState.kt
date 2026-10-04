@@ -33,6 +33,12 @@ public class KViewportState(
     public var zoom: Float by mutableFloatStateOf(zoom.coerceIn(minZoom, maxZoom))
         private set
 
+    /** Sets the view directly (loading a saved view); the zoom is clamped. */
+    public fun restore(offset: Offset, zoom: Float) {
+        this.offset = offset
+        this.zoom = zoom.coerceIn(minZoom, maxZoom)
+    }
+
     /** Converts a screen point to world coordinates. */
     public fun screenToWorld(point: Offset): Offset = (point - offset) / zoom
 
