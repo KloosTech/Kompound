@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import tech.kloos.kompound.KompoundStyles
+import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.buttons.KButton
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.buttons.KIconButton
@@ -71,7 +72,7 @@ public fun KDialog(
     actions: (@Composable RowScope.() -> Unit)? = null,
     fullScreen: Boolean = false,
     showCloseButton: Boolean = false,
-    closeContentDescription: String = "Close",
+    closeContentDescription: String = KompoundTheme.strings.close,
     dismissOnBackPress: Boolean = true,
     dismissOnClickOutside: Boolean = true,
     contentWindowInsets: WindowInsets = WindowInsets.safeDrawing,

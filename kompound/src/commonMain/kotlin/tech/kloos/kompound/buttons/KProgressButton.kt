@@ -159,14 +159,15 @@ public object KProgressButtonDefaults {
     public fun style(colors: KProgressButtonColors = colors()): Style {
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(colors, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(colors, type, l, density) {
             Style {
                 background(colors.track)
                 shape(CircleShape)
                 clip(true)
                 textStyle(type.labelLarge.copy(color = colors.onTrack))
                 contentColor(colors.onTrack)
-                minHeight(40.dp)
+                minHeight(density.height(40.dp))
                 hovered { background(colors.fill.copy(alpha = l.hovered).compositeOver(colors.track)) }
                 focused { background(colors.fill.copy(alpha = l.focused).compositeOver(colors.track)) }
                 pressed { background(colors.fill.copy(alpha = l.pressed).compositeOver(colors.track)) }

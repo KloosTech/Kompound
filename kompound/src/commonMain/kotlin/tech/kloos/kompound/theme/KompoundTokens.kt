@@ -101,6 +101,27 @@ public class KompoundStateLayer(
     public val disabledContainer: Float = 0.12f,
 )
 
+/**
+ * How tightly controls are packed. [Comfortable] is the Material 3 sizing (a 40dp button, a 56dp text field); [Compact] shrinks control heights
+ * and vertical padding by about 20% for desktop tools and dense data screens, [Spacious] grows them by about 15% for touch-first screens.
+ * Text does not change size. Read it from `KompoundTheme.tokens.density`; components apply it in their default styles, so a `style` you pass
+ * still wins.
+ *
+ * Compact controls are smaller than the 48dp touch target recommended on phones: use it where a pointer or a stylus is the main input.
+ */
+public enum class KDensity(internal val heightScale: Float, internal val spaceScale: Float) {
+    Compact(0.8f, 0.7f),
+    Comfortable(1f, 1f),
+    Spacious(1.15f, 1.25f),
+    ;
+
+    /** [base] (a control height) scaled for this density, rounded to whole dp. */
+    public fun height(base: Dp): Dp = (base.value * heightScale).let { kotlin.math.round(it) }.dp
+
+    /** [base] (padding or a gap) scaled for this density, rounded to whole dp. */
+    public fun space(base: Dp): Dp = (base.value * spaceScale).let { kotlin.math.round(it) }.dp
+}
+
 /** Everything Kompound adds on top of the M3 theme. Read it with [KompoundTheme.tokens]. */
 @Immutable
 public class KompoundTokens(
@@ -108,13 +129,15 @@ public class KompoundTokens(
     public val spacing: KompoundSpacing = KompoundSpacing(),
     public val motion: KompoundMotion = KompoundMotion(),
     public val stateLayer: KompoundStateLayer = KompoundStateLayer(),
+    public val density: KDensity = KDensity.Comfortable,
 ) {
     public fun copy(
         colors: KompoundColors = this.colors,
         spacing: KompoundSpacing = this.spacing,
         motion: KompoundMotion = this.motion,
         stateLayer: KompoundStateLayer = this.stateLayer,
-    ): KompoundTokens = KompoundTokens(colors, spacing, motion, stateLayer)
+        density: KDensity = this.density,
+    ): KompoundTokens = KompoundTokens(colors, spacing, motion, stateLayer, density)
 
     public companion object {
         public val Light: KompoundTokens = KompoundTokens(colors = KompoundColors.Light)

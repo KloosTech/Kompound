@@ -195,14 +195,15 @@ public object KMenuDefaults {
         val c = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, type, l, density) {
             fun layer(alpha: Float, over: Color) = c.onSurface.copy(alpha = alpha).compositeOver(over)
             Style {
                 background(Color.Transparent)
                 contentColor(c.onSurface)
                 textStyle(type.bodyLarge.copy(color = c.onSurface))
-                contentPadding(horizontal = 16.dp, vertical = 8.dp)
-                minHeight(48.dp)
+                contentPadding(horizontal = 16.dp, vertical = density.space(8.dp))
+                minHeight(density.height(48.dp))
                 hovered { background(layer(l.hovered, c.surfaceContainer)) }
                 focused { background(layer(l.focused, c.surfaceContainer)) }
                 pressed { background(layer(l.pressed, c.surfaceContainer)) }

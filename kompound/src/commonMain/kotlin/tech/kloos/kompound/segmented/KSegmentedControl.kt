@@ -182,7 +182,8 @@ public object KSegmentedControlDefaults {
         val c = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, type, l, density) {
             fun layer(content: Color, alpha: Float, over: Color) = content.copy(alpha = alpha).compositeOver(over)
             val off = c.onSurface
             val on = c.onSecondaryContainer
@@ -191,8 +192,8 @@ public object KSegmentedControlDefaults {
                 contentColor(off)
                 textStyle(type.labelLarge.copy(color = off))
                 shape(CircleShape)
-                contentPadding(horizontal = 16.dp, vertical = 8.dp)
-                minHeight(32.dp)
+                contentPadding(horizontal = 16.dp, vertical = density.space(8.dp))
+                minHeight(density.height(32.dp))
                 hovered { background(layer(off, l.hovered, Color.Transparent)) }
                 focused { background(layer(off, l.focused, Color.Transparent)) }
                 pressed { background(layer(off, l.pressed, Color.Transparent)) }

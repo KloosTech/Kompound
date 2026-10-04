@@ -64,7 +64,7 @@ public class ValueJson(private val codecs: List<ValueCodec> = emptyList()) {
 
     /** The value for [json]. */
     public fun decode(json: JsonValue): Any? = when (json) {
-        JsonNull -> null
+        is JsonNull -> null
         is JsonBool -> json.value
         is JsonString -> json.value
         is JsonNumber -> json.value

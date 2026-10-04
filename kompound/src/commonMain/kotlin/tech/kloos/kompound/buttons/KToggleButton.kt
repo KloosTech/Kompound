@@ -66,7 +66,8 @@ public object KToggleButtonDefaults {
         val c = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, type, l, density) {
             fun overlay(content: Color, alpha: Float, over: Color) = content.copy(alpha = alpha).compositeOver(over)
             val off = c.primary
             Style {
@@ -76,8 +77,8 @@ public object KToggleButtonDefaults {
                 shape(CircleShape)
                 borderWidth(1.dp)
                 borderColor(c.outline)
-                contentPadding(horizontal = 24.dp, vertical = 10.dp)
-                minHeight(40.dp)
+                contentPadding(horizontal = density.space(24.dp), vertical = density.space(10.dp))
+                minHeight(density.height(40.dp))
                 hovered { background(overlay(off, l.hovered, Color.Transparent)) }
                 focused { background(overlay(off, l.focused, Color.Transparent)) }
                 pressed { background(overlay(off, l.pressed, Color.Transparent)) }

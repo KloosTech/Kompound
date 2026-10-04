@@ -78,8 +78,8 @@ public fun KPasswordField(
     isError: Boolean = false,
     enabled: Boolean = true,
     strength: ((password: String) -> KPasswordStrength)? = null,
-    showDescription: String = "Show password",
-    hideDescription: String = "Hide password",
+    showDescription: String = KompoundTheme.strings.showPassword,
+    hideDescription: String = KompoundTheme.strings.hidePassword,
     keyboardOptions: KeyboardOptions = KeyboardOptions(
         capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, keyboardType = KeyboardType.Password,
     ),

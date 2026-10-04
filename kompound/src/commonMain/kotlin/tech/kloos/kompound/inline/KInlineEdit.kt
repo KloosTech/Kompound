@@ -81,9 +81,9 @@ public fun KInlineEdit(
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     validate: (String) -> String? = { null },
-    editContentDescription: String = "Edit",
-    saveContentDescription: String = "Save",
-    cancelContentDescription: String = "Cancel",
+    editContentDescription: String = KompoundTheme.strings.edit,
+    saveContentDescription: String = KompoundTheme.strings.save,
+    cancelContentDescription: String = KompoundTheme.strings.cancel,
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -162,7 +162,8 @@ public object KInlineEditDefaults {
         val shapes = MaterialTheme.shapes
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, shapes, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, shapes, type, l, density) {
             fun layer(alpha: Float) = c.onSurface.copy(alpha = alpha).compositeOver(Color.Transparent)
             Style {
                 background(Color.Transparent)
@@ -170,7 +171,7 @@ public object KInlineEditDefaults {
                 textStyle(type.bodyLarge.copy(color = c.onSurface))
                 shape(shapes.small)
                 contentPadding(horizontal = 8.dp, vertical = 4.dp)
-                minHeight(32.dp)
+                minHeight(density.height(32.dp))
                 hovered { background(layer(l.hovered)) }
                 focused { background(layer(l.focused)) }
                 pressed { background(layer(l.pressed)) }

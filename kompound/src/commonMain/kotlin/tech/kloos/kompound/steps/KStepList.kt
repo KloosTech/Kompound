@@ -61,7 +61,13 @@ public class KStep(public val title: String, public val state: KStepState = KSte
 
 /** Words screen readers use for the three states; replace them to localise. */
 @Immutable
-public class KStepLabels(public val waiting: String = "Waiting", public val inProgress: String = "In progress", public val done: String = "Done")
+public class KStepLabels(public val waiting: String = "Waiting", public val inProgress: String = "In progress", public val done: String = "Done") {
+    public companion object {
+        /** The words of the current [tech.kloos.kompound.i18n.KompoundStrings] (the language chosen by `KompoundTheme`). */
+        @Composable
+        public fun localized(): KStepLabels = KompoundTheme.strings.let { KStepLabels(it.stepWaiting, it.stepInProgress, it.stepDone) }
+    }
+}
 
 /**
  * A vertical list of steps of a longer task (an update, an import, a checkout), each with a progress line,
@@ -77,7 +83,7 @@ public class KStepLabels(public val waiting: String = "Waiting", public val inPr
 public fun KStepList(
     steps: List<KStep>,
     modifier: Modifier = Modifier,
-    labels: KStepLabels = KStepLabels(),
+    labels: KStepLabels = KStepLabels.localized(),
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }

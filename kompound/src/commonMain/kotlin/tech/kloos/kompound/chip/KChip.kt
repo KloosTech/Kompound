@@ -107,7 +107,8 @@ public object KChipDefaults {
         val shapes = MaterialTheme.shapes
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, shapes, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, shapes, type, l, density) {
             fun layer(content: Color, alpha: Float, over: Color) = content.copy(alpha = alpha).compositeOver(over)
             val off = c.onSurfaceVariant
             val on = c.onSecondaryContainer
@@ -118,8 +119,8 @@ public object KChipDefaults {
                 shape(shapes.small)
                 borderWidth(1.dp)
                 borderColor(c.outline)
-                contentPadding(horizontal = 12.dp, vertical = 6.dp)
-                minHeight(32.dp)
+                contentPadding(horizontal = density.space(12.dp), vertical = density.space(6.dp))
+                minHeight(density.height(32.dp))
                 maxWidth(250.dp)
                 hovered { background(layer(off, l.hovered, Color.Transparent)) }
                 focused { background(layer(off, l.focused, Color.Transparent)) }

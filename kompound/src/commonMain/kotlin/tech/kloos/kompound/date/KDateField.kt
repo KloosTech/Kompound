@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.internal.KompoundIcons
 import tech.kloos.kompound.text.KText
@@ -59,8 +60,8 @@ public fun KDateField(
     isError: Boolean = false,
     enabled: Boolean = true,
     formatDate: (Long) -> String = KDateFormat::iso,
-    confirmText: String = "OK",
-    dismissText: String = "Cancel",
+    confirmText: String = KompoundTheme.strings.ok,
+    dismissText: String = KompoundTheme.strings.cancel,
     style: Style = Style,
 ) {
     var open by remember { mutableStateOf(false) }
@@ -104,8 +105,8 @@ public fun KDateRangeField(
     enabled: Boolean = true,
     formatDate: (Long) -> String = KDateFormat::iso,
     rangeSeparator: String = " – ",
-    confirmText: String = "OK",
-    dismissText: String = "Cancel",
+    confirmText: String = KompoundTheme.strings.ok,
+    dismissText: String = KompoundTheme.strings.cancel,
     style: Style = Style,
 ) {
     var open by remember { mutableStateOf(false) }

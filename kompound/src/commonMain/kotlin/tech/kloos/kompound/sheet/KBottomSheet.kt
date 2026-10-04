@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import tech.kloos.kompound.KompoundStyles
+import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.buttons.KIconButton
 import tech.kloos.kompound.dialog.KDialog
 import tech.kloos.kompound.dialog.KDialogDefaults
@@ -73,7 +74,7 @@ public fun KBottomSheet(
     title: String? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
     showCloseButton: Boolean = false,
-    closeContentDescription: String = "Close",
+    closeContentDescription: String = KompoundTheme.strings.close,
     dialogFromWidth: Dp = KBottomSheetDefaults.DialogFromWidth,
     dismissOnClickOutside: Boolean = true,
     containerColor: Color = Color.Unspecified,

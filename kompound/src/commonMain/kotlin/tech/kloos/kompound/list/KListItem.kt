@@ -147,14 +147,15 @@ public object KListItemDefaults {
         val c = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, type, l, interactive, twoLine) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, type, l, interactive, twoLine, density) {
             fun layer(alpha: Float, content: Color, over: Color) = content.copy(alpha = alpha).compositeOver(over)
             Style {
                 background(Color.Transparent)
                 contentColor(c.onSurface)
                 textStyle(type.bodyLarge.copy(color = c.onSurface))
-                contentPadding(horizontal = 16.dp, vertical = 8.dp)
-                minHeight(if (twoLine) 72.dp else 56.dp)
+                contentPadding(horizontal = 16.dp, vertical = density.space(8.dp))
+                minHeight(density.height(if (twoLine) 72.dp else 56.dp))
                 if (interactive) {
                     hovered { background(layer(l.hovered, c.onSurface, Color.Transparent)) }
                     focused { background(layer(l.focused, c.onSurface, Color.Transparent)) }

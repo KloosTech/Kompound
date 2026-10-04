@@ -136,13 +136,14 @@ public object KExpandableDefaults {
         val c = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, type, l, density) {
             fun layer(alpha: Float) = c.onSurface.copy(alpha = alpha).compositeOver(Color.Transparent)
             Style {
                 contentColor(c.onSurface)
                 textStyle(type.titleMedium.copy(color = c.onSurface))
-                contentPadding(horizontal = 16.dp, vertical = 12.dp)
-                minHeight(48.dp)
+                contentPadding(horizontal = 16.dp, vertical = density.space(12.dp))
+                minHeight(density.height(48.dp))
                 hovered { background(layer(l.hovered)) }
                 focused { background(layer(l.focused)) }
                 pressed { background(layer(l.pressed)) }

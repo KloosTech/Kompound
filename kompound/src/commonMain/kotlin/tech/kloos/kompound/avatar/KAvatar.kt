@@ -62,7 +62,7 @@ public fun KAvatar(
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val state = remember { MutableStyleState(null) }
-    val description = if (status == null) name else "$name, ${status.label}"
+    val description = if (status == null) name else "$name, ${status.localized(KompoundTheme.strings)}"
     Box(modifier.semantics(mergeDescendants = true) { contentDescription = description }) {
         Box(Modifier.styleable(state, KAvatarDefaults.style(size, name), style), contentAlignment = Alignment.Center) {
             if (image != null) Box(Modifier.size(size.diameter).clip(CircleShape)) { image() } else KText(initials(name), maxLines = 1)
@@ -133,4 +133,11 @@ public object KAvatarDefaults {
             }
         }
     }
+}
+
+internal fun KAvatarStatus.localized(strings: tech.kloos.kompound.i18n.KompoundStrings): String = when (this) {
+    KAvatarStatus.Online -> strings.statusOnline
+    KAvatarStatus.Away -> strings.statusAway
+    KAvatarStatus.Busy -> strings.statusBusy
+    KAvatarStatus.Offline -> strings.statusOffline
 }
