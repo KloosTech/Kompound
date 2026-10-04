@@ -142,6 +142,8 @@ public fun KGraphControls(
     layoutDescription: String = "Arrange nodes",
     undoDescription: String = "Undo",
     redoDescription: String = "Redo",
+    panToolDescription: String = "Pan tool: drag the canvas to move it",
+    selectToolDescription: String = "Select tool: drag the canvas to select",
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -150,6 +152,8 @@ public fun KGraphControls(
     Column(modifier.styleable(styleState, KGraphOverlayDefaults.panelStyle(), style), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         KIconButton({ state.viewport.zoomBy(1.25f, centre) }, zoomInDescription) { KIcon(GraphIcons.Add, null) }
         KIconButton({ state.viewport.zoomBy(0.8f, centre) }, zoomOutDescription) { KIcon(GraphIcons.Remove, null) }
+        if (state.tool == KGraphTool.Select) KIconButton({ state.tool = KGraphTool.Pan }, panToolDescription) { KIcon(GraphIcons.PanTool, null) }
+        else KIconButton({ state.tool = KGraphTool.Select }, selectToolDescription) { KIcon(GraphIcons.Select, null) }
         KIconButton({ state.fitView() }, fitDescription) { KIcon(GraphIcons.FitScreen, null) }
         KIconButton({ state.autoLayout(selectedOnly = true, fit = true) }, layoutDescription) { KIcon(GraphIcons.AccountTree, null) }
         KIconButton({ state.undo() }, undoDescription, enabled = state.canUndo) { KIcon(GraphIcons.Undo, null) }
@@ -161,6 +165,8 @@ internal object GraphIcons {
     private fun icon(name: String, path: String): ImageVector =
         ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f).addPath(addPathNodes(path), fill = SolidColor(androidx.compose.ui.graphics.Color.Black)).build()
 
+    val PanTool: ImageVector by lazy { icon("pan_tool", "M23,5.5V20c0,2.2 -1.8,4 -4,4h-7.3c-1.08,0 -2.1,-0.43 -2.85,-1.19L1,14.83s1.26,-1.23 1.3,-1.25c0.22,-0.19 0.49,-0.29 0.79,-0.29 0.22,0 0.42,0.06 0.6,0.16 0.04,0.01 4.31,2.46 4.31,2.46V4c0,-0.83 0.67,-1.5 1.5,-1.5S11,3.17 11,4v7h1V1.5c0,-0.83 0.67,-1.5 1.5,-1.5S15,0.67 15,1.5V11h1V2.5c0,-0.83 0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5V11h1V5.5c0,-0.83 0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5z") }
+    val Select: ImageVector by lazy { icon("select", "M4,4l7.07,17 2.51,-7.39L21,11.07z") }
     val Add: ImageVector by lazy { icon("add", "M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z") }
     val Remove: ImageVector by lazy { icon("remove", "M19,13H5v-2h14v2z") }
     val FitScreen: ImageVector by lazy { icon("fit_screen", "M17,4h3c1.1,0 2,0.9 2,2v2h-2L20,6h-3L17,4zM4,8L4,6h3L7,4L4,4c-1.1,0 -2,0.9 -2,2v2h2zM20,16v2h-3v2h3c1.1,0 2,-0.9 2,-2v-2h-2zM7,18L4,18v-2L2,16v2c0,1.1 0.9,2 2,2h3v-2zM18,8L6,8v8h12L18,8z") }

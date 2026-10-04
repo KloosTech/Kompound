@@ -86,7 +86,7 @@ import kotlin.math.roundToInt
  * subgraph; L arranges the graph (the selection, if several nodes are selected); Escape cancels a wire.
  *
  * Selecting: click a node, Shift/Ctrl/Cmd+click adds or removes it, and dragging on the background with the mouse draws a selection
- * rectangle (hold Shift to add to the selection). Panning then uses the middle or right mouse button, Space+drag, or one finger on a
+ * rectangle (hold Shift to add to the selection). Panning then uses the middle or right mouse button, Space+drag, the hand tool (key H or the button in [KGraphControls]; V goes back to selecting), or one finger on a
  * touch screen; on touch, press and hold on the background, then drag to select.
  *
  * What the editor shows is [KGraphState.graph]; what a node looks like is up to [nodeContent], normally a [KNode].
@@ -397,6 +397,8 @@ private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.K
         }
         command && event.key == Key.G -> { if (event.isShiftPressed) state.ungroupSelection() else state.groupSelection(); true }
         event.key == Key.F && !command -> { state.fitView(); true }
+        event.key == Key.V && !command -> { state.tool = KGraphTool.Select; true }
+        event.key == Key.H && !command -> { state.tool = KGraphTool.Pan; true }
         event.key == Key.L && !command -> { state.autoLayout(selectedOnly = true, fit = false); true }
         else -> false
     }
@@ -414,7 +416,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.canvasGe
         val primary = currentEvent.buttons.isPrimaryPressed
         val additive = currentEvent.isAdditive()
         when {
-            mouse && primary && !state.spaceHeld -> marqueeDrag(state, down, additive)
+            mouse && primary && !state.spaceHeld && state.tool == KGraphTool.Select -> marqueeDrag(state, down, additive)
             mouse -> drag(down.id) { change ->
                 state.viewport.panBy(change.positionChange())
                 change.consume()

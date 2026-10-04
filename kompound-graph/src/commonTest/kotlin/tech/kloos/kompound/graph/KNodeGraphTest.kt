@@ -746,4 +746,21 @@ class KNodeGraphTest {
         waitForIdle()
         onNodeWithTag("v0").assertExists()
     }
+
+    @Test
+    fun theHandToolMakesALeftDragPanAndVSelectsAgain() = runComposeUiTest {
+        val state = twoNodes()
+        show(state)
+        waitForIdle()
+        val canvas = onNodeWithContentDescription("Node graph", substring = true)
+        canvas.requestFocus()
+        canvas.performKeyInput { pressKey(Key.H) }
+        assertEquals(KGraphTool.Pan, state.tool)
+        onRoot().performMouseInput { moveTo(Offset(600f, 450f)); press(); moveTo(Offset(650f, 470f)); moveTo(Offset(700f, 490f)); release() }
+        waitForIdle()
+        assertTrue(state.viewport.offset.x > 60f, "offset ${state.viewport.offset}")
+        assertEquals(null, state.marquee)
+        canvas.performKeyInput { pressKey(Key.V) }
+        assertEquals(KGraphTool.Select, state.tool)
+    }
 }
