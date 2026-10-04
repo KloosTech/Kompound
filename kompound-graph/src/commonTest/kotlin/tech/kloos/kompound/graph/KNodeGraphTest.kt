@@ -763,4 +763,27 @@ class KNodeGraphTest {
         canvas.performKeyInput { pressKey(Key.V) }
         assertEquals(KGraphTool.Select, state.tool)
     }
+
+    @Test
+    fun textInTheBodyOfANodeIsLightInADarkTheme() = runComposeUiTest {
+        val state = KGraphState(Graph.of(listOf(math("n1", Offset(50f, 50f)))))
+        setContent {
+            MaterialTheme(androidx.compose.material3.darkColorScheme()) {
+                Box(Modifier.size(900.dp, 600.dp).testTag("canvas")) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Title", modifier = Modifier.testTag("n")) { Content { KText("Readable body text") } }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val image = onNodeWithTag("n").captureToImage().toPixelMap()
+        var light = 0
+        for (x in 0 until image.width) for (y in image.height / 3 until image.height) {
+            val c = image[x, y]
+            val luminance = 0.299f * c.red + 0.587f * c.green + 0.114f * c.blue
+            if (luminance > 0.6f) light++
+        }
+        assertTrue(light > 40, "light text pixels: $light")
+    }
 }

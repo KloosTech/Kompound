@@ -64,10 +64,14 @@ public object KNodeDefaults {
     public fun style(): Style {
         val c = MaterialTheme.colorScheme
         val shapes = MaterialTheme.shapes
-        return remember(c, shapes) {
+        val type = MaterialTheme.typography
+        return remember(c, shapes, type) {
             Style {
                 background(c.surfaceContainer)
                 shape(shapes.medium)
+                // The body's text (KText in Content, ports' editors) reads these; without them it falls back to a dark default in dark themes.
+                contentColor(c.onSurface)
+                textStyle(type.bodyMedium.copy(color = c.onSurface))
                 borderWidth(1.dp)
                 borderColor(c.outlineVariant)
                 focused { borderWidth(2.dp); borderColor(c.primary) }
