@@ -40,6 +40,9 @@ public enum class KNodeStatus(internal val description: String) {
     /** Was cancelled before it finished. */
     Cancelled("Cancelled"),
 
+    /** Was not run because an input it needs got no signal (a branch not taken). */
+    Skipped("Skipped"),
+
     /** Was not started because the app refused it (see `GraphEngine`'s `beforeRun`). */
     Declined("Not run"),
 }
@@ -82,6 +85,10 @@ internal fun KNodeStatusBadge(status: KNodeStatus, modifier: Modifier = Modifier
             KNodeStatus.Pinned -> {
                 drawCircle(tone, s * 0.22f, Offset(s * 0.5f, s * 0.35f))
                 drawLine(tone, Offset(s * 0.5f, s * 0.5f), Offset(s * 0.5f, s * 0.92f), w, StrokeCap.Round)
+            }
+            KNodeStatus.Skipped -> {
+                drawLine(tone, Offset(s * 0.15f, s * 0.5f), Offset(s * 0.4f, s * 0.5f), w, StrokeCap.Round)
+                drawLine(tone, Offset(s * 0.6f, s * 0.5f), Offset(s * 0.85f, s * 0.5f), w, StrokeCap.Round)
             }
             KNodeStatus.Declined -> drawCircle(tone, s * 0.38f, center, style = stroke)
             KNodeStatus.Cancelled -> {

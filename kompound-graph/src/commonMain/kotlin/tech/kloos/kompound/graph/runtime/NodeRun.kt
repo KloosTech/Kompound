@@ -21,6 +21,12 @@ public sealed interface NodeRun {
     /** Finished; [outputs] holds a value per output port the runner produced. */
     public data class Done(public val outputs: Map<PortId, Any?>) : NodeRun
 
+    /**
+     * Not run because an input it needs never got a value: an upstream node produced [NoSignal] there (a branch not taken), or was itself
+     * skipped. Nodes after a skipped node are skipped too. Its runner was not called and it has no outputs.
+     */
+    public data object Skipped : NodeRun
+
     /** [GraphEngine]'s `beforeRun` refused to start this node. It is asked again on the next start or re-run. */
     public data object Declined : NodeRun
 
@@ -73,3 +79,12 @@ public class CycleException(public val nodes: Set<NodeId>) : IllegalStateExcepti
 
 /** No runner is registered for the kind of the node. */
 public class MissingRunnerException(public val kind: String) : IllegalStateException("No NodeRunner registered for kind \"$kind\"")
+
+/**
+ * A value a runner can emit or return at an output port to say "nothing comes out here" (the untaken branch of an `If`, a filter that
+ * dropped the item). It is not passed on as a value: nodes whose input needs that port are skipped ([NodeRun.Skipped]) without calling
+ * their runner, and the skip spreads to the nodes after them. A port a runner simply leaves out still reads as `null`, as before.
+ */
+public object NoSignal {
+    override fun toString(): String = "NoSignal"
+}

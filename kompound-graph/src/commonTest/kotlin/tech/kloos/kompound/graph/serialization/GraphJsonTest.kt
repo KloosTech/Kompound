@@ -227,4 +227,15 @@ class ValueJsonTest {
         assertEquals(pin, back.node(NodeId("a"))!!.pin)
         assertEquals(null, GraphJson().decode(GraphJson().encode(Graph.of(listOf(GraphNode(NodeId("b"), "k"))))).graph.node(NodeId("b"))!!.pin)
     }
+
+    @Test
+    fun aMigrationHookFixesUpNodesSavedByAnOlderVersionWhileTheyLoad() {
+        val old = Graph.of(listOf(GraphNode(NodeId("t"), "transform", ports = listOf(PortSpec.input("a"), PortSpec.output("out")))))
+        val text = GraphJson().encode(old)
+        val migrated = GraphJson(migrate = { n ->
+            if (n.kind == "transform") n.copy(ports = n.ports.map { if (it.id.value == "a") it.copy(signal = tech.kloos.kompound.graph.model.SignalMode.Each) else it }) else n
+        }).decode(text).graph
+        assertEquals(tech.kloos.kompound.graph.model.SignalMode.Each, migrated.node(NodeId("t"))!!.port("a")!!.signal)
+        assertEquals(tech.kloos.kompound.graph.model.SignalMode.Latest, GraphJson().decode(text).graph.node(NodeId("t"))!!.port("a")!!.signal)
+    }
 }

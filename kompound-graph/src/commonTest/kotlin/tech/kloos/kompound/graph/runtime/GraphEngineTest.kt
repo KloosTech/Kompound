@@ -993,3 +993,117 @@ class GraphEngineRunControlTest {
         assertTrue(e.executions.none { it.trigger == TraceTrigger.Test })
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineBranchingTest {
+    private val sm = tech.kloos.kompound.graph.model.SignalMode.Latest
+
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<Pair<String, tech.kloos.kompound.graph.model.SignalMode>> = emptyList(), outs: List<String> = listOf("out")) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it.first, signal = it.second) } + outs.map { PortSpec.output(it) }, data)
+
+    private fun wire(from: String, fromPort: String, to: String, port: String = "a") = Edge(
+        EdgeId("$from.$fromPort->$to.$port"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), tech.kloos.kompound.graph.model.PortId(fromPort)),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)),
+    )
+
+    private fun TestScope.engine(log: MutableList<String>, signalMode: ((GraphNode, PortSpec) -> tech.kloos.kompound.graph.model.SignalMode)? = null) = GraphEngine(
+        this,
+        mapOf(
+            "const" to singleOutputRunner { n, _ -> n.data },
+            // routes its input to "then" when the data flag is true, else to "else"; the other port has no signal
+            "if" to NodeRunner { ctx ->
+                log += "if"
+                if (ctx.node.data == true) mapOf("then" to ctx.inputs["a"], "else" to NoSignal) else mapOf("then" to NoSignal, "else" to ctx.inputs["a"])
+            },
+            "echo" to singleOutputRunner { n, i -> log += "echo ${n.id} ${i["a"]}"; i["a"] },
+            "emitNothing" to NodeRunner { ctx -> ctx.emit("out", NoSignal); emptyMap() },
+        ),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+        signalMode = signalMode ?: { _, port -> port.signal },
+    )
+
+    private fun branching(flag: Boolean) = Graph.of(
+        listOf(
+            node("v", "const", 42),
+            node("if", "if", flag, ins = listOf("a" to sm), outs = listOf("then", "else")),
+            node("yes", "echo", ins = listOf("a" to sm)),
+            node("yes2", "echo", ins = listOf("a" to sm)),
+            node("no", "echo", ins = listOf("a" to sm)),
+        ),
+        listOf(wire("v", "out", "if"), wire("if", "then", "yes"), wire("yes", "out", "yes2"), wire("if", "else", "no")),
+    )
+
+    @Test
+    fun theBranchNotTakenIsSkippedWithoutRunningItsNodesAndTheSkipSpreads() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(branching(flag = true))
+        advanceUntilIdle()
+        assertEquals(listOf("if", "echo yes 42", "echo yes2 42"), log, "only the taken branch ran")
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("no")))
+        assertEquals(42, e.output(NodeId("yes2"), "out"))
+        e.update(branching(flag = false))
+        advanceUntilIdle()
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("yes")))
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("yes2")), "skip cascades")
+        assertEquals(42, e.output(NodeId("no"), "out"))
+        assertTrue(e.executions.last().attemptsOf(NodeId("yes")).isEmpty(), "a skipped node has no attempt")
+        assertTrue(e.runs.values.none { it is NodeRun.Running || it is NodeRun.Waiting }, "nothing is left waiting")
+    }
+
+    @Test
+    fun collectStillRunsWithAnEmptyListButFinalAndLatestSkip() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        val g = Graph.of(
+            listOf(
+                node("none", "emitNothing"),
+                node("collect", "echo", ins = listOf("a" to tech.kloos.kompound.graph.model.SignalMode.Collect)),
+                node("final", "echo", ins = listOf("a" to tech.kloos.kompound.graph.model.SignalMode.Final)),
+                node("each", "echo", ins = listOf("a" to tech.kloos.kompound.graph.model.SignalMode.Each)),
+            ),
+            listOf(wire("none", "out", "collect"), wire("none", "out", "final"), wire("none", "out", "each")),
+        )
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(listOf("echo collect []"), log)
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("final")))
+        assertEquals(NodeRun.Skipped, e.runOf(NodeId("each")))
+        assertTrue(e.runOf(NodeId("none")) is NodeRun.Done)
+    }
+
+    @Test
+    fun aPortLeftOutStillReadsAsNullAndOnlyNoSignalMeansNothing() = runTest {
+        val log = mutableListOf<String>()
+        val e = GraphEngine(
+            this,
+            mapOf("partial" to NodeRunner { mapOf("a" to 1) }, "echo" to singleOutputRunner { n, i -> log += "echo ${n.id} ${i["a"]}"; i["a"] }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        e.update(Graph.of(
+            listOf(node("p", "partial", outs = listOf("a", "b")), node("fromA", "echo", ins = listOf("a" to sm)), node("fromB", "echo", ins = listOf("a" to sm))),
+            listOf(wire("p", "a", "fromA"), wire("p", "b", "fromB")),
+        ))
+        advanceUntilIdle()
+        assertEquals(setOf("echo fromA 1", "echo fromB null"), log.toSet())
+    }
+
+    @Test
+    fun theSignalModeCanBeResolvedAtRunTimeSoSavedPortsFollowTheNewBehaviour() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log, signalMode = { n, port -> if (n.kind == "echo") tech.kloos.kompound.graph.model.SignalMode.Each else port.signal })
+        val ticker = GraphNode(NodeId("t"), "ticker", Offset.Zero, listOf(PortSpec.output("out")), 3)
+        val consumer = node("c", "echo", ins = listOf("a" to sm))   // saved as Latest
+        val withTicker = GraphEngine(
+            this,
+            mapOf("ticker" to NodeRunner { ctx -> repeat(3) { i -> delay(10); ctx.emit("out", i) }; emptyMap() }, "echo" to singleOutputRunner { n, i -> log += "echo ${i["a"]}"; delay(100); i["a"] }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+            signalMode = { n, port -> if (n.kind == "echo") tech.kloos.kompound.graph.model.SignalMode.Each else port.signal },
+        )
+        withTicker.update(Graph.of(listOf(ticker, consumer), listOf(wire("t", "out", "c"))))
+        advanceUntilIdle()
+        assertEquals(listOf("echo 0", "echo 1", "echo 2"), log, "Each processed every value although the port says Latest")
+        assertTrue(e.runs.isEmpty())
+    }
+}
