@@ -1,6 +1,7 @@
 package tech.kloos.kompound
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toPixelMap
@@ -37,3 +38,17 @@ internal fun contrast(a: Color, b: Color): Float {
     val l1 = lum(a); val l2 = lum(b)
     return (maxOf(l1, l2) + 0.05f) / (minOf(l1, l2) + 0.05f)
 }
+
+/** True when any pixel in the rectangle [x0, x1) by [y0, y1) is within [tol] of [c] and (almost) opaque. */
+internal fun androidx.compose.ui.graphics.PixelMap.hasColorIn(c: Color, x0: Int, x1: Int, y0: Int, y1: Int, tol: Float = 0.1f): Boolean {
+    for (y in y0.coerceAtLeast(0) until y1.coerceAtMost(height)) for (x in x0.coerceAtLeast(0) until x1.coerceAtMost(width)) {
+        val p = this[x, y]
+        if (p.alpha > 0.9f && p.near(c.copy(alpha = p.alpha), tol)) return true
+    }
+    return false
+}
+
+/** How many nodes show [text] (0 when it is not on screen). */
+@androidx.compose.ui.test.ExperimentalTestApi
+internal fun androidx.compose.ui.test.ComposeUiTest.countText(text: String): Int =
+    onAllNodesWithText(text).fetchSemanticsNodes().size
