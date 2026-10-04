@@ -28,6 +28,7 @@ or grab the Android APK and desktop installers from the [Releases](https://githu
 | **Text input** | `KTextField`, `KTextArea`, `KNumberField`, `KSearchBar`, `KInlineEdit` |
 | **Pickers** | `KDropdown`, `KMultiDropdown`, `KMenu` / `KMenuItem`, `KDateField`, `KDateRangeField` |
 | **Display** | `KBadge`, `KAvatar`, `KListItem`, `KLinearProgress`, `KCircularProgress`, `KEmptyState`, `KErrorState` |
+| **Data** | `KDataTable` (sortable, selectable, virtualized), `KTreeView` (virtualized, WAI-ARIA keys), `KSparkline`, `KLineChart`, `KBarChart` |
 | **Layout** | `KScaffold`, `KTopBar`, `KSplitPane` |
 | **Navigation** | `KTabRow`, `KNavigationBar`, `KNavigationRail`, `KNavigationDrawer`, `KModalNavigationDrawer` |
 | **Node graph** (`kompound-graph`) | `KNodeGraph`, `KNode`, groups and subgraphs, auto layout, JSON, `GraphEngine` (suspending nodes, traces, pins), `KNodeInspector` |

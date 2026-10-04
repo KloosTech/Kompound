@@ -12,7 +12,7 @@ follows `COMPONENT_SPEC.md` (style parameter, states, accessibility, demo, tests
 |------|---------|-------|
 | 1 Foundation | density (`KDensity`), theme presets and import (`KThemeSpec`, `KThemePresets`, `KThemeImport`), localisation (`KompoundStrings`), JSON tree moved to `:kompound` | done |
 | 2 Navigation and layout | `KTabRow`, `KNavigationBar`, `KNavigationRail`, `KNavigationDrawer`, `KContextMenuArea`, `KSplitPane`, `KSkeleton` / shimmer | done |
-| 3 Data | `KDataTable` (sortable, virtualized), `KTreeView`, `KSparkline`, `KBarChart`, `KLineChart` | planned |
+| 3 Data | `KDataTable` (sortable, virtualized), `KTreeView`, `KSparkline`, `KBarChart`, `KLineChart` | done |
 | 4 Input | `KCommandPalette`, `KCombobox`, `KTagInput`, `KTimePicker`, `KColorPicker` | planned |
 | 5 Forms and accessibility | form state and validation (`KFormState`, `KForm`, `KFormField`), accessibility audit (keyboard matrix document, automated semantics checks over every demo) | planned |
 
