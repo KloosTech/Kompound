@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Graph engine: `SignalMode.Any` (an optional input: the node waits until the input has a value or its upstream finished, and gets `null` when none came, so a `Merge` of branches is two `Any` inputs); `NodeRun.Blocked(by, declined)` so a node behind a refused node is not shown like one behind a failure (`KNodeStatus.Declined`).
+- Graph nodes: `Input(..., trailing = { })` (always shown), public `Modifier.straddleNodeEdge(direction)` for rows built by hand, `KNodeScope.node`, `KNodeScope.PortEditor(direction, reserved)` (add, rename and remove user-defined ports as `UpdateNodePorts` undo steps; `portIdFromName`), and resizable nodes: `KNode(resizable = true, minWidth, maxWidth)` with a corner handle, the width kept in `GraphNode.width` (`GraphCommand.ResizeNodes`, saved in the JSON).
+- `KIconButton(size = KIconButtonSize.Small)` (28dp circle, 32dp target) for dense places.
+- `KCode`: `KCodeLanguage.Shell`, `KCodeLanguage.cLike(keywords)` and `KCodeLexing` helpers for writing languages; a `KCode(value: TextFieldValue, onValueChange)` overload and a `focusRequester` parameter so code outside the editor can insert at the caret (`TextFieldValue.insertAtCursor`).
 - Fixed: the inspector's Pin button pinned the engine's current output even while a recorded run was shown (the data on screen was older, possibly redacted); it is now disabled in that view. Fixed: `GraphJson(migrate = ...)` renaming a kind with typed data left the data as raw JSON; when migrate leaves the data alone, it is read again with the new kind's `nodeData` codec.
 
 ## 0.1.0-alpha03 (2026-10-04)

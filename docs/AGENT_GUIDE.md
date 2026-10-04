@@ -147,7 +147,7 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | `KStepList(steps: List<KStep>, labels)` with `KStep(title, state: KStepState, trailing)` | `KStepState.Waiting`, `InProgress(progress)`, `Done` |
 | `KEmptyState(title, description, illustration, action)` / `KErrorState(title, description, onRetry, …)` | empty and error screens |
 | `KMarkdown(markdown, onLinkClick, selectable, …)` | renders markdown |
-| `KCode(code, onCodeChange?, language: KCodeLanguage, showLineNumbers, …)` | code view; editable when `onCodeChange` is set |
+| `KCode(code, onCodeChange?, language: KCodeLanguage, showLineNumbers, …, focusRequester)` and `KCode(value: TextFieldValue, onValueChange, …)` | code view; editable when `onCodeChange` is set. Languages: `Kotlin`, `Json`, `Shell`, `Plain`, `KCodeLanguage.cLike(keywords)` or your own (`KCodeLexing` helpers). The `TextFieldValue` overload exposes the caret and selection: `value.insertAtCursor("$X")` from a button, then `focusRequester.requestFocus()` |
 | `KTooltip(text, placement: KTooltipPlacement.Above/Below, …, content)` | wraps the thing it describes |
 | `KExpandable(title \| header slot, expanded, onExpandedChange, …, content)` | one collapsible section |
 | `KAccordion(state = rememberKAccordionState(exclusive, initiallyExpanded), …) { Item(key, title = …) { content } }` (or `Item(key, header = { … }) { content }`) | a group of sections; `key` must be unique |
@@ -235,7 +235,7 @@ KNodeGraph(state, Modifier.fillMaxWidth().height(480.dp), fitOnFirstLayout = tru
 }
 ```
 
-`KNode`'s scope offers `Input(port, label, editor)`, `Output(port, label)`, `Content { }`, `PortHandle(port)`, `Collapsible(title) { }` and `Select(label, options, selected, onSelect)` (a choice field sized for a node row; `KNodeSelect` works anywhere, for example as an `Input` editor).
+`KNode`'s scope offers `Input(port, label, editor)`, `Output(port, label)`, `Content { }`, `PortHandle(port)`, `Collapsible(title) { }` and `Select(label, options, selected, onSelect)` (a choice field sized for a node row; `KNodeSelect` works anywhere, for example as an `Input` editor), `PortEditor(direction, reserved)` (users add, rename and remove their own ports; each change is an `UpdateNodePorts` undo step) and `Input(port, label, editor, trailing = { … })` (`trailing` is always shown). `KNode(resizable = true)` adds a corner handle; the width is kept in `GraphNode.width` and saved. For rows you build yourself use `PortHandle(port, Modifier.straddleNodeEdge(direction))`. `KIconButton(size = KIconButtonSize.Small)` suits dense rows.
 `KNode(collapsible = true)` adds a chevron that folds the whole body. Node height follows its content, wires follow resizes.
 
 Edit from code: `state.connect(a, b)`, `state.execute(cmd)`, `state.undo()`, `state.redo()`, `state.removeSelection()`, `state.fitView()`,
@@ -282,6 +282,7 @@ val engine = rememberGraphEngine(state, runners)         // follows the editor: 
 - **Manual mode**: `rememberGraphEngine(state, runners, autoRun = false)`: edits only mark results stale; `engine.start()`, `rerun(id)`, `rerunAll()` run once and return to idle. `stop()` cancels and keeps `Failed`/`Blocked` states; `deactivate()` just stops reacting to edits. `engine.isBusy`/`isActive` are observable; `awaitIdle()` and `runToCompletion()` suspend until done (headless use).
 - **Gate runs with side effects**: `GraphEngine(..., beforeRun = { node, trigger -> trigger != TraceTrigger.Auto })` refuses or asks before a runner starts (`Auto`, `Manual`, `Rerun`, `Test`); refused nodes are `NodeRun.Declined`, later nodes `Blocked`, and `start()`/`rerun()` ask again. Pass `onTest`/`onRerun`/`onPin` to `KNodeInspector` to take over its buttons.
 - **Streaming**: a node may `emit` many times. Each input port has `PortSpec.input(..., signal = SignalMode.X)`: `Latest` (default, re-run on each value, cancelling the one in progress), `Each` (one run per value, in order), `Collect` (wait for the end, get a list), `Final` (wait for the end, get the last).
+- **Optional inputs**: `SignalMode.Any` runs the node once the input has a value or its upstream finished, with `null` when none came (a `Merge` of two branches is two `Any` inputs). `NodeRun.Blocked(by, declined = true)` means a node behind a refused (`beforeRun`) node, not a failure.
 - **Branching**: a runner returns `NoSignal` for a port that has nothing (`mapOf("then" to value, "else" to NoSignal)`); nodes that need that input are `NodeRun.Skipped` without running, and the skip spreads. A port a runner simply leaves out still reads as `null`. `Collect` inputs still run (with an empty list).
 - **Changing saved behaviour**: `GraphEngine(signalMode = { node, port -> … })` overrides the `SignalMode` saved in port specs; `GraphJson(migrate = { node -> … })` fixes nodes as they load; `GraphCommand.UpdateNodePorts(id, ports)` changes a node's ports as one undo step.
 - **Subgraphs** are routed through at any depth. **Pins**: `state.pin(id, outputs)` fixes a node's outputs (the node and nodes only it would feed are not run); `state.unpin(id)`.
