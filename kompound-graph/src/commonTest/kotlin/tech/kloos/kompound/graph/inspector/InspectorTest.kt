@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -237,5 +239,25 @@ class InspectorUiTest {
         waitForIdle()
         onNodeWithText("#1 edit").assertDoesNotExist()
         onNodeWithText("#2 re-run").assertIsDisplayed()
+    }
+
+    @Test
+    fun pinIsOfferedForTheLiveRunButNotWhileLookingAtARecordedOne() = runComposeUiTest {
+        var engine: GraphEngine? = null
+        var recorded by mutableStateOf<tech.kloos.kompound.graph.runtime.Execution?>(null)
+        setContent {
+            MaterialTheme(scheme) {
+                val state = remember { KGraphState(graph) }
+                engine = rememberGraphEngine(state, runners)
+                Box(Modifier.size(1100.dp, 600.dp)) { KNodeInspector(engine!!, state.graph.node(NodeId("sum"))!!, state = state, execution = recorded) }
+            }
+        }
+        waitUntil(timeoutMillis = 5_000) { engine?.runOf(NodeId("sum")) is tech.kloos.kompound.graph.runtime.NodeRun.Done }
+        waitForIdle()
+        onNodeWithText("Pin output").assertIsEnabled()
+        recorded = engine!!.executions.last()
+        waitForIdle()
+        onNodeWithText("Pin output").assertIsNotEnabled()
+        onNodeWithText("\"a\": 4,", substring = true).assertExists()
     }
 }

@@ -55,7 +55,8 @@ public class LoadedGraph(public val graph: Graph, public val offset: Offset?, pu
  * @property portTypes The port types of your app.
  * @property pretty Indent the output.
  * @property migrate Applied to every node as it is loaded, so a new app version can fix up nodes saved by an older one (new ports, a changed
- * [tech.kloos.kompound.graph.model.SignalMode], renamed kinds). Edges are checked after it ran.
+ * [tech.kloos.kompound.graph.model.SignalMode], renamed kinds). Edges are checked after it ran. When it renames a kind and leaves the data alone, the
+ * data is read again with the new kind's `nodeData` codec (it was first read with the old kind's, or kept as raw JSON).
  * @property values How pinned output values are written (see [ValueJson]); pass one with your [ValueCodec]s if pins hold your own types.
  */
 public class GraphJson(
@@ -91,7 +92,17 @@ public class GraphJson(
         if (string(root, "format", "graph") != Format) throw GraphJsonException("Not a Kompound graph (format is not \"$Format\")")
         val version = int(root, "version", "graph")
         if (version < 1 || version > Version) throw GraphJsonException("Graph version $version is not supported (this app reads up to $Version)")
-        val nodes = array(root, "nodes", "graph").mapIndexed { i, v -> migrate(nodeFromJson(obj(v, "nodes[$i]"), "nodes[$i]")) }
+        val nodes = array(root, "nodes", "graph").mapIndexed { i, v ->
+            val at = "nodes[$i]"
+            val raw = obj(v, at)
+            val before = nodeFromJson(raw, at)
+            val after = migrate(before)
+            // A renamed kind: its data was read with the old kind's codec (or kept raw). If migrate left the data alone, read it again with
+            // the codec of the new kind, so renaming a kind that has typed data works.
+            val codec = nodeData[after.kind]
+            val rawData = raw["data"]?.takeUnless { it == JsonNull }
+            if (after.kind != before.kind && codec != null && rawData != null && after.data == before.data) after.copy(data = codec.decode(rawData)) else after
+        }
         val ids = HashSet<NodeId>()
         for (n in nodes) if (!ids.add(n.id)) throw GraphJsonException("Duplicate node id \"${n.id}\"")
         val edges = array(root, "edges", "graph").mapIndexed { i, v -> edgeFromJson(obj(v, "edges[$i]"), "edges[$i]") }
