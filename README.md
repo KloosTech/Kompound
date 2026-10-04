@@ -194,6 +194,7 @@ Components follow a strict contract (naming, styling through `Style`, accessibil
 
 More documentation:
 
+- [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md): compact guide for AI coding agents (rules, component reference, graph framework, testing)
 - [`docs/SPEC.md`](docs/SPEC.md): architecture, decisions and the project log
 - [`docs/COMPONENT_SPEC.md`](docs/COMPONENT_SPEC.md): the component contract
 - [`docs/adr`](docs/adr): architecture decision records (styling model, demo discovery, catalog aggregation)
