@@ -171,6 +171,7 @@ public class KGraphState(
         selectedEdges = selectedEdges.filterTo(HashSet()) { it in g.edges }
         anchors.keys.filter { it.node !in g.nodes }.forEach { anchors.remove(it) }
         sizes.keys.filter { it !in g.nodes }.forEach { sizes.remove(it) }
+        uiExpanded.keys.filter { key -> NodeId(key.substringBefore('/')) !in g.nodes }.forEach { uiExpanded.remove(it) }
         if (old != g) onGraphChange?.invoke(old, g)
     }
 
@@ -644,6 +645,32 @@ public class KGraphState(
     public var canvasSize: Size by mutableStateOf(Size.Zero)
         internal set
 
+    // --- collapsible parts of nodes -------------------------------------------------------------------------
+
+    private val uiExpanded = mutableStateMapOf<String, Boolean>()
+
+    /** Ports inside collapsed content: they keep reporting an anchor (on the fold) but are not offered as wire targets. */
+    internal val hiddenPorts = mutableStateMapOf<PortRef, Boolean>()
+
+    /**
+     * Whether the collapsible part [key] of node [node] is open. Kept here (not in the composition) so it survives the node scrolling
+     * out of view; it is view state: not undoable, not part of the graph or its JSON.
+     */
+    public fun isExpanded(node: NodeId, key: String, default: Boolean = true): Boolean = uiExpanded["$node/$key"] ?: default
+
+    /** Opens or closes the collapsible part [key] of [node]. */
+    public fun setExpanded(node: NodeId, key: String, expanded: Boolean) {
+        uiExpanded["$node/$key"] = expanded
+    }
+
+    /** Whether the whole body of [node] is folded away (see `KNode(collapsible = true)`). */
+    public fun isCollapsed(node: NodeId): Boolean = !isExpanded(node, NodeBodyKey)
+
+    /** Folds the body of [node] away (leaving its title bar) or opens it. */
+    public fun setCollapsed(node: NodeId, collapsed: Boolean) {
+        setExpanded(node, NodeBodyKey, !collapsed)
+    }
+
     /** Records where the centre of a port is, from its layout coordinates. */
     internal fun reportPort(ref: PortRef, coordinates: LayoutCoordinates) {
         val l = layer ?: return
@@ -717,7 +744,7 @@ public class KGraphState(
     public fun beginWire(from: PortRef) {
         val start = anchors[from] ?: return
         val compatible = graph.nodes.values.filter { !isHidden(it) }.flatMap { n -> n.ports.map { PortRef(n.id, it.id) } }
-            .filterTo(HashSet()) { it != from && policy.check(graph, from, it) is ConnectionCheck.Allowed }
+            .filterTo(HashSet()) { it != from && it !in hiddenPorts && policy.check(graph, from, it) is ConnectionCheck.Allowed }
         wire = KWireDraft(from, start, null, compatible)
     }
 
@@ -796,3 +823,6 @@ public fun rememberKGraphState(
 
 /** Mouse tool of the node graph canvas. */
 public enum class KGraphTool { Select, Pan }
+
+/** Key under which a node's whole-body fold state is stored. */
+internal const val NodeBodyKey: String = "#node"

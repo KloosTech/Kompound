@@ -23,6 +23,9 @@ import androidx.compose.ui.test.moveTo
 import androidx.compose.ui.test.up
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
@@ -785,5 +788,115 @@ class KNodeGraphTest {
             if (luminance > 0.6f) light++
         }
         assertTrue(light > 40, "light text pixels: $light")
+    }
+
+    private fun ComposeUiTest.showCollapsible(state: KGraphState, nodeCollapsible: Boolean = false) = setContent {
+        MaterialTheme(scheme) {
+            Box(Modifier.size(900.dp, 700.dp)) {
+                KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                    KNode(node, "Node ${node.id}", modifier = Modifier.testTag(node.id.value), collapsible = nodeCollapsible) {
+                        Input("a")
+                        Collapsible("Details") {
+                            Content { Box(Modifier.size(160.dp, 120.dp)) }
+                            Input("b")
+                        }
+                        Output("out")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun aCollapsibleSectionResizesTheNodeAndPullsItsPortsToTheFold() = runComposeUiTest {
+        val state = twoNodes()
+        showCollapsible(state)
+        waitForIdle()
+        val id = NodeId("n1")
+        val openHeight = state.sizes.getValue(id).height
+        val openAnchor = state.anchorOf(ref("n1", "b"))!!
+        val outBefore = state.anchorOf(ref("n1", "out"))!!
+        onAllNodesWithText("Details", useUnmergedTree = true).onFirst().performClick()
+        waitForIdle()
+        val closedHeight = state.sizes.getValue(id).height
+        assertTrue(closedHeight < openHeight - 100f, "node shrank: $openHeight -> $closedHeight")
+        val closedAnchor = state.anchorOf(ref("n1", "b"))!!
+        assertTrue(closedAnchor.y < openAnchor.y - 20f, "port inside moved up to the fold: ${openAnchor.y} -> ${closedAnchor.y}")
+        assertTrue(state.anchorOf(ref("n1", "out"))!!.y < outBefore.y - 100f, "ports below moved up with the content")
+        assertTrue(state.hiddenPorts.containsKey(ref("n1", "b")) && !state.hiddenPorts.containsKey(ref("n1", "a")))
+        assertTrue(!state.isExpanded(id, "Details"))
+        onAllNodesWithText("Details", useUnmergedTree = true).onFirst().performClick()
+        waitForIdle()
+        assertEquals(openHeight, state.sizes.getValue(id).height, 1f)
+        assertEquals(openAnchor.y, state.anchorOf(ref("n1", "b"))!!.y, 1f)
+        assertTrue(state.hiddenPorts.isEmpty())
+    }
+
+    @Test
+    fun aPortInAClosedSectionIsNotOfferedAsAWireTarget() = runComposeUiTest {
+        val state = twoNodes()
+        showCollapsible(state)
+        waitForIdle()
+        state.beginWire(ref("n2", "out"))
+        assertTrue(ref("n1", "b") in state.wire!!.compatible)
+        state.cancelWire()
+        state.setExpanded(NodeId("n1"), "Details", false)
+        waitForIdle()
+        state.beginWire(ref("n2", "out"))
+        assertTrue(ref("n1", "b") !in state.wire!!.compatible, "hidden port is not a target")
+        assertTrue(ref("n1", "a") in state.wire!!.compatible)
+    }
+
+    @Test
+    fun theWholeBodyOfANodeFoldsAwayLeavingTheTitleBar() = runComposeUiTest {
+        val state = twoNodes()
+        showCollapsible(state, nodeCollapsible = true)
+        waitForIdle()
+        val id = NodeId("n1")
+        val openHeight = state.sizes.getValue(id).height
+        onAllNodesWithContentDescription("Collapse node").onFirst().performClick()
+        waitForIdle()
+        assertTrue(state.isCollapsed(id))
+        val folded = state.sizes.getValue(id).height
+        assertTrue(folded < 60f && folded < openHeight / 2, "only the title bar is left: $folded of $openHeight")
+        val a = state.anchorOf(ref("n1", "a"))!!
+        assertTrue(a.y < state.graph.node(id)!!.position.y + 60f, "wires attach at the title bar: ${a.y}")
+        onAllNodesWithContentDescription("Expand node").onFirst().performClick()
+        waitForIdle()
+        assertEquals(openHeight, state.sizes.getValue(id).height, 1f)
+        assertTrue(!state.isCollapsed(id))
+    }
+
+    @Test
+    fun aControlledSectionFollowsItsState() = runComposeUiTest {
+        val state = twoNodes()
+        val openState = androidx.compose.runtime.mutableStateOf(true)
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 700.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Node ${node.id}") {
+                            Collapsible("Mine", openState.value, { openState.value = it }) { Content { Box(Modifier.size(160.dp, 120.dp)) } }
+                        }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val openHeight = state.sizes.getValue(NodeId("n1")).height
+        onAllNodesWithText("Mine", useUnmergedTree = true).onFirst().performClick()
+        waitForIdle()
+        assertTrue(!openState.value)
+        assertTrue(state.sizes.getValue(NodeId("n1")).height < openHeight - 100f)
+    }
+
+    @Test
+    fun foldStateOfRemovedNodesIsForgotten() = runComposeUiTest {
+        val state = twoNodes()
+        state.setExpanded(NodeId("n1"), "x", false)
+        state.setCollapsed(NodeId("n2"), true)
+        state.execute(tech.kloos.kompound.graph.model.GraphCommand.RemoveNodes(setOf(NodeId("n1"))))
+        assertTrue(state.isExpanded(NodeId("n1"), "x"), "back to the default")
+        assertTrue(state.isCollapsed(NodeId("n2")))
     }
 }

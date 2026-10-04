@@ -46,6 +46,7 @@ internal fun KPortHandle(ref: PortRef, spec: PortSpec, modifier: Modifier = Modi
     // The editor's layer may appear after the port: report again once it is there.
     val tick = state.layerTick
     androidx.compose.runtime.DisposableEffect(ref) { onDispose { state.portDisposed(ref) } }
+    HideWhileCollapsed(state, ref)
     androidx.compose.runtime.LaunchedEffect(tick) { coords[0]?.let { state.reportPort(ref, it) } }
 
     val description = buildString {

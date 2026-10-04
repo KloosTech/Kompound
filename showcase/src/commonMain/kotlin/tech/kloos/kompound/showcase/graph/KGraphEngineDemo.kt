@@ -203,7 +203,7 @@ fun DemoScope.KGraphEngineDemo() {
             KExecutionList(engine, selected, { selected = it }, Modifier.fillMaxWidth().height(180.dp))
             KText(if (selected == null) "Showing the live state. Pick a run to see how it went; double-click a node for its input and output." else "Showing run #${selected!!.id}. Double-click a node to inspect what it received and produced.")
         }
-        KText("Change a number or a delay while it runs: the stale step is cancelled and everything after it starts again. Set the second input of Divide to 0 to see a failure block only what comes after it. Slow steps run side by side; Add waits for both.")
+        KText("Change a number or a delay while it runs: the stale step is cancelled and everything after it starts again. Set the second input of Divide to 0 to see a failure block only what comes after it. Slow steps run side by side; Add waits for both. The chevron in a title bar folds the node, and the Status section folds on its own.")
         GraphFrame(state, 520) { frame ->
             KNodeGraph(
                 state, frame,
@@ -232,7 +232,7 @@ fun DemoScope.KGraphEngineDemo() {
                     "divide" -> "Divide"
                     else -> "Result"
                 }
-                KNode(node, title, onDoubleClick = { inspecting = node.id }) {
+                KNode(node, title, onDoubleClick = { inspecting = node.id }, collapsible = true) {
                     when (node.kind) {
                         "number" -> Content {
                             KText((node.data as Float).toString().take(4))
@@ -252,7 +252,7 @@ fun DemoScope.KGraphEngineDemo() {
                         }
                         else -> { Input("a", "A"); Input("b", "B"); Output("out", "Result") }
                     }
-                    if (node.kind != "number") Content { StatusLine(run) }
+                    if (node.kind != "number") Collapsible("Status") { Content { StatusLine(run) } }
                 }
             }
         }
