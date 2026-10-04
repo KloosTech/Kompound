@@ -48,7 +48,7 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("tech.kloos.kompound:kompound:0.1.0-alpha02")
+            implementation("tech.kloos.kompound:kompound:0.1.0-alpha03")
         }
     }
 }
@@ -64,7 +64,7 @@ A library cannot opt its callers in, so apply the `tech.kloos.kompound` plugin (
 kotlin { compilerOptions { optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi") } }
 ```
 
-The node graph framework (editor canvas, execution engine, inspector; experimental) is a separate artifact: `implementation("tech.kloos.kompound:kompound-graph:0.1.0-alpha02")`. Start with [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) section 7.
+The node graph framework (editor canvas, execution engine, inspector; experimental) is a separate artifact: `implementation("tech.kloos.kompound:kompound-graph:0.1.0-alpha03")`. Start with [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) section 7.
 
 **Requirements**
 
@@ -149,7 +149,7 @@ generated registry (the mechanism the Kompound catalog itself uses):
 
 ```kotlin
 // build.gradle.kts of the module that contains the demos
-plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha02" }   // applies KSP, the processor and the dependencies
+plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha03" }   // applies KSP, the processor and the dependencies
 ```
 
 ```kotlin
