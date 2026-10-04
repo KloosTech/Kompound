@@ -84,6 +84,7 @@ public fun KGraphState.addNode(type: KNodeType, position: Offset, connectFrom: P
  * Returns the reroute's id, or `null` when the edge does not exist.
  */
 public fun KGraphState.insertReroute(edge: EdgeId, position: Offset): NodeId? {
+    if (readOnly) return null
     val e = graph.edge(edge) ?: return null
     val type = graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any
     var n = 1

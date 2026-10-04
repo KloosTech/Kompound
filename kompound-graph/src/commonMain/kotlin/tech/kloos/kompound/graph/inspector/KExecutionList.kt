@@ -4,6 +4,15 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import tech.kloos.kompound.graph.model.NodeId
+import tech.kloos.kompound.chip.KChip
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,14 +49,31 @@ internal fun statusColor(status: TraceStatus): Color = when (status) {
     TraceStatus.Cancelled -> MaterialTheme.colorScheme.outline
 }
 
+/** The word for a [TraceTrigger] in the list and its filter. */
+internal fun defaultTriggerLabel(trigger: TraceTrigger): String = when (trigger) {
+    TraceTrigger.Auto -> "edit"
+    TraceTrigger.Manual -> "run"
+    TraceTrigger.Rerun -> "re-run"
+    TraceTrigger.Test -> "test"
+}
+
 /**
  * The executions the engine recorded, newest first, under a "Live" row. Pick one to look at it: pass the selection to
  * `engine.nodeStatus(node, execution)` and `engine.edgeLabel(edge, execution)` for the canvas and to [KNodeInspector] for the data.
  * `null` is "Live" (the current state of the engine).
  *
+ * With `autoRun` every edit is a run, so the list can fill up with edit runs: show only some kinds with [triggers], and/or let the
+ * user choose with [showTriggerFilter] (a row of chips above the list).
+ *
  * @param selected The execution being looked at, or `null` for live.
  * @param onSelect Called with the picked execution (`null` for live).
+ * @param triggers Show only runs started by these triggers (`null` shows all). The user's chips narrow it further.
+ * @param showTriggerFilter Show filter chips for the trigger kinds that occur.
+ * @param triggerLabel Word for a trigger kind (`edit`, `run`, `re-run`, `test` by default).
+ * @param nodeLabel Name of a node for display; a failed run names the node that failed, and graphs with generated ids (for example
+ * subgraphs expanded from references) can map them to something a user understands.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 public fun KExecutionList(
     engine: GraphEngine,
@@ -55,21 +81,40 @@ public fun KExecutionList(
     onSelect: (Execution?) -> Unit,
     modifier: Modifier = Modifier,
     liveLabel: String = "Live",
+    triggers: Set<TraceTrigger>? = null,
+    showTriggerFilter: Boolean = false,
+    triggerLabel: (TraceTrigger) -> String = ::defaultTriggerLabel,
+    nodeLabel: (NodeId) -> String = { it.value },
 ) {
-    val executions = engine.executions.asReversed()
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        item(key = "live") {
-            ExecutionRow(liveLabel, if (engine.currentRun != null) "running" else "current state", statusDot = if (engine.currentRun != null) TraceStatus.Running else null, isSelected = selected == null) { onSelect(null) }
-        }
-        items(executions, key = { it.id }) { execution ->
-            val took = execution.finishedAt?.let { durationText(it - execution.startedAt) } ?: "running"
-            val trigger = when (execution.trigger) {
-                TraceTrigger.Auto -> "edit"
-                TraceTrigger.Manual -> "run"
-                TraceTrigger.Rerun -> "re-run"
-                TraceTrigger.Test -> "test"
+    var chosen by remember { mutableStateOf<Set<TraceTrigger>>(emptySet()) }
+    val recorded = engine.executions
+    val shown = recorded.asReversed().filter { e ->
+        (triggers == null || e.trigger in triggers) && (chosen.isEmpty() || e.trigger in chosen)
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (showTriggerFilter) {
+            val kinds = TraceTrigger.entries.filter { k -> (triggers == null || k in triggers) && recorded.any { it.trigger == k } }
+            if (kinds.size > 1) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (kind in kinds) {
+                        KChip(triggerLabel(kind), onClick = { chosen = if (kind in chosen) chosen - kind else chosen + kind }, selected = kind in chosen)
+                    }
+                }
             }
-            ExecutionRow("#${execution.id} $trigger", "$took, ${execution.attempts.map { it.nodeId }.toSet().size} nodes", execution.status, selected === execution) { onSelect(execution) }
+        }
+        LazyColumn(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            item(key = "live") {
+                ExecutionRow(liveLabel, if (engine.currentRun != null) "running" else "current state", statusDot = if (engine.currentRun != null) TraceStatus.Running else null, isSelected = selected == null) { onSelect(null) }
+            }
+            items(shown, key = { it.id }) { execution ->
+                val took = execution.finishedAt?.let { durationText(it - execution.startedAt) } ?: "running"
+                val failedNode = if (execution.status == TraceStatus.Failed) execution.attempts.lastOrNull { it.status == TraceStatus.Failed }?.nodeId else null
+                val detail = buildString {
+                    append("$took, ${execution.attempts.map { it.nodeId }.toSet().size} nodes")
+                    if (failedNode != null) append(", failed: ${nodeLabel(failedNode)}")
+                }
+                ExecutionRow("#${execution.id} ${triggerLabel(execution.trigger)}", detail, execution.status, selected === execution) { onSelect(execution) }
+            }
         }
     }
 }

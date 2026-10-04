@@ -161,6 +161,7 @@ public fun KNode(
             .focusable(true, source)
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                if (state.readOnly && event.key != Key.Enter) return@onKeyEvent false
                 val delta = when (event.key) {
                     Key.DirectionLeft -> Offset(-step, 0f)
                     Key.DirectionRight -> Offset(step, 0f)

@@ -201,7 +201,7 @@ fun DemoScope.KGraphEngineDemo() {
         }
         KSegmentedControl(listOf("Editor", "Executions"), tab, { tab = it; if (it == 0) selected = null }, Modifier.fillMaxWidth())
         if (tab == 1) {
-            KExecutionList(engine, selected, { selected = it }, Modifier.fillMaxWidth().height(180.dp))
+            KExecutionList(engine, selected, { selected = it }, Modifier.fillMaxWidth().height(180.dp), showTriggerFilter = true)
             KText(if (selected == null) "Showing the live state. Pick a run to see how it went; double-click a node for its input and output." else "Showing run #${selected!!.id}. Double-click a node to inspect what it received and produced.")
         }
         KText("Change a number or a delay while it runs: the stale step is cancelled and everything after it starts again. Set the second input of Divide to 0 to see a failure block only what comes after it. Slow steps run side by side; Add waits for both. The chevron in a title bar folds the node, and the Status section folds on its own.")
@@ -210,6 +210,7 @@ fun DemoScope.KGraphEngineDemo() {
                 state, frame,
                 fitOnFirstLayout = true,
                 nodeTypes = PipelineNodeTypes,
+                readOnly = tab == 1,
                 nodeStatus = { engine.nodeStatus(it, viewed) },
                 edgeLabel = { engine.edgeLabel(it, viewed) },
                 edgeStyle = { edge ->

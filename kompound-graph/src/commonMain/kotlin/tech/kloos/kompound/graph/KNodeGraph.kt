@@ -103,6 +103,7 @@ import kotlin.math.roundToInt
  * @param style Overrides merged over [KNodeGraphDefaults.style].
  * @param overlay Content drawn on top of the canvas and not moved by panning: place [KMiniMap] and [KGraphControls] here with `Modifier.align`.
  * @param nodeTypes Kinds of node the user may add. When not empty, double-clicking (or right-clicking) the empty canvas and dropping a dragged wire on empty canvas open a menu of them; a wire's node is connected automatically.
+ * @param readOnly Look but do not touch: pan, zoom, select, fit and open subgraphs work; dragging, wiring, deleting, pasting, grouping, layout, undo and the add-node menu are off (see [KGraphState.readOnly]). The content of your nodes is yours: check `state.readOnly` there.
  * @param virtualizeAbove Above this many nodes only the nodes near the visible area are composed (and wires that cannot be seen are not drawn), so graphs with thousands of nodes stay fast; selected and dragged nodes always stay. `Int.MAX_VALUE` turns it off.
  * @param portColor Overrides the colour of a port's handle (return null for the default, which depends on the port's type); use it to show a port's live value.
  * @param nodeStatus A progress mark in each [KNode]'s title bar (spinner, check, cross, ...); return `null` for none. Read observable state in it (for example a `GraphEngine`) and it updates live.
@@ -123,6 +124,7 @@ public fun KNodeGraph(
     overlay: (@Composable BoxScope.() -> Unit)? = null,
     nodeTypes: List<KNodeType> = emptyList(),
     virtualizeAbove: Int = 150,
+    readOnly: Boolean = false,
     portColor: ((port: PortRef, spec: PortSpec) -> Color?)? = null,
     nodeStatus: ((node: GraphNode) -> KNodeStatus?)? = null,
     edgeLabel: ((edge: Edge) -> String?)? = null,
@@ -131,6 +133,7 @@ public fun KNodeGraph(
 ) {
     remember { KompoundStyles.ensureEnabled() }
     state.nodeMenuEnabled = nodeTypes.isNotEmpty()
+    state.readOnly = readOnly
     val styleState = remember { MutableStyleState(null) }
     val focus = remember { FocusRequester() }
     val gridColor = KNodeGraphDefaults.gridColor()
@@ -398,6 +401,18 @@ private fun NodeLayer(state: KGraphState, virtualizeAbove: Int, nodeContent: @Co
 private fun handleKey(state: KGraphState, event: androidx.compose.ui.input.key.KeyEvent): Boolean {
     if (event.type != KeyEventType.KeyDown) return false
     val command = event.isCtrlPressed || event.isMetaPressed
+    if (state.readOnly) {
+        // Only keys that do not change the graph.
+        return when {
+            event.key == Key.Escape -> { if (state.selection.isNotEmpty() || state.selectedEdges.isNotEmpty()) state.clearSelection() else state.exitSubgraph(); true }
+            command && event.key == Key.A -> { state.selectAll(); true }
+            command && event.key == Key.C -> { state.copySelection(); true }
+            event.key == Key.F && !command -> { state.fitView(); true }
+            event.key == Key.V && !command -> { state.tool = KGraphTool.Select; true }
+            event.key == Key.H && !command -> { state.tool = KGraphTool.Pan; true }
+            else -> false
+        }
+    }
     return when {
         event.key == Key.Delete || event.key == Key.Backspace -> { state.removeSelection(); true }
         event.key == Key.Escape -> {

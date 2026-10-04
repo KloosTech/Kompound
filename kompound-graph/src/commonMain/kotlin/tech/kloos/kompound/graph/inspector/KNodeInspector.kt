@@ -85,6 +85,7 @@ public class KNodeInspectorLabels(
  * it shown, or `null` (for example after asking the user, or when the engine's `beforeRun` refused).
  * @param onRerun Replaces what "Run from here" does (default: `engine.rerun`).
  * @param onPin Replaces what "Pin output" does (default: `state.pin`); with it the Pin button shows even without a [state].
+ * @param nodeLabel The name in the header (default `kind · id`); give users something readable for generated ids.
  * @param parseInput Turns the text typed in the input editor into the value for a port; the default reads JSON (numbers become
  * `Double`, use `{"$int": 5}` or your own parser for other types).
  */
@@ -102,6 +103,7 @@ public fun KNodeInspector(
     onTest: ((inputs: Map<String, Any?>) -> NodeTestRun?)? = null,
     onRerun: (() -> Unit)? = null,
     onPin: ((outputs: Map<PortId, Any?>) -> Unit)? = null,
+    nodeLabel: (GraphNode) -> String = { "${it.kind} · ${it.id}" },
     parseInput: (port: PortId, text: String) -> Any? = { _, text -> valueJson.decode(JsonValue.parse(text)) },
 ) {
     var test by remember(node.id) { mutableStateOf<NodeTestRun?>(null) }
@@ -129,7 +131,7 @@ public fun KNodeInspector(
         val wide = maxWidth >= 840.dp
         var column by remember { mutableStateOf(0) }
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Header(node, attempt, labels, showingPin) {
+            Header(nodeLabel(node), attempt, labels, showingPin) {
                 KButton(
                     {
                         editError = null
@@ -197,10 +199,10 @@ public fun KNodeInspector(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Header(node: GraphNode, attempt: NodeAttempt?, labels: KNodeInspectorLabels, pinned: Boolean, actions: @Composable () -> Unit) {
+private fun Header(title: String, attempt: NodeAttempt?, labels: KNodeInspectorLabels, pinned: Boolean, actions: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            KText("${node.kind} · ${node.id}")
+            KText(title)
             when {
                 pinned -> KText(labels.pinned)
                 attempt != null -> {

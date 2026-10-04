@@ -131,12 +131,14 @@ public class KGraphState(
 
     /** Undoes the last change. */
     public fun undo() {
+        if (readOnly) return
         val old = document.graph
         if (document.undo()) sync(old)
     }
 
     /** Redoes the last undone change. */
     public fun redo() {
+        if (readOnly) return
         val old = document.graph
         if (document.redo()) sync(old)
     }
@@ -154,6 +156,7 @@ public class KGraphState(
 
     /** Deletes the selected nodes and edges as one undo step. */
     public fun removeSelection() {
+        if (readOnly) return
         val commands = buildList {
             if (selectedEdges.isNotEmpty()) add(GraphCommand.Disconnect(selectedEdges))
             if (selection.isNotEmpty()) add(GraphCommand.RemoveNodes(selection))
@@ -230,6 +233,7 @@ public class KGraphState(
 
     /** Wraps the selected nodes in a new subgraph node and returns its id (one undo step); `null` when nothing can be wrapped. */
     public fun createSubgraph(title: String = "Subgraph"): NodeId? {
+        if (readOnly) return null
         var n = graph.nodes.size + 1
         while (NodeId("subgraph_$n") in graph.nodes) n++
         val id = NodeId("subgraph_$n")
@@ -241,6 +245,7 @@ public class KGraphState(
 
     /** Opens the subgraph node [id] up: its content moves to its level and the wires are joined (one undo step). */
     public fun dissolveSubgraph(id: NodeId) {
+        if (readOnly) return
         val command = Subgraphs.dissolve(graph, id) ?: return
         val inner = graph.nodes.values.filter { it.scope == id && !Subgraphs.isBoundary(it) }.map { it.id }.toSet()
         if (execute(command)) setSelection(inner)
@@ -276,6 +281,7 @@ public class KGraphState(
 
     /** Wraps the selected nodes in a new group (one undo step). Returns its id, or `null` when nothing is selected. */
     public fun groupSelection(title: String = "Group"): GroupId? {
+        if (readOnly) return null
         val members = selection.filter { graph.node(it) != null }
         if (members.isEmpty()) return null
         var n = graph.groups.size + 1
@@ -288,17 +294,20 @@ public class KGraphState(
 
     /** Dissolves the groups of the selected nodes; the nodes stay (one undo step). */
     public fun ungroupSelection() {
+        if (readOnly) return
         val groups = selection.mapNotNull { graph.node(it)?.group }.toSet()
         if (groups.isNotEmpty()) execute(GraphCommand.Batch(groups.map { GraphCommand.RemoveGroup(it) }, "Ungroup"))
     }
 
     /** Dissolves the group [id]; its nodes stay. */
     public fun ungroup(id: GroupId) {
+        if (readOnly) return
         execute(GraphCommand.RemoveGroup(id))
     }
 
     /** Collapses or expands the group [id]; its members leave the selection when it collapses. */
     public fun toggleCollapsed(id: GroupId) {
+        if (readOnly) return
         val g = graph.group(id) ?: return
         execute(GraphCommand.PutGroup(g.copy(collapsed = !g.collapsed)))
         if (!g.collapsed) setSelection(selection - graph.membersOf(id).toSet())
@@ -306,6 +315,7 @@ public class KGraphState(
 
     /** Changes the title of the group [id]. */
     public fun renameGroup(id: GroupId, title: String) {
+        if (readOnly) return
         graph.group(id)?.let { execute(GraphCommand.PutGroup(it.copy(title = title))) }
     }
 
@@ -316,6 +326,7 @@ public class KGraphState(
 
     /** Starts dragging the whole group [id] (all its members move together). */
     public fun beginGroupDrag(id: GroupId) {
+        if (readOnly) return
         val members = graph.membersOf(id)
         if (members.isEmpty()) return
         setSelection(members.toSet())
@@ -421,6 +432,13 @@ public class KGraphState(
      */
     public var tool: KGraphTool by mutableStateOf(KGraphTool.Select)
 
+    /**
+     * Whether the canvas is for looking only (set by `KNodeGraph(readOnly = true)`): panning, zooming, selecting, copying, fitting and
+     * opening subgraphs still work, but the interactive edits (dragging nodes, wiring, deleting, pasting, grouping, folding groups, layout,
+     * undo and redo, the node menu) do nothing. Edits you make yourself with [execute], [connect] or [load] still apply.
+     */
+    public var readOnly: Boolean by mutableStateOf(false)
+
     /** Whether Space is held (the editor then pans with a mouse drag instead of selecting). */
     internal var spaceHeld: Boolean = false
 
@@ -445,12 +463,14 @@ public class KGraphState(
      * Ids get a numeric suffix so they stay unique; a copied subgraph node takes its content along. One undo step.
      */
     public fun paste(offset: Offset = Offset(32f, 32f)) {
+        if (readOnly) return
         val board = clipboard ?: return
         insertCopies(board.nodes, board.edges, offset)
     }
 
     /** Copies and pastes the selection in one go (the clipboard is left alone). */
     public fun duplicateSelection(offset: Offset = Offset(32f, 32f)) {
+        if (readOnly) return
         if (selection.isEmpty()) return
         val closure = selection + graph.descendantsOf(selection)
         val nodes = graph.nodes.values.filter { it.id in closure }
@@ -519,6 +539,7 @@ public class KGraphState(
 
     /** Starts dragging with [id] as the grabbed node; a node outside the selection becomes the whole selection. */
     public fun beginNodeDrag(id: NodeId) {
+        if (readOnly) return
         if (id !in graph.nodes) return
         if (id !in selection) select(id)
         dragPrimary = id
@@ -720,6 +741,7 @@ public class KGraphState(
      * @return Whether any node moved.
      */
     public fun autoLayout(options: LayoutOptions = LayoutOptions(), selectedOnly: Boolean = false, fit: Boolean = false): Boolean {
+        if (readOnly) return false
         val visible = graph.nodes.values.filter { !isHidden(it) }.mapTo(LinkedHashSet()) { it.id }
         val target = if (selectedOnly && selection.size >= 2) selection.filterTo(LinkedHashSet()) { it in visible } else visible
         val positions = GraphLayout.layered(graph, sizes.toMap(), target, options)
@@ -742,6 +764,7 @@ public class KGraphState(
 
     /** Starts a wire at the port [from]; the pointer starts on the port. */
     public fun beginWire(from: PortRef) {
+        if (readOnly) return
         val start = anchors[from] ?: return
         val compatible = graph.nodes.values.filter { !isHidden(it) }.flatMap { n -> n.ports.map { PortRef(n.id, it.id) } }
             .filterTo(HashSet()) { it != from && it !in hiddenPorts && policy.check(graph, from, it) is ConnectionCheck.Allowed }
@@ -778,6 +801,7 @@ public class KGraphState(
 
     /** Opens the node menu at [world], optionally for a wire coming from [from]. Does nothing when no node types are enabled. */
     public fun openNodeMenu(world: Offset, from: PortRef? = null) {
+        if (readOnly) return
         if (nodeMenuEnabled) menuRequest = KNodeMenuRequest(world, from)
     }
 
@@ -788,6 +812,7 @@ public class KGraphState(
 
     /** Keyboard wiring: starts a wire at [from] without a pointer. */
     public fun beginKeyboardWire(from: PortRef) {
+        if (readOnly) return
         beginWire(from)
     }
 
