@@ -4,11 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -35,16 +40,31 @@ import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
+import tech.kloos.kompound.dialog.KDialog
+import tech.kloos.kompound.graph.inspector.KExecutionList
+import tech.kloos.kompound.graph.inspector.KNodeInspector
+import tech.kloos.kompound.graph.inspector.edgeLabel
+import tech.kloos.kompound.graph.inspector.nodeStatus
+import tech.kloos.kompound.graph.runtime.Execution
 import tech.kloos.kompound.graph.runtime.NodeRun
 import tech.kloos.kompound.graph.runtime.NodeRunner
 import tech.kloos.kompound.graph.runtime.rememberGraphEngine
 import tech.kloos.kompound.graph.runtime.singleOutputRunner
+import tech.kloos.kompound.graph.serialization.JsonValue
+import tech.kloos.kompound.graph.serialization.ValueJson
 import tech.kloos.kompound.progress.KCircularProgress
+import tech.kloos.kompound.segmented.KSegmentedControl
 import tech.kloos.kompound.slider.KSlider
 import tech.kloos.kompound.text.KText
 import tech.kloos.kompound.theme.KompoundTheme
 
-private const val Usage_graph_engine = """import tech.kloos.kompound.graph.runtime.NodeRun
+private const val Usage_graph_engine = """import tech.kloos.kompound.dialog.KDialog
+import tech.kloos.kompound.graph.inspector.KExecutionList
+import tech.kloos.kompound.graph.inspector.KNodeInspector
+import tech.kloos.kompound.graph.inspector.edgeLabel
+import tech.kloos.kompound.graph.inspector.nodeStatus
+import tech.kloos.kompound.graph.runtime.Execution
+import tech.kloos.kompound.graph.runtime.NodeRun
 import tech.kloos.kompound.graph.runtime.rememberGraphEngine
 import tech.kloos.kompound.graph.runtime.singleOutputRunner
 
@@ -161,6 +181,10 @@ fun DemoScope.KGraphEngineDemo() {
     val auto = boolControl("Run automatically", true)
     val state = remember { KGraphState(pipeline(), gridStep = 24f) }
     val engine = rememberGraphEngine(state, Runners, autoRun = auto)
+    var tab by remember { mutableStateOf(0) }
+    var selected by remember { mutableStateOf<Execution?>(null) }
+    var inspecting by remember { mutableStateOf<NodeId?>(null) }
+    val viewed = if (tab == 1) selected else null
     val on = KompoundTheme.tokens.colors.success
     val off = MaterialTheme.colorScheme.error
     val busy = MaterialTheme.colorScheme.primary
@@ -174,12 +198,19 @@ fun DemoScope.KGraphEngineDemo() {
             KButton({ state.redo() }, variant = KButtonVariant.Outlined, enabled = state.canRedo) { KText("Redo") }
             KButton({ state.fitView() }, variant = KButtonVariant.Outlined) { KText("Fit") }
         }
+        KSegmentedControl(listOf("Editor", "Executions"), tab, { tab = it; if (it == 0) selected = null }, Modifier.fillMaxWidth())
+        if (tab == 1) {
+            KExecutionList(engine, selected, { selected = it }, Modifier.fillMaxWidth().height(180.dp))
+            KText(if (selected == null) "Showing the live state. Pick a run to see how it went; double-click a node for its input and output." else "Showing run #${selected!!.id}. Double-click a node to inspect what it received and produced.")
+        }
         KText("Change a number or a delay while it runs: the stale step is cancelled and everything after it starts again. Set the second input of Divide to 0 to see a failure block only what comes after it. Slow steps run side by side; Add waits for both.")
         GraphFrame(state, 520) { frame ->
             KNodeGraph(
                 state, frame,
                 fitOnFirstLayout = true,
                 nodeTypes = PipelineNodeTypes,
+                nodeStatus = { engine.nodeStatus(it, viewed) },
+                edgeLabel = { engine.edgeLabel(it, viewed) },
                 edgeStyle = { edge ->
                     when (engine.runOf(edge.from.node)) {
                         NodeRun.Running -> KEdgeStyle(color = busy, animated = true)
@@ -201,7 +232,7 @@ fun DemoScope.KGraphEngineDemo() {
                     "divide" -> "Divide"
                     else -> "Result"
                 }
-                KNode(node, title) {
+                KNode(node, title, onDoubleClick = { inspecting = node.id }) {
                     when (node.kind) {
                         "number" -> Content {
                             KText((node.data as Float).toString().take(4))
@@ -226,4 +257,24 @@ fun DemoScope.KGraphEngineDemo() {
             }
         }
     }
+    inspecting?.let { id ->
+        val node = state.graph.node(id)
+        if (node == null) inspecting = null
+        else KDialog(onDismissRequest = { inspecting = null }, title = "Inspect ${node.kind} ${node.id}", fullScreen = true, showCloseButton = true) {
+            KNodeInspector(
+                engine, node, Modifier.weight(1f), state = state, execution = viewed,
+                parameters = {
+                    when (node.kind) {
+                        "number", "delay" -> {
+                            KText(if (node.kind == "number") "Value" else "Delay in seconds")
+                            KSlider(node.data as Float, { state.execute(GraphCommand.UpdateNodeData(node.id, it)) }, valueRange = 0f..(if (node.kind == "number") 10f else 5f))
+                        }
+                        else -> KText("This node only combines its inputs.")
+                    }
+                },
+                parseInput = { _, text -> (ValueJson().decode(JsonValue.parse(text)) as? Double)?.toFloat() ?: ValueJson().decode(JsonValue.parse(text)) },
+            )
+        }
+    }
 }
+

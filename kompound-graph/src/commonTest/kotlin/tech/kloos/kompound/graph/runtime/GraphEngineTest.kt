@@ -791,3 +791,49 @@ class GraphEnginePinAndTestTest {
         assertTrue(!state.pinCurrentOutputs(e, NodeId("nope")))
     }
 }
+
+class GraphEngineThreadingTest {
+    @Test
+    fun aMultiThreadedScopeStillRunsEveryNodeExactlyOnce() = runTest {
+        val leaves = (0 until 16).map { GraphNode(NodeId("c$it"), "const", Offset.Zero, listOf(PortSpec.output("out")), it) }
+        // pairwise sums up to a single root
+        val nodes = ArrayList<GraphNode>(leaves)
+        val edges = ArrayList<Edge>()
+        var level = leaves.map { it.id }
+        var n = 0
+        while (level.size > 1) {
+            val next = ArrayList<NodeId>()
+            for (pair in level.chunked(2)) {
+                val id = NodeId("s${n++}")
+                nodes += GraphNode(id, "add", Offset.Zero, listOf(PortSpec.input("a"), PortSpec.input("b"), PortSpec.output("out")))
+                pair.forEachIndexed { i, from ->
+                    edges += Edge(EdgeId("$from->$id"), tech.kloos.kompound.graph.model.PortRef(from, tech.kloos.kompound.graph.model.PortId("out")), tech.kloos.kompound.graph.model.PortRef(id, tech.kloos.kompound.graph.model.PortId(if (i == 0) "a" else "b")))
+                }
+                next += id
+            }
+            level = next
+        }
+        val root = level.single()
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default + kotlinx.coroutines.SupervisorJob())
+        try {
+            val engine = GraphEngine(
+                scope,
+                mapOf(
+                    "const" to singleOutputRunner { node, _ -> delay(1); node.data },
+                    "add" to singleOutputRunner { _, i -> delay(1); (i["a"] as Int) + (i["b"] as Int) },
+                ),
+                maxConcurrency = 8,
+            )
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                engine.update(Graph.of(nodes, edges))
+                kotlinx.coroutines.withTimeout(10_000) { while (engine.runOf(root) !is NodeRun.Done) delay(5) }
+            }
+            assertEquals((0 until 16).sum(), engine.output(root, "out"))
+            val execution = engine.executions.single()
+            assertEquals(nodes.size, execution.attempts.size, "every node ran exactly once")
+            assertTrue(execution.attempts.all { it.number == 1 && it.status == TraceStatus.Succeeded })
+        } finally {
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+    }
+}

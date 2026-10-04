@@ -147,6 +147,7 @@ public fun KNode(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             KText(title, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            LocalNodeStatus.current?.invoke(node)?.let { KNodeStatusBadge(it) }
             actions?.invoke()
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
