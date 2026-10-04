@@ -22,7 +22,7 @@ or grab the Android APK and desktop installers from the [Releases](https://githu
 
 | Area | Components |
 |------|-----------|
-| **Foundation** | `KompoundTheme` (+ tokens), `KText`, `KIcon`, `KSurface`, `KDivider` |
+| **Foundation** | `KompoundTheme` (+ tokens), theme presets and import (`KThemePresets`, `KThemeImport`), density (`KDensity`), built-in translations (`KompoundStrings`), `KText`, `KIcon`, `KSurface`, `KDivider` |
 | **Buttons** | `KButton` (filled, tonal, outlined, text; loading state), `KIconButton`, `KFab`, `KToggleButton`, `KSegmentedControl` |
 | **Selection** | `KCheckbox` (tri-state), `KRadioButton`, `KSwitch`, `KChip` (assist and filter) |
 | **Text input** | `KTextField`, `KTextArea`, `KNumberField`, `KSearchBar`, `KInlineEdit` |
@@ -124,6 +124,19 @@ KButton(
 
 Defaults are exposed too (`KButtonDefaults.style(variant)`, `KTextFieldDefaults.style()`, ...), so you can build on them. Colours of the
 default styles come from your `MaterialTheme.colorScheme`, so an app that is already themed needs no extra work.
+
+### Themes, density and language
+
+```kotlin
+KompoundTheme(
+    spec = KThemePresets.Ocean,            // Default, Ocean, Forest, Sunset, Graphite, HighContrast, or KThemePresets.fromSeeds(...)
+    density = KDensity.Compact,            // Compact, Comfortable (default), Spacious
+    strings = KompoundStrings.German,      // default: follows the device language (en, de, fr, es, it); .copy(close = "Dismiss") edits one text
+) { App() }
+
+val imported = KThemeImport.fromMaterialThemeBuilder(jsonText)   // or fromDesignTokens(...) for Figma Tokens Studio / W3C tokens
+KompoundTheme(spec = imported.theme) { App() }                   // imported.warnings lists what was not understood
+```
 
 ### Dialogs, sheets and overlays
 

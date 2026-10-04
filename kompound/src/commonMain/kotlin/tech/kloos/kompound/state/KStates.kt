@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
+import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.buttons.KButton
 import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.icon.KIcon
@@ -71,7 +72,7 @@ public fun KErrorState(
     modifier: Modifier = Modifier,
     description: String? = null,
     onRetry: (() -> Unit)? = null,
-    retryText: String = "Try again",
+    retryText: String = KompoundTheme.strings.tryAgain,
     illustration: (@Composable () -> Unit)? = {
         CompositionLocalProvider(LocalKContentColor provides MaterialTheme.colorScheme.error) {
             KIcon(KompoundIcons.Error, contentDescription = null, style = Style { size(48.dp) })

@@ -171,7 +171,8 @@ public object KTextFieldDefaults {
         val shapes = MaterialTheme.shapes
         val type = MaterialTheme.typography
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, shapes, type, l) {
+        val density = KompoundTheme.tokens.density
+        return remember(c, shapes, type, l, density) {
             Style {
                 background(Color.Transparent)
                 contentColor(c.onSurface)
@@ -179,8 +180,8 @@ public object KTextFieldDefaults {
                 shape(shapes.small)
                 borderWidth(1.dp)
                 borderColor(c.outline)
-                contentPadding(horizontal = 16.dp, vertical = 8.dp)
-                minHeight(56.dp)
+                contentPadding(horizontal = 16.dp, vertical = density.space(8.dp))
+                minHeight(density.height(56.dp))
                 hovered { borderColor(c.onSurface) }
                 focused { borderWidth(2.dp); borderColor(c.primary) }
                 state(ErrorKey) {

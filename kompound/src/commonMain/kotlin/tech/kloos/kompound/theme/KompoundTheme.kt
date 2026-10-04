@@ -16,6 +16,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.text.intl.Locale
+import tech.kloos.kompound.i18n.KompoundStrings
+import tech.kloos.kompound.i18n.LocalKompoundStrings
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import tech.kloos.kompound.KompoundStyles
@@ -34,6 +37,9 @@ public val LocalKContentColor: androidx.compose.runtime.ProvidableCompositionLoc
  * Wraps `MaterialTheme` (the token source), provides [KompoundTokens] and a root text style, so plain `KText`
  * on the page uses the theme's text colour. Wrap your app in it (recommended, essential for dark mode); without it
  * components still work from the ambient M3 theme and light tokens, but `KText` outside a styled component is black.
+ *
+ * @param density Control sizing, see [KDensity]; `null` keeps what [tokens] say (comfortable by default).
+ * @param strings The texts Kompound shows on its own; the default follows the device language (English, German, French, Spanish, Italian).
  */
 @Composable
 public fun KompoundTheme(
@@ -41,6 +47,8 @@ public fun KompoundTheme(
     typography: Typography = MaterialTheme.typography,
     shapes: Shapes = MaterialTheme.shapes,
     tokens: KompoundTokens = remember(colorScheme) { KompoundTokens.forColorScheme(colorScheme) },
+    strings: KompoundStrings = KompoundStrings.forLocale(Locale.current),
+    density: KDensity? = null,
     content: @Composable () -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -54,14 +62,38 @@ public fun KompoundTheme(
                 textStyle(typography.bodyMedium.copy(color = colorScheme.onBackground))
             }
         }
-        CompositionLocalProvider(LocalKompoundTokens provides tokens) {
+        CompositionLocalProvider(LocalKompoundTokens provides (if (density == null) tokens else tokens.copy(density = density)), LocalKompoundStrings provides strings) {
             Box(Modifier.styleable(state, base), propagateMinConstraints = true) { content() }
         }
     }
+}
+
+/**
+ * [KompoundTheme] with a ready [spec] ([KThemePresets], [KThemeImport], or your own): picks its light or dark scheme and extra colours.
+ *
+ * @param spec The colour theme.
+ * @param dark Use the dark scheme; follows the system by default.
+ */
+@Composable
+public fun KompoundTheme(
+    spec: KThemeSpec,
+    dark: Boolean = isSystemInDarkTheme(),
+    typography: Typography = MaterialTheme.typography,
+    shapes: Shapes = MaterialTheme.shapes,
+    strings: KompoundStrings = KompoundStrings.forLocale(Locale.current),
+    density: KDensity? = null,
+    content: @Composable () -> Unit,
+) {
+    val scheme = spec.colorScheme(dark)
+    KompoundTheme(scheme, typography, shapes, remember(spec, dark) { spec.tokens(dark) }, strings, density, content)
 }
 
 /** Accessor for the current Kompound theme values. */
 public object KompoundTheme {
     public val tokens: KompoundTokens
         @Composable @ReadOnlyComposable get() = LocalKompoundTokens.current
+
+    /** The texts Kompound shows on its own, in the language chosen by [KompoundTheme] (English without it). */
+    public val strings: KompoundStrings
+        @Composable @ReadOnlyComposable get() = LocalKompoundStrings.current
 }

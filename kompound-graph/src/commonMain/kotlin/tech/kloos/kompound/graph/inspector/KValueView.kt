@@ -112,7 +112,7 @@ private fun jsonText(value: JsonValue, c: Palette, maxRows: Int): AnnotatedStrin
     fun write(v: JsonValue, depth: Int) {
         if (rows > maxRows) return
         when (v) {
-            JsonNull -> withStyle(SpanStyle(color = c.keyword)) { append("null") }
+            is JsonNull -> withStyle(SpanStyle(color = c.keyword)) { append("null") }
             is JsonBool -> withStyle(SpanStyle(color = c.keyword)) { append(v.value.toString()) }
             is JsonNumber -> withStyle(SpanStyle(color = c.number)) { append(numberText(v.value)) }
             is JsonString -> withStyle(SpanStyle(color = c.string)) { append(quote(v.value)) }
@@ -157,7 +157,7 @@ internal class SchemaRow(val depth: Int, val name: String, val type: String, val
 internal fun schemaRows(value: JsonValue, maxRows: Int): List<SchemaRow> {
     val rows = ArrayList<SchemaRow>()
     fun typeOf(v: JsonValue) = when (v) {
-        JsonNull -> "null"
+        is JsonNull -> "null"
         is JsonBool -> "boolean"
         is JsonNumber -> "number"
         is JsonString -> "string"
@@ -217,7 +217,7 @@ internal fun tableOf(value: JsonValue, maxRows: Int): Pair<List<String>, List<Li
         is JsonString -> v.value
         is JsonNumber -> numberText(v.value)
         is JsonBool -> v.value.toString()
-        JsonNull -> "null"
+        is JsonNull -> "null"
         else -> v.toJson()
     }
     return when {

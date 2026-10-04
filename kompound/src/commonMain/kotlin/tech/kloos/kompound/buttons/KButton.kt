@@ -86,8 +86,9 @@ public object KButtonDefaults {
         val scheme = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val layers = KompoundTheme.tokens.stateLayer
-        return remember(variant, scheme, type, layers) {
-            buttonStyle(buttonColors(variant, scheme, layers), layers, type, CircleShape, 40.dp, null, 24.dp, 10.dp)
+        val density = KompoundTheme.tokens.density
+        return remember(variant, scheme, type, layers, density) {
+            buttonStyle(buttonColors(variant, scheme, layers), layers, type, CircleShape, density.height(40.dp), null, density.space(24.dp), density.space(10.dp))
         }
     }
 

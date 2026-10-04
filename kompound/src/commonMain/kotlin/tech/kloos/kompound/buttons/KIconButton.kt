@@ -81,9 +81,10 @@ public object KIconButtonDefaults {
         val scheme = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val layers = KompoundTheme.tokens.stateLayer
-        return remember(variant, size, scheme, type, layers) {
+        val density = KompoundTheme.tokens.density
+        return remember(variant, size, scheme, type, layers, density) {
             Style(
-                buttonStyle(iconButtonColors(variant, scheme, layers), layers, type, CircleShape, size.container, size.container, 0.dp, 0.dp),
+                buttonStyle(iconButtonColors(variant, scheme, layers), layers, type, CircleShape, density.height(size.container), density.height(size.container), 0.dp, 0.dp),
                 Style { externalPadding(size.outer) },
             )
         }

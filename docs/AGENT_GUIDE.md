@@ -92,6 +92,15 @@ KButton(
 - Tokens: `KompoundTheme.tokens.colors.success / warning / info` (each with `on…`, `…Container`, `on…Container`), plus spacing, motion and state-layer opacity tokens. Everything else comes from `MaterialTheme.colorScheme`, `.typography`, `.shapes`.
 - Rich text (annotated strings) needs an explicit `textStyle` on `KText(AnnotatedString, textStyle = …)`: inherited text style does not apply to annotated text.
 
+### Themes, density and language (from 0.2)
+
+`KompoundTheme(spec = KThemePresets.Ocean, dark, density = KDensity.Compact, strings = KompoundStrings.German) { }`. Presets: `Default`, `Ocean`, `Forest`,
+`Sunset`, `Graphite`, `HighContrast`; make your own with `KThemePresets.fromSeeds(name, primary, secondary, tertiary)`. Import a designer's file with
+`KThemeImport.fromMaterialThemeBuilder(json)` or `fromDesignTokens(json)` (Tokens Studio / W3C): the result has `.theme` and `.warnings`. Density
+(`KompoundTheme.tokens.density`) scales control heights and vertical padding in the default styles; a `style` you pass still wins. Built-in texts
+come from `KompoundTheme.strings` (`KompoundStrings`; English, German, French, Spanish, Italian, chosen from the device locale): read it for your own
+components (`KompoundTheme.strings.close`) and never hard-code "Close"/"Cancel" in a Kompound-style component.
+
 ## 5. Component reference
 
 Exact parameters in the source file; this lists what each is for and the parameters you use most. Content lambdas are
