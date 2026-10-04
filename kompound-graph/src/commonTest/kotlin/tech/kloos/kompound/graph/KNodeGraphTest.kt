@@ -30,6 +30,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
@@ -968,5 +969,127 @@ class KNodeGraphTest {
         waitForIdle()
         assertEquals("multiply", chosenState.value)
         onAllNodesWithText("multiply", useUnmergedTree = true).onFirst().assertExists()
+    }
+
+    @Test
+    fun anInputsTrailingContentIsShownEvenWhenThePortIsWired() = runComposeUiTest {
+        val state = twoNodes()
+        state.connect(ref("n1", "out"), ref("n2", "a"))
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Node ${node.id}") { Input("a", editor = { KText("editor") }, trailing = { KText("trail") }); Input("b"); Output("out") }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        assertEquals(2, onAllNodesWithText("trail", useUnmergedTree = true).fetchSemanticsNodes().size)
+        assertEquals(1, onAllNodesWithText("editor", useUnmergedTree = true).fetchSemanticsNodes().size, "the editor of the wired input is hidden, the unwired one shows it")
+    }
+
+    private fun ComposeUiTest.showPortEditor(state: KGraphState) = setContent {
+        MaterialTheme(scheme) {
+            Box(Modifier.size(900.dp, 700.dp)) {
+                KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                    KNode(node, "Node ${node.id}") {
+                        Input("a", "Fixed")
+                        if (node.id.value == "n2") PortEditor(tech.kloos.kompound.graph.model.PortDirection.Input, reserved = setOf("a", "b"))
+                        Output("out")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun thePortEditorAddsRenamesAndRemovesPortsAsUndoSteps() = runComposeUiTest {
+        val state = twoNodes()
+        state.connect(ref("n1", "out"), ref("n2", "a"))
+        showPortEditor(state)
+        waitForIdle()
+        val n = NodeId("n2")
+        // add: the id is made from the name, the label stays as typed
+        onAllNodesWithText("name", useUnmergedTree = true).onFirst().performClick()
+        onAllNodes(androidx.compose.ui.test.hasSetTextAction()).onFirst().performTextInput("My File")
+        onAllNodesWithContentDescription("Add").onFirst().performClick()
+        waitForIdle()
+        val added = state.graph.node(n)!!.port("my_file")
+        assertNotNull(added)
+        assertEquals("My File", added.label)
+        assertEquals(tech.kloos.kompound.graph.model.PortDirection.Input, added.direction)
+        assertNotNull(state.anchorOf(ref("n2", "my_file")), "the new port has a handle")
+        // a wire into the new port survives a later change of the ports
+        state.connect(ref("n1", "out"), ref("n2", "my_file"))
+        // remove: its wire goes with it, undo brings both back
+        onAllNodesWithContentDescription("Remove My File", useUnmergedTree = true).onFirst().performClick()
+        waitForIdle()
+        assertEquals(null, state.graph.node(n)!!.port("my_file"))
+        assertTrue(state.graph.edges.values.none { it.to.port.value == "my_file" })
+        assertEquals("n1.out->n2.a", state.graph.edges.keys.single().value, "other wires stay")
+        state.undo()
+        waitForIdle()
+        assertNotNull(state.graph.node(n)!!.port("my_file"))
+        assertTrue(state.graph.edges.values.any { it.to.port.value == "my_file" })
+    }
+
+    @Test
+    fun thePortEditorRefusesEmptyReservedAndDuplicateNames() = runComposeUiTest {
+        val state = twoNodes()
+        showPortEditor(state)
+        waitForIdle()
+        val before = state.graph.node(NodeId("n2"))!!.ports
+        onAllNodesWithContentDescription("Add").onFirst().performClick()
+        waitForIdle()
+        onAllNodesWithText("Enter a name", useUnmergedTree = true).onFirst().assertExists()
+        onAllNodes(androidx.compose.ui.test.hasSetTextAction()).onFirst().performTextInput("a")
+        onAllNodesWithContentDescription("Add").onFirst().performClick()
+        waitForIdle()
+        onAllNodesWithText("Already used", useUnmergedTree = true).onFirst().assertExists()
+        assertEquals(before, state.graph.node(NodeId("n2"))!!.ports, "nothing changed")
+        assertEquals("my_file", tech.kloos.kompound.graph.portIdFromName("  My file! "))
+        assertEquals("", tech.kloos.kompound.graph.portIdFromName(" !!! "))
+    }
+
+    @Test
+    fun draggingTheCornerHandleResizesANodeAsOneUndoStepAndItIsSavedInTheNode() = runComposeUiTest {
+        val state = twoNodes()
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize()) { node ->
+                        KNode(node, "Node ${node.id}", modifier = Modifier.testTag(node.id.value), resizable = true) { Input("a"); Output("out") }
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val before = onNodeWithTag("n1").fetchSemanticsNode().size.width
+        onAllNodesWithContentDescription("Resize node").onFirst().performTouchInput { swipe(center, center + Offset(120f, 0f), durationMillis = 200) }
+        waitForIdle()
+        val after = onNodeWithTag("n1").fetchSemanticsNode().size.width
+        assertTrue(after > before + 80, "node got wider: $before -> $after")
+        val chosen = state.graph.node(NodeId("n1"))!!.width
+        assertNotNull(chosen)
+        assertTrue(state.graph.node(NodeId("n2"))!!.width == null, "other nodes are unaffected")
+        state.undo()
+        waitForIdle()
+        assertEquals(null, state.graph.node(NodeId("n1"))!!.width)
+        assertEquals(before, onNodeWithTag("n1").fetchSemanticsNode().size.width)
+    }
+
+    @Test
+    fun aReadOnlyCanvasShowsNoResizeHandle() = runComposeUiTest {
+        val state = twoNodes()
+        setContent {
+            MaterialTheme(scheme) {
+                Box(Modifier.size(900.dp, 600.dp)) {
+                    KNodeGraph(state, Modifier.fillMaxSize(), readOnly = true) { node -> KNode(node, "N", resizable = true) { Output("out") } }
+                }
+            }
+        }
+        waitForIdle()
+        assertEquals(0, onAllNodesWithContentDescription("Resize node").fetchSemanticsNodes().size)
     }
 }

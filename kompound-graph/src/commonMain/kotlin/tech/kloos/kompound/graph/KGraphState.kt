@@ -670,6 +670,14 @@ public class KGraphState(
 
     private val uiExpanded = mutableStateMapOf<String, Boolean>()
 
+    /** Widths (dp) of nodes being resized right now; committed as one undoable `ResizeNodes` when the drag ends. */
+    internal val liveWidths = mutableStateMapOf<NodeId, Float>()
+
+    internal fun commitWidth(id: NodeId) {
+        val width = liveWidths.remove(id) ?: return
+        if (!readOnly) execute(GraphCommand.ResizeNodes(mapOf(id to width)))
+    }
+
     /** Ports inside collapsed content: they keep reporting an anchor (on the fold) but are not offered as wire targets. */
     internal val hiddenPorts = mutableStateMapOf<PortRef, Boolean>()
 

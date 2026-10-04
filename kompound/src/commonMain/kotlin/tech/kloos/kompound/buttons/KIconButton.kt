@@ -16,6 +16,15 @@ import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.theme.KompoundTheme
 
 /**
+ * How big a [KIconButton] is. [Standard] is the 40dp circle inside a 48dp touch target; [Small] is a 28dp circle inside a 32dp target for
+ * dense places such as a row of a node or a table cell (below the usual 48dp target, so use it only where space is tight).
+ */
+public enum class KIconButtonSize(internal val container: androidx.compose.ui.unit.Dp, internal val outer: androidx.compose.ui.unit.Dp) {
+    Standard(40.dp, 4.dp),
+    Small(28.dp, 2.dp),
+}
+
+/**
  * Round button that holds an icon: a 40dp circle inside a 48dp touch target. With
  * [KButtonVariant.Text] it is the "standard" icon button without a container.
  *
@@ -27,6 +36,7 @@ import tech.kloos.kompound.theme.KompoundTheme
  * @param style Overrides merged over [KIconButtonDefaults.style].
  * @param enabled When false the button is not clickable and uses the disabled style block.
  * @param interactionSource Feeds pressed/hovered/focused state into the style.
+ * @param size [KIconButtonSize.Standard] (default) or [KIconButtonSize.Small].
  * @param icon Typically a [tech.kloos.kompound.icon.KIcon]; it picks up the button's content colour.
  */
 @Composable
@@ -38,13 +48,14 @@ public fun KIconButton(
     style: Style = Style,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
+    size: KIconButtonSize = KIconButtonSize.Standard,
     icon: @Composable RowScope.() -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val source = interactionSource ?: remember { MutableInteractionSource() }
     val styleState = rememberUpdatedStyleState(source) { it.isEnabled = enabled }
     ButtonBase(
-        modifier = modifier, styleState = styleState, defaultStyle = KIconButtonDefaults.style(variant), style = style,
+        modifier = modifier, styleState = styleState, defaultStyle = KIconButtonDefaults.style(variant, size), style = style,
         enabled = enabled, interactionSource = source, role = Role.Button,
         iconColor = KIconButtonDefaults.contentColor(variant, enabled), contentDescription = contentDescription,
         onClick = onClick, toggle = null, content = icon,
@@ -64,16 +75,16 @@ public object KIconButtonDefaults {
         return if (enabled) colors.content else colors.disabledContent
     }
 
-    /** Base style: 40dp circle with 4dp external padding, which makes the 48dp touch target. */
+    /** Base style: 40dp circle with 4dp external padding, which makes the 48dp touch target ([KIconButtonSize.Small]: 28dp and 2dp). */
     @Composable
-    public fun style(variant: KButtonVariant = KButtonVariant.Text): Style {
+    public fun style(variant: KButtonVariant = KButtonVariant.Text, size: KIconButtonSize = KIconButtonSize.Standard): Style {
         val scheme = MaterialTheme.colorScheme
         val type = MaterialTheme.typography
         val layers = KompoundTheme.tokens.stateLayer
-        return remember(variant, scheme, type, layers) {
+        return remember(variant, size, scheme, type, layers) {
             Style(
-                buttonStyle(iconButtonColors(variant, scheme, layers), layers, type, CircleShape, 40.dp, 40.dp, 0.dp, 0.dp),
-                Style { externalPadding(4.dp) },
+                buttonStyle(iconButtonColors(variant, scheme, layers), layers, type, CircleShape, size.container, size.container, 0.dp, 0.dp),
+                Style { externalPadding(size.outer) },
             )
         }
     }

@@ -230,6 +230,16 @@ class ValueJsonTest {
     }
 
     @Test
+    fun aUserChosenNodeWidthIsSavedAndLoadedAndOmittedWhenNotSet() {
+        val graph = Graph.of(listOf(GraphNode(NodeId("a"), "k", width = 512.5f), GraphNode(NodeId("b"), "k")))
+        val text = GraphJson(pretty = false).encode(graph)
+        assertEquals(1, text.split("\"width\"").size - 1)
+        val back = GraphJson().decode(text).graph
+        assertEquals(512.5f, back.node(NodeId("a"))!!.width)
+        assertEquals(null, back.node(NodeId("b"))!!.width)
+    }
+
+    @Test
     fun aMigrationHookFixesUpNodesSavedByAnOlderVersionWhileTheyLoad() {
         val old = Graph.of(listOf(GraphNode(NodeId("t"), "transform", ports = listOf(PortSpec.input("a"), PortSpec.output("out")))))
         val text = GraphJson().encode(old)

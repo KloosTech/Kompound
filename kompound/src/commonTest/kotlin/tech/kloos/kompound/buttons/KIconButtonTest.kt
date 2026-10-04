@@ -75,4 +75,20 @@ class KIconButtonTest {
         assertEquals(0f, standard.toPixelMap()[standard.width / 2, 6].alpha, 0.01f)
         assertTrue(standard.containsColor(s.onSurfaceVariant), "standard icon uses onSurfaceVariant")
     }
+
+    @Test
+    fun theSmallSizeIsASmallerTouchTargetThanTheStandardOne() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                Column {
+                    KIconButton(onClick = {}, "Standard", Modifier.testTag("std")) { KIcon(SquareIcon, null) }
+                    KIconButton(onClick = {}, "Small", Modifier.testTag("small"), size = KIconButtonSize.Small) { KIcon(SquareIcon, null) }
+                }
+            }
+        }
+        val std = onNodeWithTag("std").fetchSemanticsNode().size
+        val small = onNodeWithTag("small").fetchSemanticsNode().size
+        assertTrue(small.width < std.width && small.height < std.height, "small $small vs standard $std")
+        assertTrue(small.width >= 20, "still a usable target: $small")
+    }
 }

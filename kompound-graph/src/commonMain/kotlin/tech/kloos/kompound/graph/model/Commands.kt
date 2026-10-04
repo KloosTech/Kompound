@@ -35,6 +35,9 @@ public sealed interface GraphCommand {
      */
     public data class UpdateNodePorts(public val id: NodeId, public val ports: List<PortSpec>) : GraphCommand
 
+    /** Sets the user-chosen widths of nodes (`null` removes it); the inverse restores the old ones. */
+    public data class ResizeNodes(public val widths: Map<NodeId, Float?>) : GraphCommand
+
     /** Pins the output values of a node (see [GraphNode.pin]), or removes the pin with `null`. */
     public data class SetPin(public val id: NodeId, public val pin: Map<PortId, Any?>?) : GraphCommand
 
@@ -115,6 +118,15 @@ public fun GraphCommand.applyTo(graph: Graph): AppliedCommand? = when (this) {
             }
             val after = graph.withoutEdges(lost.map { it.id }.toSet()).withNode(node.copy(ports = ports))
             AppliedCommand(after, GraphCommand.Batch(listOf(GraphCommand.UpdateNodePorts(id, node.ports)) + lost.map { GraphCommand.Connect(it) }))
+        }
+    }
+    is GraphCommand.ResizeNodes -> {
+        val changed = widths.filter { (id, w) -> graph.node(id)?.let { it.width != w } == true }
+        if (changed.isEmpty()) null
+        else {
+            var after = graph
+            for ((id, w) in changed) after = after.withNode(after.node(id)!!.copy(width = w))
+            AppliedCommand(after, GraphCommand.ResizeNodes(changed.mapValues { graph.node(it.key)!!.width }))
         }
     }
     is GraphCommand.SetPin -> {

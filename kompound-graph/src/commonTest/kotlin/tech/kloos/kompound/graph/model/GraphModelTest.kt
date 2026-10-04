@@ -394,3 +394,17 @@ class UpdateNodePortsTest {
         assertEquals(1, doc.graph.node(NodeId("n"))!!.ports.size)
     }
 }
+
+class ResizeNodesTest {
+    @Test
+    fun widthsAreSetAndUndoneExactlyAndNullRemovesThem() {
+        val g = Graph.of(listOf(node("a"), node("b").copy(width = 300f)))
+        val applied = GraphCommand.ResizeNodes(mapOf(NodeId("a") to 420.5f, NodeId("b") to null)).applyTo(g)!!
+        assertEquals(420.5f, applied.graph.node(NodeId("a"))!!.width)
+        assertEquals(null, applied.graph.node(NodeId("b"))!!.width)
+        val back = applied.inverse.applyTo(applied.graph)!!.graph
+        assertEquals(null, back.node(NodeId("a"))!!.width)
+        assertEquals(300f, back.node(NodeId("b"))!!.width)
+        assertEquals(null, GraphCommand.ResizeNodes(mapOf(NodeId("b") to 300f, NodeId("zzz") to 1f)).applyTo(g), "nothing changes")
+    }
+}
