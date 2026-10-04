@@ -642,3 +642,152 @@ class GraphEngineSignalTest {
         assertEquals("got null", e.output(NodeId("e"), "out"))
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEnginePinAndTestTest {
+    private val out = tech.kloos.kompound.graph.model.PortId("out")
+
+    private fun node(id: String, kind: String, data: Any? = null, ins: List<String> = emptyList()) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it) } + PortSpec.output("out"), data)
+
+    private fun wire(from: String, to: String, port: String = "a") = Edge(
+        EdgeId("$from->$to.$port"),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(from), out),
+        tech.kloos.kompound.graph.model.PortRef(NodeId(to), tech.kloos.kompound.graph.model.PortId(port)),
+    )
+
+    private fun TestScope.engine(log: MutableList<String> = mutableListOf()) = GraphEngine(
+        this,
+        mapOf(
+            "slow" to singleOutputRunner { n, _ -> log += "slow ${n.id}"; delay(1000); n.data },
+            "inc" to NodeRunner { ctx ->
+                ctx.log("inc of ${ctx.inputs["a"]}")
+                ctx.progress(0.5f)
+                log += "inc ${ctx.node.id}"
+                mapOf("out" to (ctx.inputs["a"] as Int) + 1)
+            },
+            "boom" to singleOutputRunner { _, _ -> error("boom") },
+        ),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    private val chain = Graph.of(
+        listOf(node("src", "slow", 5), node("mid", "inc", ins = listOf("a")), node("end", "inc", ins = listOf("a"))),
+        listOf(wire("src", "mid"), wire("mid", "end")),
+    )
+
+    @Test
+    fun aPinnedNodeSkipsItsRunnerAndFeedsDownstreamWithItsPin() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        val pinned = chain.withNode(chain.node(NodeId("mid"))!!.copy(pin = mapOf(out to 100)))
+        e.update(pinned)
+        advanceUntilIdle()
+        assertEquals(101, e.output(NodeId("end"), "out"))
+        assertTrue("inc mid" !in log, "pinned node did not run")
+        assertEquals(mapOf(out to 100), (e.runOf(NodeId("mid")) as NodeRun.Done).outputs)
+    }
+
+    @Test
+    fun nodesOnlyAPinnedNodeWouldHaveReadDoNotRunAtAll() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(chain.withNode(chain.node(NodeId("mid"))!!.copy(pin = mapOf(out to 100))))
+        advanceUntilIdle()
+        assertTrue(log.none { it.startsWith("slow") }, "the slow source was skipped: $log")
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("src")))
+        assertEquals(0L, currentTime)
+    }
+
+    @Test
+    fun pinningWhileRunningCancelsWhatIsNoLongerNeededAndUnpinningRunsItAgain() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(chain)
+        advanceTimeBy(500)
+        assertEquals(NodeRun.Running, e.runOf(NodeId("src")))
+        val pinned = chain.withNode(chain.node(NodeId("mid"))!!.copy(pin = mapOf(out to 7)))
+        e.update(pinned)
+        assertEquals(NodeRun.Idle, e.runOf(NodeId("src")), "source no longer needed")
+        advanceUntilIdle()
+        assertEquals(8, e.output(NodeId("end"), "out"))
+        e.update(chain)
+        advanceUntilIdle()
+        assertEquals(7, e.output(NodeId("end"), "out"), "5 + 1 + 1 after unpinning")
+    }
+
+    @Test
+    fun changingAPinRerunsWhatFollows() = runTest {
+        val e = engine()
+        val base = chain.node(NodeId("mid"))!!
+        e.update(chain.withNode(base.copy(pin = mapOf(out to 1))))
+        advanceUntilIdle()
+        assertEquals(2, e.output(NodeId("end"), "out"))
+        e.update(chain.withNode(base.copy(pin = mapOf(out to 10))))
+        advanceUntilIdle()
+        assertEquals(11, e.output(NodeId("end"), "out"))
+    }
+
+    @Test
+    fun aTestRunUsesStaticInputsAndLeavesTheGraphAlone() = runTest {
+        val e = engine()
+        e.update(chain)
+        advanceUntilIdle()
+        val before = e.output(NodeId("end"), "out")
+        val test = e.testNode(NodeId("mid"), mapOf("a" to 41))!!
+        assertEquals(TraceStatus.Running, test.status)
+        advanceUntilIdle()
+        assertEquals(TraceStatus.Succeeded, test.status)
+        assertEquals(mapOf(out to 42), test.outputs)
+        assertEquals(before, e.output(NodeId("end"), "out"), "the graph's own results are untouched")
+        val run = e.executions.last()
+        assertEquals(TraceTrigger.Test, run.trigger)
+        assertEquals(TraceStatus.Succeeded, run.status)
+        assertEquals("inc of 41", test.attempt.logs.single().message)
+        assertEquals(0.5f, test.attempt.progress)
+        assertEquals(41, test.attempt.inputs.values.single())
+    }
+
+    @Test
+    fun aTestRunCanFailBeCancelledAndNeedsNoUpstream() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(chain)
+        val failing = e.testNode(NodeId("mid"), emptyMap())!!
+        advanceUntilIdle()
+        assertEquals(TraceStatus.Failed, failing.status, "a is missing: the runner fails")
+        assertTrue(failing.attempt.error != null)
+        val slow = e.testNode(NodeId("src"), emptyMap())!!
+        advanceTimeBy(100)
+        slow.cancel()
+        advanceUntilIdle()
+        assertEquals(TraceStatus.Cancelled, slow.status)
+        assertEquals(null, e.testNode(NodeId("nope"), emptyMap()))
+    }
+
+    @Test
+    fun currentInputsShowWhatUpstreamProducedSoATestCanStartFromRealData() = runTest {
+        val e = engine()
+        e.update(chain)
+        advanceUntilIdle()
+        assertEquals(mapOf(tech.kloos.kompound.graph.model.PortId("a") to 5), e.currentInputs(NodeId("mid")))
+        assertEquals(mapOf(tech.kloos.kompound.graph.model.PortId("a") to 6), e.currentInputs(NodeId("end")))
+        assertEquals(emptyMap(), e.currentInputs(NodeId("src")))
+    }
+
+    @Test
+    fun pinningFromTheEngineIsOneUndoStepOnTheEditorState() = runTest {
+        val e = engine()
+        val state = tech.kloos.kompound.graph.KGraphState(chain)
+        e.update(state.graph)
+        advanceUntilIdle()
+        assertTrue(state.pinCurrentOutputs(e, NodeId("mid")))
+        assertEquals(mapOf(out to 6), state.graph.node(NodeId("mid"))!!.pin)
+        state.undo()
+        assertEquals(null, state.graph.node(NodeId("mid"))!!.pin)
+        state.redo()
+        state.unpin(NodeId("mid"))
+        assertEquals(null, state.graph.node(NodeId("mid"))!!.pin)
+        assertTrue(!state.pinCurrentOutputs(e, NodeId("nope")))
+    }
+}

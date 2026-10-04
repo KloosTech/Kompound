@@ -184,3 +184,47 @@ class GraphJsonTest {
         assertEquals(graph.edges, back.edges)
     }
 }
+
+class ValueJsonTest {
+    private data class Money(val cents: Long)
+
+    private val json = ValueJson(listOf(valueCodec<Money>("money", { JsonNumber(it.cents.toDouble()) }, { Money((it as JsonNumber).value.toLong()) })))
+
+    @Test
+    fun everySupportedTypeComesBackWithItsType() {
+        val values: List<Any?> = listOf(
+            null, true, "x", 1.5, 7, 9_000_000_000_000L, 2.5f, JsonObject(mapOf("k" to JsonNumber(1.0))),
+            listOf(1, "two", listOf(3.0)), mapOf("a" to 1, "b" to mapOf("c" to 2f)), mapOf("\$int" to "tricky", "x" to 1), Money(250),
+        )
+        for (v in values) {
+            val back = json.decode(JsonValue.parse(json.encode(v).toJson()))
+            assertEquals(v, back, "$v")
+            if (v !is List<*> && v !is Map<*, *>) assertEquals(v?.let { it::class }, back?.let { it::class }, "$v keeps its type")
+        }
+    }
+
+    @Test
+    fun plainValuesAreWrittenAsPlainJson() {
+        assertEquals("""{"a":[1.5,true,"x",null]}""", json.encode(mapOf("a" to listOf(1.5, true, "x", null))).toJson())
+    }
+
+    @Test
+    fun unknownTypesAndBadTagsFailClearly() {
+        class Custom
+        val e = assertFailsWith<GraphJsonException> { json.encode(Custom()) }
+        assertTrue("Custom" in e.message!!)
+        assertFailsWith<GraphJsonException> { json.encode(mapOf(1 to 2)) }
+        assertFailsWith<GraphJsonException> { json.decode(JsonValue.parse("""{"${'$'}type":"nope","value":1}""")) }
+        assertFailsWith<GraphJsonException> { json.decode(JsonValue.parse("""{"${'$'}int":"x"}""")) }
+    }
+
+    @Test
+    fun pinsAreSavedInTheGraphFileAndLoadedBack() {
+        val pin = mapOf(tech.kloos.kompound.graph.model.PortId("out") to (listOf(1, 2) as Any?), tech.kloos.kompound.graph.model.PortId("n") to 3f)
+        val graph = Graph.of(listOf(GraphNode(NodeId("a"), "k", ports = listOf(PortSpec.output("out"), PortSpec.output("n")), pin = pin)))
+        val g = GraphJson(values = json)
+        val back = g.decode(g.encode(graph)).graph
+        assertEquals(pin, back.node(NodeId("a"))!!.pin)
+        assertEquals(null, GraphJson().decode(GraphJson().encode(Graph.of(listOf(GraphNode(NodeId("b"), "k"))))).graph.node(NodeId("b"))!!.pin)
+    }
+}

@@ -183,7 +183,7 @@ public class GraphEngine(
         for ((id, node) in new.nodes) {
             if (!isReal(node)) continue
             val before = old.nodes[id]
-            if (before == null || before.kind != node.kind || before.data != node.data || before.ports != node.ports) { stale += id; continue }
+            if (before == null || before.kind != node.kind || before.data != node.data || before.ports != node.ports || before.pin != node.pin) { stale += id; continue }
             // Something about what feeds an input changed: another wire, or a subgraph routed differently.
             for (spec in node.ports) {
                 if (spec.direction != PortDirection.Input) continue
@@ -297,7 +297,7 @@ public class GraphEngine(
         override fun emit(port: String, value: Any?) {
             val id = PortId(port)
             emitted[id] = value
-            scope.launch { onEmit(node.id, gen, id, value) }
+            if (gen != Int.MIN_VALUE) scope.launch { onEmit(node.id, gen, id, value) }
             if (trace.captureValues) attempt.addEmission(Emission(clock(), id, trace.redact(node, id, value)))
         }
     }
@@ -481,6 +481,7 @@ public class GraphEngine(
                 states[id] = NodeRun.Failed(CycleException(cycle))
             }
         }
+        val demanded = demanded(Router(graph))
         // A node's state can unblock or block the nodes after it, which may come earlier in node order: sweep until nothing changes.
         var changed = true
         var sweeps = 0
@@ -493,6 +494,26 @@ public class GraphEngine(
                 if (id in cycle) continue
                 val current = states[id] ?: NodeRun.Idle
                 if (current is NodeRun.Done || current is NodeRun.Failed) continue
+                if (id !in demanded) {
+                    // Only pinned nodes would have read it: nothing needs its output, so it stays idle.
+                    if (jobs[id] != null || current != NodeRun.Idle) {
+                        cancel(id)
+                        dropSignals(id)
+                        states[id] = NodeRun.Idle
+                    }
+                    continue
+                }
+                val pin = node.pin
+                if (pin != null) {
+                    val rt = rt(id)
+                    for ((port, value) in pin) publish(id, port, value)
+                    for (spec in node.ports) if (spec.direction == PortDirection.Output) rt.feeds.getOrPut(spec.id) { Feed() }.complete = true
+                    rt.started = true
+                    rt.complete = true
+                    states[id] = NodeRun.Done(pin)
+                    changed = true
+                    continue
+                }
                 val wires = wiresOf(node, router)
                 val blocker = wires.firstNotNullOfOrNull { w ->
                     when (val up = states[w.source.node]) {
@@ -534,6 +555,77 @@ public class GraphEngine(
                 }
             }
         }
+    }
+
+    /** Nodes whose output is needed: every node nothing reads from, and whatever an unpinned needed node reads. */
+    private fun demanded(router: Router): Set<NodeId> {
+        val deps = router.dependencies()
+        val read = HashSet<NodeId>()
+        for (sources in deps.values) read += sources
+        val result = HashSet<NodeId>()
+        val queue = ArrayDeque(deps.keys.filter { it !in read })
+        while (queue.isNotEmpty()) {
+            val id = queue.removeFirst()
+            if (!result.add(id)) continue
+            if (graph.nodes[id]?.pin != null) continue
+            deps[id]?.let { queue.addAll(it) }
+        }
+        return result
+    }
+
+    /**
+     * What is arriving at the connected inputs of [id] right now: the newest value its upstream nodes have produced (empty for ports
+     * with nothing yet). Handy to prefill a test run with real data.
+     */
+    public fun currentInputs(id: NodeId): Map<PortId, Any?> {
+        val node = graph.node(id) ?: return emptyMap()
+        val result = LinkedHashMap<PortId, Any?>()
+        for (w in wiresOf(node, Router(graph))) w.feed?.values?.takeIf { it.isNotEmpty() }?.let { result[w.spec.id] = it.last() }
+        return result
+    }
+
+    /** The outputs of [id] once it is done (a pinned node's pin included), or `null` before. */
+    public fun outputsOf(id: NodeId): Map<PortId, Any?>? = (runOf(id) as? NodeRun.Done)?.outputs
+
+    /**
+     * Runs the single node [id] once with [inputs] (by port name), outside the graph: nothing upstream runs, nothing downstream sees the
+     * result, the node's state in the graph does not change. It is recorded as an [Execution] with trigger [TraceTrigger.Test], so the
+     * inspector shows its logs, progress and output like any other run. Returns `null` for an unknown or non-running node.
+     */
+    public fun testNode(id: NodeId, inputs: Map<String, Any?>): NodeTestRun? {
+        val node = graph.node(id)?.takeIf { isReal(it) } ?: return null
+        val values = inputs.mapKeys { PortId(it.key) }
+        val execution = Execution(++executionCounter, TraceTrigger.Test, clock())
+        history += execution
+        while (history.size > trace.maxExecutions.coerceAtLeast(1)) history.removeAt(0)
+        val captured = trace.captureValues
+        val stored = if (captured) values.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
+        val attempt = NodeAttempt(id, 1, 0, clock(), stored, captured)
+        execution.add(attempt)
+        val context = Context(node, NodeInputs(values), attempt, gen = Int.MIN_VALUE)
+        val runner = runnerFor(node)
+        var testResult: Map<PortId, Any?>? = null
+        val job = scope.launch {
+            try {
+                if (runner == null) throw MissingRunnerException(node.kind)
+                val returned = permits.withPermit { withContext(runDispatcher) { runner.run(context) } }
+                val last = context.emitted + returned.mapKeys { PortId(it.key) }
+                attempt.outputs = if (captured) last.mapValues { (port, v) -> trace.redact(node, port, v) } else emptyMap()
+                attempt.status = TraceStatus.Succeeded
+                testResult = last
+            } catch (e: CancellationException) {
+                attempt.status = TraceStatus.Cancelled
+                throw e
+            } catch (e: Throwable) {
+                attempt.error = e
+                attempt.status = TraceStatus.Failed
+            } finally {
+                attempt.finishedAt = clock()
+                execution.status = attempt.status
+                execution.finishedAt = attempt.finishedAt
+            }
+        }
+        return NodeTestRun(execution, attempt, job) { testResult }
     }
 
     private fun launchRun(node: GraphNode, runner: NodeRunner, inputs: NodeInputs) {

@@ -13,6 +13,8 @@ import androidx.compose.ui.geometry.Offset
  * @property group The group this node belongs to, if any (a node is in at most one group).
  * @property scope The subgraph node this node lives inside, or `null` for the top level. Nodes are only shown, selected and wired
  * within their own scope; removing a subgraph node removes everything inside it.
+ * @property pin Fixed output values per port. The execution engine uses a pinned node's pin instead of running it (and does not run
+ * nodes only it would have fed), so the nodes after it can be developed against known data. `null` when not pinned.
  */
 public data class GraphNode(
     public val id: NodeId,
@@ -22,6 +24,7 @@ public data class GraphNode(
     public val data: Any? = null,
     public val group: GroupId? = null,
     public val scope: NodeId? = null,
+    public val pin: Map<PortId, Any?>? = null,
 ) {
     /** The port declared with [portId], or `null`. */
     public fun port(portId: PortId): PortSpec? = ports.firstOrNull { it.id == portId }
