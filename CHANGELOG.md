@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Build: one switch for publishing, `./gradlew publishLibraries -PpublishTo=local|central|release|both` (or `scripts/publish.sh`), with a preflight that stops before building when Central credentials, the signing key or a real version are missing. `release.yml` uses it.
 
 ## 0.1.0-alpha02 (2026-10-04)
 First release that includes `kompound-graph`, plus everything below.
