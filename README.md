@@ -29,6 +29,7 @@ or grab the Android APK and desktop installers from the [Releases](https://githu
 | **Pickers** | `KDropdown`, `KMultiDropdown`, `KMenu` / `KMenuItem`, `KDateField`, `KDateRangeField` |
 | **Display** | `KBadge`, `KAvatar`, `KListItem`, `KLinearProgress`, `KCircularProgress`, `KEmptyState`, `KErrorState` |
 | **Layout** | `KScaffold`, `KTopBar` |
+| **Node graph** (`kompound-graph`) | `KNodeGraph`, `KNode`, groups and subgraphs, auto layout, JSON, `GraphEngine` (suspending nodes, traces, pins), `KNodeInspector` |
 | **Overlays and feedback** | `KDialog`, `KAlertDialog`, `KBottomSheet` (adaptive), `KSnackbar`, `KTooltip` |
 
 Every component is tested on desktop and the iOS simulator (pixel checks, semantics, hit areas, state layers), has a demo,
@@ -47,13 +48,15 @@ kotlin {
     }
     sourceSets {
         commonMain.dependencies {
-            implementation("tech.kloos.kompound:kompound:0.1.0-alpha01")
+            implementation("tech.kloos.kompound:kompound:0.1.0-alpha02")
         }
     }
 }
 ```
 
 An Android-only or desktop-only project adds the same `implementation(...)` line; Gradle picks the right variant.
+
+The node graph framework (editor canvas, execution engine, inspector; experimental) is a separate artifact: `implementation("tech.kloos.kompound:kompound-graph:0.1.0-alpha02")`. Start with [`docs/AGENT_GUIDE.md`](docs/AGENT_GUIDE.md) section 7.
 
 **Requirements**
 
@@ -138,7 +141,7 @@ generated registry (the mechanism the Kompound catalog itself uses):
 
 ```kotlin
 // build.gradle.kts of the module that contains the demos
-plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha01" }   // applies KSP, the processor and the dependencies
+plugins { id("tech.kloos.kompound.demos") version "0.1.0-alpha02" }   // applies KSP, the processor and the dependencies
 ```
 
 ```kotlin
