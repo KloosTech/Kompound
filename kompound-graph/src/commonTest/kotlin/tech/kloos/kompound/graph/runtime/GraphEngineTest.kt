@@ -203,3 +203,146 @@ class GraphEngineTest {
         assertTrue((e.runOf(NodeId("mystery")) as NodeRun.Failed).error is MissingRunnerException)
     }
 }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class GraphEngineSubgraphTest {
+    private val num = tech.kloos.kompound.graph.model.PortType.of("n")
+
+    private fun real(id: String, kind: String, data: Any? = null, ins: List<String> = emptyList(), scope: String? = null) =
+        GraphNode(NodeId(id), kind, Offset.Zero, ins.map { PortSpec.input(it, type = num) } + PortSpec.output("out", type = num), data, scope = scope?.let { NodeId(it) })
+
+    private fun ref(node: String, port: String) = tech.kloos.kompound.graph.model.PortRef(NodeId(node), tech.kloos.kompound.graph.model.PortId(port))
+
+    private fun wire(from: PortRefLike, to: PortRefLike) = Edge(EdgeId("${from.node}.${from.port}->${to.node}.${to.port}"), ref(from.node, from.port), ref(to.node, to.port))
+
+    private class PortRefLike(val node: String, val port: String)
+
+    private infix fun String.at(port: String) = PortRefLike(this, port)
+
+    private fun TestScope.engine(log: MutableList<String> = mutableListOf()) = GraphEngine(
+        this,
+        mapOf(
+            "const" to singleOutputRunner { n, _ -> n.data },
+            "slow" to singleOutputRunner { n, i ->
+                log += "start ${n.id}"
+                delay(n.data as Long)
+                i["a"]
+            },
+            "inc" to singleOutputRunner { _, i -> (i["a"] as Int) + 1 },
+            "boom" to singleOutputRunner { _, _ -> error("boom") },
+        ),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    /** Top level: src -> S(in1 .. out1) -> sink. Inside S: boundary in -> inc -> boundary out. */
+    private fun oneLevel(innerKind: String = "inc", src: Int = 1): Graph {
+        val s = NodeId("S")
+        val subgraph = GraphNode(s, "subgraph", Offset.Zero, listOf(PortSpec.input("in1"), PortSpec.output("out1")), "S")
+        val bin = GraphNode(NodeId("S/in/in1"), "subgraph.input", Offset.Zero, listOf(PortSpec.output("value")), "in1", scope = s)
+        val bout = GraphNode(NodeId("S/out/out1"), "subgraph.output", Offset.Zero, listOf(PortSpec.input("value")), "out1", scope = s)
+        return Graph.of(
+            listOf(real("src", "const", src), subgraph, bin, real("inner", innerKind, ins = listOf("a"), scope = "S"), bout, real("sink", "inc", ins = listOf("a"))),
+            listOf(
+                wire("src" at "out", "S" at "in1"),
+                wire("S/in/in1" at "value", "inner" at "a"),
+                wire("inner" at "out", "S/out/out1" at "value"),
+                wire("S" at "out1", "sink" at "a"),
+            ),
+        )
+    }
+
+    @Test
+    fun valuesFlowThroughASubgraph() = runTest {
+        val e = engine()
+        e.update(oneLevel())
+        advanceUntilIdle()
+        assertEquals(2, e.output(NodeId("inner"), "out"), "boundary passes the outer value in")
+        assertEquals(3, e.output(NodeId("sink"), "out"), "and the inner result out")
+        assertTrue(NodeId("S") !in e.runs && NodeId("S/in/in1") !in e.runs, "virtual nodes do not run")
+        assertEquals(mapOf(tech.kloos.kompound.graph.model.PortId("out1") to 2), (e.runOf(NodeId("S")) as NodeRun.Done).outputs)
+        assertEquals(1, e.output(NodeId("S/in/in1"), "value"))
+    }
+
+    @Test
+    fun nestedSubgraphsRouteThroughEveryLevel() = runTest {
+        // outer O contains inner I; inside I: boundary -> inc -> boundary. O just forwards I.
+        val o = NodeId("O")
+        val i = NodeId("I")
+        val g = Graph.of(
+            listOf(
+                real("src", "const", 10),
+                GraphNode(o, "subgraph", Offset.Zero, listOf(PortSpec.input("in1"), PortSpec.output("out1")), "O"),
+                GraphNode(NodeId("O/in/in1"), "subgraph.input", Offset.Zero, listOf(PortSpec.output("value")), "x", scope = o),
+                GraphNode(i, "subgraph", Offset.Zero, listOf(PortSpec.input("in1"), PortSpec.output("out1")), "I", scope = o),
+                GraphNode(NodeId("I/in/in1"), "subgraph.input", Offset.Zero, listOf(PortSpec.output("value")), "x", scope = i),
+                real("deep", "inc", ins = listOf("a"), scope = "I"),
+                GraphNode(NodeId("I/out/out1"), "subgraph.output", Offset.Zero, listOf(PortSpec.input("value")), "y", scope = i),
+                GraphNode(NodeId("O/out/out1"), "subgraph.output", Offset.Zero, listOf(PortSpec.input("value")), "y", scope = o),
+                real("sink", "inc", ins = listOf("a")),
+            ),
+            listOf(
+                wire("src" at "out", "O" at "in1"),
+                wire("O/in/in1" at "value", "I" at "in1"),
+                wire("I/in/in1" at "value", "deep" at "a"),
+                wire("deep" at "out", "I/out/out1" at "value"),
+                wire("I" at "out1", "O/out/out1" at "value"),
+                wire("O" at "out1", "sink" at "a"),
+            ),
+        )
+        val e = engine()
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(11, e.output(NodeId("deep"), "out"))
+        assertEquals(12, e.output(NodeId("sink"), "out"))
+        assertTrue(e.runOf(NodeId("O")) is NodeRun.Done && e.runOf(NodeId("I")) is NodeRun.Done)
+    }
+
+    @Test
+    fun aSubgraphReportsTheStateOfWhatIsInsideAndHoldsBackWhatFollows() = runTest {
+        val log = mutableListOf<String>()
+        val e = engine(log)
+        e.update(oneLevel("slow").let { g -> g.withNode(g.node(NodeId("inner"))!!.copy(data = 500L)) })
+        advanceTimeBy(100)
+        assertEquals(NodeRun.Running, e.runOf(NodeId("S")))
+        assertEquals(NodeRun.Waiting, e.runOf(NodeId("sink")))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("S")) is NodeRun.Done)
+        assertEquals(2, e.output(NodeId("sink"), "out"))
+    }
+
+    @Test
+    fun aFailureInsideBlocksTheNodesAfterTheSubgraph() = runTest {
+        val e = engine()
+        e.update(oneLevel("boom"))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("S")) is NodeRun.Failed)
+        assertEquals(NodeRun.Blocked(NodeId("inner")), e.runOf(NodeId("sink")))
+    }
+
+    @Test
+    fun editingInsideASubgraphRerunsWhatIsDownstreamOutside() = runTest {
+        val e = engine()
+        val g = oneLevel()
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(3, e.output(NodeId("sink"), "out"))
+        e.update(g.withNode(g.node(NodeId("src"))!!.copy(data = 5)))
+        advanceUntilIdle()
+        assertEquals(7, e.output(NodeId("sink"), "out"))
+        // Rewiring through the boundary (bypass the inner node) changes what the sink receives.
+        val bypass = g.withoutEdges(setOf(EdgeId("inner.out->S/out/out1.value")))
+            .withEdge(wire("S/in/in1" at "value", "S/out/out1" at "value"))
+        e.update(bypass)
+        advanceUntilIdle()
+        assertEquals(2, e.output(NodeId("sink"), "out"), "boundary input wired straight to boundary output: 1 + 1")
+    }
+
+    @Test
+    fun anUnwiredSubgraphInputOrOutputJustReadsAsNotConnected() = runTest {
+        val e = engine()
+        val g = oneLevel()
+        e.update(g.withoutEdges(setOf(EdgeId("src.out->S.in1"))))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("inner")) is NodeRun.Failed, "inc needs input a: ${e.runOf(NodeId("inner"))}")
+    }
+}
