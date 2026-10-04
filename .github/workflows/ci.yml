@@ -50,6 +50,7 @@ jobs:
           :catalog:shared:desktopTest
           compileAndroidMain
           compileKotlinWasmJs
+          compileKotlinJs
           :catalog:androidApp:assembleDebug
           :catalog:webApp:wasmJsBrowserDistribution
           --stacktrace
