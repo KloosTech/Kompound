@@ -238,4 +238,27 @@ class ValueJsonTest {
         assertEquals(tech.kloos.kompound.graph.model.SignalMode.Each, migrated.node(NodeId("t"))!!.port("a")!!.signal)
         assertEquals(tech.kloos.kompound.graph.model.SignalMode.Latest, GraphJson().decode(text).graph.node(NodeId("t"))!!.port("a")!!.signal)
     }
+
+    @Test
+    fun renamingAKindThatHasTypedDataReadsTheDataWithTheNewKindsCodec() {
+        data class Script(val command: String, val timeout: Int)
+        val script = nodeDataCodec<Script>(
+            encode = { jsonObjectOf("command" to JsonString(it.command), "timeout" to JsonNumber(it.timeout.toDouble())) },
+            decode = { v -> (v as JsonObject).let { Script((it["command"] as JsonString).value, (it["timeout"] as JsonNumber).value.toInt()) } },
+        )
+        val old = GraphJson(mapOf("script.v1" to script))
+        val text = old.encode(Graph.of(listOf(GraphNode(NodeId("s"), "script.v1", data = Script("ls -la", 5)))))
+        val renamed = GraphJson(
+            mapOf("script" to script),
+            migrate = { n -> if (n.kind == "script.v1") n.copy(kind = "script") else n },
+        ).decode(text).graph.node(NodeId("s"))!!
+        assertEquals("script", renamed.kind)
+        assertEquals(Script("ls -la", 5), renamed.data, "typed, not raw JSON")
+        // when migrate changes the data itself, that wins
+        val changed = GraphJson(
+            mapOf("script" to script),
+            migrate = { n -> if (n.kind == "script.v1") n.copy(kind = "script", data = Script("custom", 1)) else n },
+        ).decode(text).graph.node(NodeId("s"))!!
+        assertEquals(Script("custom", 1), changed.data)
+    }
 }

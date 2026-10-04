@@ -77,7 +77,8 @@ public class KNodeInspectorLabels(
  *
  * @param engine The engine whose trace is shown; also runs the tests.
  * @param node The node to inspect (take it from the current graph so a pin shows up).
- * @param state The editor state: when given, Pin and Unpin edit the graph (one undo step each).
+ * @param state The editor state: when given, Pin and Unpin edit the graph (one undo step each). Pin stores the node's current real output, so it is
+ * disabled while a recorded [execution] is shown (the data on screen is from then, not now).
  * @param execution A recorded run to show instead of the newest one.
  * @param parameters The middle column: the node's settings editor, for example the same content as in the canvas node.
  * @param valueJson How values are read back from the input editor and shown; pass one with your codecs for custom types.
@@ -125,7 +126,8 @@ public fun KNodeInspector(
         else -> null
     }
     val showingPin = test == null && attempt?.outputs == null && live && node.pin != null
-    val realOutputs: Map<PortId, Any?>? = test?.outputs ?: engine.outputsOf(node.id)
+    // What Pin stores: the real current values. Not offered while looking at a recorded run, whose shown values are old (and possibly redacted).
+    val realOutputs: Map<PortId, Any?>? = if (execution != null && test == null) null else test?.outputs ?: engine.outputsOf(node.id)
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val wide = maxWidth >= 840.dp
