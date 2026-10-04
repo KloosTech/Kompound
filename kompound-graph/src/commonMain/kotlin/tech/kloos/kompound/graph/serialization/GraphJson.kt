@@ -16,6 +16,7 @@ import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.model.PortType
+import tech.kloos.kompound.graph.model.SignalMode
 
 /**
  * Turns a node's [GraphNode.data] into JSON and back. Register one per node kind in [GraphJson]; the codec belongs to the code that
@@ -53,11 +54,13 @@ public class LoadedGraph(public val graph: Graph, public val offset: Offset?, pu
  * @property nodeData Codec per node kind.
  * @property portTypes The port types of your app.
  * @property pretty Indent the output.
+ * @property values How pinned output values are written (see [ValueJson]); pass one with your [ValueCodec]s if pins hold your own types.
  */
 public class GraphJson(
     private val nodeData: Map<String, NodeDataCodec> = emptyMap(),
     portTypes: Collection<PortType> = emptyList(),
     private val pretty: Boolean = true,
+    private val values: ValueJson = ValueJson(),
 ) {
     private val types: Map<String, PortType> = portTypes.associateBy { it.id }
 
@@ -136,6 +139,7 @@ public class GraphJson(
             "ports" to JsonArray(node.ports.map(::portToJson)),
             "data" to dataJson,
             "dataType" to dataType?.let { JsonString(it) },
+            "pin" to node.pin?.let { pin -> JsonObject(pin.entries.associate { (port, v) -> port.value to values.encode(v) }) },
             "group" to node.group?.let { JsonString(it.value) },
             "scope" to node.scope?.let { JsonString(it.value) },
         )
@@ -165,6 +169,7 @@ public class GraphJson(
             position = Offset(float(o, "x", at), float(o, "y", at)),
             ports = array(o, "ports", at).mapIndexed { i, v -> portFromJson(obj(v, "$at.ports[$i]"), "$at.ports[$i]") },
             data = data,
+            pin = (o["pin"] as? JsonObject)?.fields?.entries?.associate { (port, v) -> PortId(port) to values.decode(v) },
             group = (o["group"] as? JsonString)?.let { GroupId(it.value) },
             scope = (o["scope"] as? JsonString)?.let { NodeId(it.value) },
         )
@@ -176,6 +181,7 @@ public class GraphJson(
         "label" to JsonString(p.label),
         "type" to JsonString(p.type.id),
         "capacity" to JsonString(p.capacity.name),
+        "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
     )
 
     private fun portFromJson(o: JsonObject, at: String): PortSpec {
@@ -188,6 +194,7 @@ public class GraphJson(
             (o["label"] as? JsonString)?.value ?: id,
             types[typeId] ?: PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
+            (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
         )
     }
 

@@ -28,6 +28,9 @@ public sealed interface GraphCommand {
     /** Replaces the payload of a node. */
     public data class UpdateNodeData(public val id: NodeId, public val data: Any?) : GraphCommand
 
+    /** Pins the output values of a node (see [GraphNode.pin]), or removes the pin with `null`. */
+    public data class SetPin(public val id: NodeId, public val pin: Map<PortId, Any?>?) : GraphCommand
+
     /** Creates the group or replaces its title, colour and collapsed state. Members are set with [AssignGroups]. */
     public data class PutGroup(public val group: NodeGroup) : GraphCommand
 
@@ -94,6 +97,11 @@ public fun GraphCommand.applyTo(graph: Graph): AppliedCommand? = when (this) {
         val node = graph.node(id)
         if (node == null || node.data == data) null
         else AppliedCommand(graph.withNode(node.copy(data = data)), GraphCommand.UpdateNodeData(id, node.data))
+    }
+    is GraphCommand.SetPin -> {
+        val node = graph.node(id)
+        if (node == null || node.pin == pin) null
+        else AppliedCommand(graph.withNode(node.copy(pin = pin)), GraphCommand.SetPin(id, node.pin))
     }
     is GraphCommand.PutGroup -> {
         val before = graph.group(group.id)
