@@ -178,6 +178,9 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | Composable | Use |
 |---|---|
 | `KSkeleton(modifier, shape, animated)`, `KSkeletonCircle(size)`, `KSkeletonText(lines, lastLineFraction)`, `KSkeletonGroup { }`, `Modifier.kShimmer(enabled)` | shimmering placeholders; the group announces "Loading" once |
+| `KDataTable(rows, columns: List<KColumn<T>>, rowKey, modifier, sort, onSortChange, selection, onSelectionChange, onRowClick, striped, loading)` | virtualized sortable table; needs a bounded height; `KColumn.text(key, header) { }` for text columns, `KSortState` cycles asc, desc, none |
+| `KTreeView(roots, children, key, modifier, state = rememberKTreeState(), onSelect) { node, depth -> }` | virtualized tree; needs a bounded height; Up/Down/Left/Right/Home/End keys |
+| `KSparkline(values)`, `KLineChart(series, categories)`, `KBarChart(series, categories, stacked)` | charts with `KChartSeries(name, values)`; give them a size; `NaN` leaves a gap; screen readers get a summary |
 
 ### Overlays and feedback
 | Composable | Use |
