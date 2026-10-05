@@ -145,6 +145,11 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | `KDropdown(options: List<T>, selected: T?, onSelect, optionLabel, label, …)` | single choice |
 | `KMultiDropdown(options, selected: Set<T>, onSelectionChange, …)` | multiple choice |
 | `KDateField(value: Long?, onValueChange, formatDate, …)` / `KDateRangeField(start, end, onRangeChange, …)` | epoch millis |
+| `KTimePicker(time: KTime, onTimeChange, is24Hour, minuteStep)` / `KTimeField(value: KTime?, onValueChange, …)` | hour and minute spinners; field opens a dialog; `KTime(hour, minute)` |
+| `KColorPicker(color, onColorChange, showAlpha, showHex, swatches)` / `KColorField(value: Color?, onValueChange, …)` | `KColors.toHex` and `parseHex` |
+| `KCombobox(value, onValueChange, options, onOptionSelected, optionLabel, filterOptions = true, onSubmit)` | autocomplete; text is yours, picking writes the label via `onValueChange`; `filterOptions = false` for server-side results |
+| `KTagInput(tags, onTagsChange, suggestions, separators, allowDuplicates, maxTags, validate)` | Enter or `,` ends a tag |
+| `KCommandPalette(open, onDismissRequest, commands: List<KCommand>)` and `Modifier.kCommandShortcut { open = true }` | `KCommand(id, title, onRun, subtitle, icon, shortcut, keywords, section, enabled)`; `KFuzzy.match` / `filter` for your own search |
 
 ### Display
 | Composable | Use |
