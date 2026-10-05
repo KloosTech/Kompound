@@ -52,7 +52,7 @@ control that can be clicked, toggled or typed into it checks:
 
 1. it has a name (text or content description),
 2. text fields have a name,
-3. it is at least 24 × 24 dp (WCAG 2.2 AA target size),
+3. it is at least 24 × 24 dp (WCAG 2.2 AA target size; for text fields the container counts),
 4. clickable nodes have a role,
 5. it accepts a focus request, so the keyboard can reach it.
 

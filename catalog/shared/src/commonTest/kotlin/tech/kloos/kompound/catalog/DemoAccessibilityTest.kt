@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
  *
  * 1. every control that can be clicked or toggled has a name (text or content description),
  * 2. every text field has a name,
- * 3. every control is at least 24 x 24 dp (WCAG 2.2 AA, target size minimum),
+ * 3. every control other than a text field is at least 24 x 24 dp (WCAG 2.2 AA, target size minimum; a field's container is its target),
  * 4. no control is announced as clickable without a role,
  * 5. every control can take keyboard focus (it offers a focus request).
  *
@@ -80,7 +80,8 @@ class DemoAccessibilityTest {
                     if (node.name().isBlank() && (entry.qualifiedId to 1) !in knownGaps) problems += "$where: no name (check 1/2)"
                     val w = node.size.width / density
                     val h = node.size.height / density
-                    if ((w < 24f || h < 24f) && (entry.qualifiedId to 3) !in knownGaps) problems += "$where: ${w.toInt()}x${h.toInt()}dp is below 24dp (check 3)"
+                    // A text field's semantics node is the text line; the touch target is its 56dp container, which focuses the field on a tap.
+                    if (!editable && (w < 24f || h < 24f) && (entry.qualifiedId to 3) !in knownGaps) problems += "$where: ${w.toInt()}x${h.toInt()}dp is below 24dp (check 3)"
                     if (!config.contains(SemanticsActions.RequestFocus) && (entry.qualifiedId to 5) !in knownGaps) problems += "$where: cannot take keyboard focus (check 5)"
                     if (clickable && role == null && !editable && (entry.qualifiedId to 4) !in knownGaps) problems += "$where: clickable without a role (check 4)"
                 }
