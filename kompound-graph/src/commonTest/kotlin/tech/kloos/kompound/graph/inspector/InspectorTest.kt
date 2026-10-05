@@ -18,6 +18,8 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
@@ -128,11 +130,13 @@ class InspectorUiTest {
         }
         waitUntil(timeoutMillis = 5_000) { engine?.runOf(NodeId("sum")) is tech.kloos.kompound.graph.runtime.NodeRun.Done }
         waitForIdle()
-        onNodeWithText("work · sum").assertIsDisplayed()
-        onNodeWithText("Succeeded").assertIsDisplayed()
-        onNodeWithText("my settings").assertIsDisplayed()
+        // the panel fills in a frame or two after the run; a slow CI runner needs the wait (the simulator screen is also smaller than
+        // the 1100dp box, so check existence, not visibility)
+        waitUntilAtLeastOneExists(hasText("Succeeded"), 10_000)
+        onNodeWithText("work · sum").assertExists()
+        onNodeWithText("my settings").assertExists()
         // input JSON shows both values, output JSON shows the sum
-        onNodeWithText("\"a\": 4,", substring = true).assertIsDisplayed()
+        waitUntilAtLeastOneExists(hasText("\"a\": 4,", substring = true), 10_000)
         onNodeWithText("9", substring = true).assertExists()
     }
 
