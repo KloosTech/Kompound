@@ -30,10 +30,20 @@ public interface NodeDataCodec {
     public fun decode(json: JsonValue): Any
 }
 
-/** A [NodeDataCodec] from two lambdas. */
-public fun <T : Any> nodeDataCodec(encode: (T) -> JsonValue, decode: (JsonValue) -> T): NodeDataCodec = object : NodeDataCodec {
-    @Suppress("UNCHECKED_CAST")
-    override fun encode(data: Any): JsonValue = encode(data as T)
+/**
+ * A [NodeDataCodec] from two lambdas. Data that is not a [T] (a node saved before its data type changed) is passed to [fallback]; when
+ * that returns `null` too, encoding fails with a [GraphJsonException] that says what type was found (and [GraphJson] adds the node).
+ */
+public inline fun <reified T : Any> nodeDataCodec(
+    crossinline encode: (T) -> JsonValue,
+    crossinline decode: (JsonValue) -> T,
+    crossinline fallback: (Any) -> T? = { null },
+): NodeDataCodec = object : NodeDataCodec {
+    override fun encode(data: Any): JsonValue {
+        val typed = data as? T ?: fallback(data)
+            ?: throw GraphJsonException("data is ${data::class.simpleName}, expected ${T::class.simpleName}")
+        return encode(typed)
+    }
     override fun decode(json: JsonValue): Any = decode(json)
 }
 
@@ -135,7 +145,13 @@ public class GraphJson(
         var dataType: String? = null
         val dataJson: JsonValue? = when {
             data == null -> null
-            nodeData[node.kind] != null -> nodeData.getValue(node.kind).encode(data)
+            nodeData[node.kind] != null -> try {
+                nodeData.getValue(node.kind).encode(data)
+            } catch (e: GraphJsonException) {
+                throw GraphJsonException("Node \"${node.id}\" (kind \"${node.kind}\"): ${e.message}")
+            } catch (e: ClassCastException) {
+                throw GraphJsonException("Node \"${node.id}\" (kind \"${node.kind}\") has data of type ${data::class.simpleName} that its NodeDataCodec cannot write")
+            }
             data is JsonValue -> data
             data is Boolean -> JsonBool(data)
             data is String -> JsonString(data)
@@ -157,6 +173,7 @@ public class GraphJson(
             "pin" to node.pin?.let { pin -> JsonObject(pin.entries.associate { (port, v) -> port.value to values.encode(v) }) },
             "group" to node.group?.let { JsonString(it.value) },
             "scope" to node.scope?.let { JsonString(it.value) },
+            "after" to node.after.takeIf { it.isNotEmpty() }?.let { ids -> JsonArray(ids.map { JsonString(it.value) }) },
         )
     }
 
@@ -188,6 +205,7 @@ public class GraphJson(
             pin = (o["pin"] as? JsonObject)?.fields?.entries?.associate { (port, v) -> PortId(port) to values.decode(v) },
             group = (o["group"] as? JsonString)?.let { GroupId(it.value) },
             scope = (o["scope"] as? JsonString)?.let { NodeId(it.value) },
+            after = (o["after"] as? JsonArray)?.items?.mapNotNull { (it as? JsonString)?.value?.let(::NodeId) }?.toSet() ?: emptySet(),
         )
     }
 
@@ -198,6 +216,8 @@ public class GraphJson(
         "type" to JsonString(p.type.id),
         "capacity" to JsonString(p.capacity.name),
         "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
+        "secret" to p.secret.takeIf { it }?.let { JsonBool(true) },
+        "errorOutput" to p.errorOutput.takeIf { it }?.let { JsonBool(true) },
     )
 
     private fun portFromJson(o: JsonObject, at: String): PortSpec {
@@ -211,6 +231,8 @@ public class GraphJson(
             types[typeId] ?: PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
             (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
+            (o["secret"] as? JsonBool)?.value ?: false,
+            (o["errorOutput"] as? JsonBool)?.value ?: false,
         )
     }
 

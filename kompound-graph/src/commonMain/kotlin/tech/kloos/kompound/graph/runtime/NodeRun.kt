@@ -91,3 +91,16 @@ public class MissingRunnerException(public val kind: String) : IllegalStateExcep
 public object NoSignal {
     override fun toString(): String = "NoSignal"
 }
+
+/**
+ * What comes out of a node's [tech.kloos.kompound.graph.model.PortSpec.error] port when its runner failed: the [message], the exception class
+ * name as [type], and the [cause] itself for code that wants more.
+ */
+public class GraphError(public val message: String, public val type: String, public val cause: Throwable? = null) {
+    override fun toString(): String = "$type: $message"
+
+    public companion object {
+        /** The error for [failure]. */
+        public fun of(failure: Throwable): GraphError = GraphError(failure.message ?: failure.toString(), failure::class.simpleName ?: "Error", failure)
+    }
+}

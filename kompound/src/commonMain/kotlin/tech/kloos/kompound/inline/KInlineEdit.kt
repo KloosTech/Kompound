@@ -69,6 +69,12 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * @param editContentDescription Accessibility description of the view-mode button (pass a localised string).
  * @param saveContentDescription Accessibility description of the save button.
  * @param cancelContentDescription Accessibility description of the cancel button.
+ * @param fillWidth Let the view-mode row take the width it is given (in a list item's headline, a column), with the pencil at the end.
+ * While editing, the field always fills the width.
+ * @param startEditing Start in edit mode (a "rename" that was chosen elsewhere).
+ * @param editing Hoist the edit mode: `true` shows the field, `false` the text. Pair it with [onEditingChange]; `null` (default) lets the
+ * component keep it, so a "rename" button elsewhere can set it to `true` and focus goes to the field.
+ * @param onEditingChange Called when the user starts, saves or cancels editing.
  * @param style Overrides merged over [KInlineEditDefaults.style] (the view-mode row).
  */
 @Composable
@@ -84,10 +90,16 @@ public fun KInlineEdit(
     editContentDescription: String = KompoundTheme.strings.edit,
     saveContentDescription: String = KompoundTheme.strings.save,
     cancelContentDescription: String = KompoundTheme.strings.cancel,
+    fillWidth: Boolean = false,
+    startEditing: Boolean = false,
+    editing: Boolean? = null,
+    onEditingChange: ((Boolean) -> Unit)? = null,
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }
-    var editing by remember { mutableStateOf(false) }
+    var ownEditing by remember { mutableStateOf(startEditing) }
+    val isEditing = editing ?: ownEditing
+    fun setEditing(value: Boolean) { ownEditing = value; onEditingChange?.invoke(value) }
     var draft by remember { mutableStateOf(value) }
     var error by remember { mutableStateOf<String?>(null) }
     val focusRequester = remember { FocusRequester() }
@@ -96,26 +108,28 @@ public fun KInlineEdit(
         val problem = validate(draft)
         if (problem != null) { error = problem; return }
         if (draft != value) onValueChange(draft)
-        editing = false
+        setEditing(false)
     }
-    fun cancel() { editing = false; error = null }
+    fun cancel() { setEditing(false); error = null }
 
-    if (!editing) {
+    if (!isEditing) {
         val source = remember { MutableInteractionSource() }
         val state = rememberUpdatedStyleState(source) { it.isEnabled = enabled }
         Row(
             modifier = modifier
+                .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
                 .semantics { contentDescription = "$editContentDescription ${value.ifEmpty { placeholder }}".trim() }
                 .hoverable(source, enabled)
                 .clickable(interactionSource = source, indication = null, enabled = enabled, role = Role.Button) {
-                    draft = value; error = null; editing = true
+                    draft = value; error = null; setEditing(true)
                 }
                 .styleable(state, KInlineEditDefaults.style(), style),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (value.isEmpty()) KText(placeholder, style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            else KText(value)
+            val grow = if (fillWidth) Modifier.weight(1f) else Modifier
+            if (value.isEmpty()) KText(placeholder, grow, style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            else KText(value, grow)
             CompositionLocalProvider(LocalKContentColor provides KInlineEditDefaults.iconColor(enabled)) {
                 KIcon(KompoundIcons.Edit, contentDescription = null)
             }

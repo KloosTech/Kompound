@@ -2,6 +2,8 @@ package tech.kloos.kompound.graph.inspector
 
 import tech.kloos.kompound.graph.KNodeStatus
 import tech.kloos.kompound.graph.model.Edge
+import tech.kloos.kompound.graph.model.KSecret
+import tech.kloos.kompound.graph.runtime.GraphError
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.runtime.Execution
 import tech.kloos.kompound.graph.runtime.GraphEngine
@@ -51,12 +53,15 @@ public fun GraphEngine.edgeLabel(edge: Edge, execution: Execution? = null): Stri
     }
     val count = signalCount(edge.from.node, edge.from.port.value)
     if (count == 0) return null
+    if (isSecret(edge.from.node, edge.from.port.value)) return KSecret.Mask
     return if (count > 1) "$count values" else previewValue(latest(edge.from.node, edge.from.port.value))
 }
 
 /** A few characters describing [value] for a label: strings quoted and cut, collections as a count. */
 public fun previewValue(value: Any?): String = when (value) {
     null -> "null"
+    is KSecret -> KSecret.Mask
+    is GraphError -> "error"
     is String -> if (value.length > 14) "\"${value.take(13)}…\"" else "\"$value\""
     is Boolean -> value.toString()
     is Number -> numberText(value.toDouble())

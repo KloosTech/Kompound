@@ -27,6 +27,7 @@ import tech.kloos.kompound.buttons.KButtonVariant
 import tech.kloos.kompound.dropdown.KDropdown
 import tech.kloos.kompound.graph.KGraphState
 import tech.kloos.kompound.graph.model.GraphNode
+import tech.kloos.kompound.graph.model.KSecret
 import tech.kloos.kompound.graph.model.PortDirection
 import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.runtime.Execution
@@ -125,6 +126,11 @@ public fun KNodeInspector(
         live -> node.pin ?: engine.outputsOf(node.id)
         else -> null
     }
+    // Secret ports show a mask; the real values stay in inputs/outputs for running tests and pinning.
+    fun masked(values: Map<PortId, Any?>): Map<PortId, Any?> =
+        values.mapValues { (port, v) -> if (node.port(port)?.secret == true && v !is KSecret) KSecret.Hidden else v }
+    val shownInputs = masked(inputs)
+    val shownOutputs = outputs?.let { masked(it) }
     val showingPin = test == null && attempt?.outputs == null && live && node.pin != null
     // What Pin stores: the real current values. Not offered while looking at a recorded run, whose shown values are old (and possibly redacted).
     val realOutputs: Map<PortId, Any?>? = if (execution != null && test == null) null else test?.outputs ?: engine.outputsOf(node.id)
@@ -139,7 +145,11 @@ public fun KNodeInspector(
                         editError = null
                         val merged = LinkedHashMap<PortId, Any?>(engine.currentInputs(node.id)).also { it.putAll(inputs) }
                         try {
-                            for ((port, text) in edits) merged[port] = parseInput(port, text)
+                            for ((port, text) in edits) {
+                                // an untouched secret keeps its real value
+                                if (node.port(port)?.secret == true && text.trim() == "\"${KSecret.Mask}\"") continue
+                                merged[port] = parseInput(port, text)
+                            }
                             val inputsByName = merged.mapKeys { it.key.value }
                             test = if (onTest != null) onTest(inputsByName) else engine.testNode(node.id, inputsByName)
                         } catch (e: GraphJsonException) {
@@ -161,10 +171,10 @@ public fun KNodeInspector(
             }
             val inputPane: @Composable (Modifier) -> Unit = { m ->
                 DataPane(
-                    title = labels.input, values = inputs, ports = inputPorts.map { it.id }, valueJson = valueJson, labels = labels, modifier = m,
+                    title = labels.input, values = shownInputs, ports = inputPorts.map { it.id }, valueJson = valueJson, labels = labels, modifier = m,
                     captured = attempt?.valuesCaptured ?: true,
                     extra = {
-                        KButton({ editing = !editing; if (editing) inputPorts.forEach { p -> edits.getOrPut(p.id) { displayValue(inputs[p.id], valueJson).toJson(pretty = true) } } else edits.clear() }, variant = KButtonVariant.Text) {
+                        KButton({ editing = !editing; if (editing) inputPorts.forEach { p -> edits.getOrPut(p.id) { displayValue(shownInputs[p.id], valueJson).toJson(pretty = true) } } else edits.clear() }, variant = KButtonVariant.Text) {
                             KText(if (editing) labels.useRunData else labels.editInput)
                         }
                     },
@@ -174,7 +184,7 @@ public fun KNodeInspector(
                 )
             }
             val outputPane: @Composable (Modifier) -> Unit = { m ->
-                OutputPane(outputs, outputPorts.map { it.id }, attempt, valueJson, labels, showingPin, m)
+                OutputPane(shownOutputs, outputPorts.map { it.id }, attempt, valueJson, labels, showingPin, m)
             }
             val parameterPane: @Composable (Modifier) -> Unit = { m ->
                 Column(m.verticalScroll(rememberScrollState()).padding(8.dp)) {

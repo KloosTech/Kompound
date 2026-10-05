@@ -16,6 +16,7 @@ import tech.kloos.kompound.graph.model.EdgeId
 import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
+import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortSpec
 import tech.kloos.kompound.graph.rerouteNode
 import kotlin.test.Test
@@ -1201,5 +1202,153 @@ class GraphEngineAnyInputTest {
         e.update(g)
         advanceUntilIdle()
         assertEquals(listOf("merge 5 null"), log)
+    }
+
+    @Test
+    fun aDataChangeThatIsNotRelevantKeepsTheResults() = runTest {
+        var runs = 0
+        val e = GraphEngine(
+            this,
+            mapOf("count" to singleOutputRunner { _, _ -> ++runs }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+            isRelevantChange = { old, new -> (old.data as Pair<*, *>).first != (new.data as Pair<*, *>).first },
+        )
+        val g = Graph.of(listOf(node("n", "count", "a" to "note1")), emptyList())
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(1, runs)
+        e.update(g.withNode(g.node(NodeId("n"))!!.copy(data = "a" to "note2")))
+        advanceUntilIdle()
+        assertEquals(1, runs, "only the second part (a note) changed")
+        assertTrue(e.runOf(NodeId("n")) is NodeRun.Done)
+        e.update(g.withNode(g.node(NodeId("n"))!!.copy(data = "b" to "note2")))
+        advanceUntilIdle()
+        assertEquals(2, runs, "the relevant part changed")
+    }
+
+    @Test
+    fun kindConcurrencyLimitsSimultaneousRunsOfOneKind() = runTest {
+        var active = 0
+        var peak = 0
+        val e = GraphEngine(
+            this,
+            mapOf("req" to singleOutputRunner { _, _ -> active++; peak = maxOf(peak, active); delay(100); active--; 1 }),
+            maxConcurrency = 10,
+            kindConcurrency = mapOf("req" to 2),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        e.update(Graph.of(List(5) { node("r$it", "req") }, emptyList()))
+        advanceUntilIdle()
+        assertEquals(2, peak, "never more than two requests at once")
+        assertTrue(e.runs.values.all { it is NodeRun.Done })
+    }
+
+    @Test
+    fun secretPortsAreMaskedInTracesAndLabelsButNotForTheGraph() = runTest {
+        val key = GraphNode(NodeId("key"), "const", Offset.Zero, listOf(PortSpec.output("out", secret = true)), "hunter2")
+        val plain = node("plain", "const", "visible")
+        val wrapped = node("wrapped", "wrap")
+        val e = GraphEngine(
+            this,
+            mapOf("const" to singleOutputRunner { n, _ -> n.data }, "wrap" to singleOutputRunner { _, _ -> tech.kloos.kompound.graph.model.KSecret("inner") }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+        )
+        e.update(Graph.of(listOf(key, plain, wrapped), emptyList()))
+        advanceUntilIdle()
+        assertEquals("hunter2", e.output(NodeId("key"), "out"), "the graph sees the real value")
+        assertTrue(e.isSecret(NodeId("key"), "out"))
+        val attempts = e.executions.last().attempts
+        fun stored(id: String) = attempts.first { it.nodeId == NodeId(id) }.outputs!![PortId("out")]
+        assertEquals(tech.kloos.kompound.graph.model.KSecret.Hidden, stored("key"))
+        assertEquals("visible", stored("plain"))
+        assertEquals(tech.kloos.kompound.graph.model.KSecret.Hidden, stored("wrapped"), "a KSecret value is hidden without marking the port")
+    }
+
+    private fun errorGraph(wireError: Boolean): Graph {
+        val boom = GraphNode(NodeId("b"), "boom", Offset.Zero, listOf(PortSpec.output("out"), PortSpec.error()), null)
+        val ok = node("ok", "echo", ins = listOf("a" to tech.kloos.kompound.graph.model.SignalMode.Latest))
+        val handler = node("handler", "echo", ins = listOf("a" to tech.kloos.kompound.graph.model.SignalMode.Latest))
+        val edges = buildList {
+            add(wire("b", "out", "ok", "a"))
+            if (wireError) add(Edge(EdgeId("b-err"), tech.kloos.kompound.graph.model.PortRef(NodeId("b"), tech.kloos.kompound.graph.model.PortId("error")), tech.kloos.kompound.graph.model.PortRef(NodeId("handler"), tech.kloos.kompound.graph.model.PortId("a"))))
+        }
+        return Graph.of(listOf(boom, ok, handler), edges)
+    }
+
+    private fun TestScope.errorEngine() = GraphEngine(
+        this,
+        mapOf("boom" to singleOutputRunner { _, _ -> error("it broke") }, "echo" to singleOutputRunner { _, i -> i["a"] }),
+        runDispatcher = StandardTestDispatcher(testScheduler),
+    )
+
+    @Test
+    fun aWiredErrorPortCatchesTheFailureAndSilencesTheOtherOutputs() = runTest {
+        val e = errorEngine()
+        e.update(errorGraph(wireError = true))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("b")) is NodeRun.Done, "the failure was caught: ${e.runOf(NodeId("b"))}")
+        val caught = e.output(NodeId("handler"), "out") as GraphError
+        assertEquals("it broke", caught.message)
+        assertEquals("IllegalStateException", caught.type)
+        assertTrue(e.runOf(NodeId("ok")) is NodeRun.Skipped, "the normal branch did not get a value: ${e.runOf(NodeId("ok"))}")
+    }
+
+    @Test
+    fun withoutAWireOnTheErrorPortTheNodeStillFails() = runTest {
+        val e = errorEngine()
+        e.update(errorGraph(wireError = false))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("b")) is NodeRun.Failed)
+    }
+
+    private fun afterEngine(log: MutableList<String>, scope: TestScope) = GraphEngine(
+        scope,
+        mapOf(
+            "write" to singleOutputRunner { n, _ -> delay(100); log += "write ${n.data}"; n.data },
+            "read" to singleOutputRunner { n, _ -> log += "read"; n.data },
+            "boom" to singleOutputRunner { _, _ -> error("no") },
+        ),
+        runDispatcher = StandardTestDispatcher(scope.testScheduler),
+    )
+
+    @Test
+    fun aNodeWaitsForTheNodesItRunsAfterWithoutAWire() = runTest {
+        val log = mutableListOf<String>()
+        val e = afterEngine(log, this)
+        val writer = node("w", "write", 1)
+        val reader = node("r", "read", "x").copy(after = setOf(NodeId("w")))
+        e.update(Graph.of(listOf(reader, writer), emptyList()))   // the reader comes first in node order
+        advanceTimeBy(50)
+        assertEquals(emptyList(), log)
+        assertEquals(NodeRun.Waiting, e.runOf(NodeId("r")))
+        advanceUntilIdle()
+        assertEquals(listOf("write 1", "read"), log)
+        assertTrue(e.runOf(NodeId("r")) is NodeRun.Done)
+    }
+
+    @Test
+    fun theReaderRunsAgainWhenTheWriterChanges() = runTest {
+        val log = mutableListOf<String>()
+        val e = afterEngine(log, this)
+        val reader = node("r", "read", "x").copy(after = setOf(NodeId("w")))
+        e.update(Graph.of(listOf(node("w", "write", 1), reader), emptyList()))
+        advanceUntilIdle()
+        log.clear()
+        e.update(Graph.of(listOf(node("w", "write", 2), reader), emptyList()))
+        advanceUntilIdle()
+        assertEquals(listOf("write 2", "read"), log)
+    }
+
+    @Test
+    fun aFailedWriterBlocksTheReaderAndACycleThroughAfterFails() = runTest {
+        val e = afterEngine(mutableListOf(), this)
+        e.update(Graph.of(listOf(node("w", "boom"), node("r", "read", "x").copy(after = setOf(NodeId("w")))), emptyList()))
+        advanceUntilIdle()
+        assertTrue(e.runOf(NodeId("w")) is NodeRun.Failed)
+        assertEquals(NodeRun.Blocked(NodeId("w")), e.runOf(NodeId("r")))
+        val cycle = afterEngine(mutableListOf(), this)
+        cycle.update(Graph.of(listOf(node("a", "read", 1).copy(after = setOf(NodeId("b"))), node("b", "read", 2).copy(after = setOf(NodeId("a")))), emptyList()))
+        advanceUntilIdle()
+        assertTrue(cycle.runOf(NodeId("a")) is NodeRun.Failed)
     }
 }

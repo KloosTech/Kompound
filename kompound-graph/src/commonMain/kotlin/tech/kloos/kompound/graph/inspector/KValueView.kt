@@ -24,12 +24,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import tech.kloos.kompound.graph.model.KSecret
+import tech.kloos.kompound.graph.runtime.GraphError
 import tech.kloos.kompound.graph.serialization.JsonArray
 import tech.kloos.kompound.graph.serialization.JsonBool
 import tech.kloos.kompound.graph.serialization.JsonNull
 import tech.kloos.kompound.graph.serialization.JsonNumber
 import tech.kloos.kompound.graph.serialization.JsonObject
 import tech.kloos.kompound.graph.serialization.JsonString
+import tech.kloos.kompound.graph.serialization.jsonObjectOf
 import tech.kloos.kompound.graph.serialization.JsonValue
 import tech.kloos.kompound.graph.serialization.ValueJson
 import tech.kloos.kompound.text.KText
@@ -56,6 +59,8 @@ public fun displayValue(value: Any?, codecs: ValueJson = ValueJson()): JsonValue
     is String -> JsonString(value)
     is Number -> JsonNumber(value.toDouble())
     is JsonValue -> value
+    is KSecret -> JsonString(KSecret.Mask)
+    is GraphError -> jsonObjectOf("error" to JsonString(value.type), "message" to JsonString(value.message))
     is List<*> -> JsonArray(value.map { displayValue(it, codecs) })
     is Map<*, *> -> JsonObject(LinkedHashMap<String, JsonValue>().also { m -> for ((k, v) in value) m[k.toString()] = displayValue(v, codecs) })
     else -> runCatching { (codecs.encode(value) as? JsonObject)?.get("value") }.getOrNull() ?: JsonString(value.toString())

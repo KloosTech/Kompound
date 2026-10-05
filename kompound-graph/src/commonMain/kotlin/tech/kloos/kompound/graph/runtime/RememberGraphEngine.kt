@@ -24,6 +24,8 @@ import tech.kloos.kompound.graph.model.SignalMode
  * @param trace What is recorded (history size, value capture, redaction).
  * @param beforeRun Gate asked before a runner starts (see [GraphEngine]).
  * @param signalMode Which signal mode an input port uses (see [GraphEngine]).
+ * @param kindConcurrency How many runs of one node kind may be active at once (see [GraphEngine]).
+ * @param isRelevantChange Whether a change of a node's data makes it stale (see [GraphEngine]).
  */
 @Composable
 public fun rememberGraphEngine(
@@ -35,9 +37,11 @@ public fun rememberGraphEngine(
     trace: TraceOptions = TraceOptions(),
     beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
     signalMode: (node: GraphNode, port: PortSpec) -> SignalMode = { _, port -> port.signal },
+    isRelevantChange: (old: GraphNode, new: GraphNode) -> Boolean = { _, _ -> true },
+    kindConcurrency: Map<String, Int> = emptyMap(),
 ): GraphEngine {
     val scope = rememberCoroutineScope()
-    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode) }
+    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency) }
     LaunchedEffect(engine) { snapshotFlow { state.graph }.collect { engine.update(it) } }
     return engine
 }
