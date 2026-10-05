@@ -1202,4 +1202,26 @@ class GraphEngineAnyInputTest {
         advanceUntilIdle()
         assertEquals(listOf("merge 5 null"), log)
     }
+
+    @Test
+    fun aDataChangeThatIsNotRelevantKeepsTheResults() = runTest {
+        var runs = 0
+        val e = GraphEngine(
+            this,
+            mapOf("count" to singleOutputRunner { _, _ -> ++runs }),
+            runDispatcher = StandardTestDispatcher(testScheduler),
+            isRelevantChange = { old, new -> (old.data as Pair<*, *>).first != (new.data as Pair<*, *>).first },
+        )
+        val g = Graph.of(listOf(node("n", "count", "a" to "note1")), emptyList())
+        e.update(g)
+        advanceUntilIdle()
+        assertEquals(1, runs)
+        e.update(g.withNode(g.node(NodeId("n"))!!.copy(data = "a" to "note2")))
+        advanceUntilIdle()
+        assertEquals(1, runs, "only the second part (a note) changed")
+        assertTrue(e.runOf(NodeId("n")) is NodeRun.Done)
+        e.update(g.withNode(g.node(NodeId("n"))!!.copy(data = "b" to "note2")))
+        advanceUntilIdle()
+        assertEquals(2, runs, "the relevant part changed")
+    }
 }

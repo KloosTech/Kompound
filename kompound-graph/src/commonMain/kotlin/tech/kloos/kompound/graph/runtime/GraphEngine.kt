@@ -66,6 +66,8 @@ import tech.kloos.kompound.graph.model.PortId
  * A refused node is [NodeRun.Declined], nodes after it are [NodeRun.Blocked], and it is asked again on the next [start] or [rerun]. Use it
  * to keep runners with side effects (processes, network) from running on an automatic run, or to ask the user first. Also asked for
  * [testNode] (with [TraceTrigger.Test]).
+ * @param isRelevantChange Asked when a node's `data` changed between two graphs handed to [update]; return `false` for a change that does
+ * not affect the result (saved test inputs, a note, a UI setting) so the node keeps its results and is not marked stale. Default: every change counts.
  */
 @OptIn(ExperimentalAtomicApi::class)
 public class GraphEngine(
@@ -78,6 +80,7 @@ public class GraphEngine(
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
     private val signalMode: (node: GraphNode, port: PortSpec) -> SignalMode = { _, port -> port.signal },
+    private val isRelevantChange: (old: GraphNode, new: GraphNode) -> Boolean = { _, _ -> true },
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private val lockWord = AtomicInt(0)
@@ -241,7 +244,7 @@ public class GraphEngine(
         for ((id, node) in new.nodes) {
             if (!isReal(node)) continue
             val before = old.nodes[id]
-            if (before == null || before.kind != node.kind || before.data != node.data || before.ports != node.ports || before.pin != node.pin) { stale += id; continue }
+            if (before == null || before.kind != node.kind || (before.data != node.data && isRelevantChange(before, node)) || before.ports != node.ports || before.pin != node.pin) { stale += id; continue }
             // Something about what feeds an input changed: another wire, or a subgraph routed differently.
             for (spec in node.ports) {
                 if (spec.direction != PortDirection.Input) continue

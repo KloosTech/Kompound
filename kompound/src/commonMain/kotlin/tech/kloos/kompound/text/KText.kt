@@ -4,6 +4,8 @@ import androidx.compose.foundation.style.MutableStyleState
 import androidx.compose.foundation.style.Style
 import androidx.compose.foundation.style.styleable
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -36,6 +38,38 @@ public fun KText(
     key(text) {
         BasicText(text, modifier = modifier.styleable(state, style), maxLines = maxLines, overflow = overflow)
     }
+}
+
+/**
+ * [KText] with a Material [textStyle] (`MaterialTheme.typography.titleLarge`, [KTextDefaults.heading]): the font, size and weight come from
+ * [textStyle]; the colour stays the surrounding content colour unless [textStyle] sets one. [style] still applies on top.
+ */
+@Composable
+public fun KText(
+    text: String,
+    textStyle: TextStyle,
+    modifier: Modifier = Modifier,
+    style: Style = Style,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+) {
+    val base = remember(textStyle) { Style { textStyle(textStyle) } }
+    KText(text, modifier, Style(base, style), maxLines, overflow)
+}
+
+/** Ready-made text styles for [KText]. */
+public object KTextDefaults {
+    /** A section heading: the theme's `titleLarge`, semi-bold. */
+    @Composable
+    public fun heading(): TextStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
+
+    /** A smaller heading: the theme's `titleMedium`, semi-bold. */
+    @Composable
+    public fun subheading(): TextStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+
+    /** A quiet caption: the theme's `labelMedium` in the variant colour. */
+    @Composable
+    public fun caption(): TextStyle = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /**

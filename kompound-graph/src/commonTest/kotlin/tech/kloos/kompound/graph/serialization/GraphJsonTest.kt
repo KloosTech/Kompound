@@ -158,6 +158,26 @@ class GraphJsonTest {
         assertEquals(graph.nodes, back.nodes)
         assertEquals(graph.edges, back.edges)
     }
+
+    @Test
+    fun dataOfTheWrongTypeNamesTheNodeAndKind() {
+        val json = GraphJson(mapOf("script" to script))
+        val g = Graph.of(listOf(GraphNode(NodeId("s1"), "script", Offset.Zero, emptyList(), "plain text")), emptyList())
+        val e = assertFailsWith<GraphJsonException> { json.encode(g) }
+        assertTrue("s1" in e.message!! && "script" in e.message!!, e.message)
+    }
+
+    @Test
+    fun aFallbackWritesDataOfAnOlderType() {
+        val codec = nodeDataCodec<Script>(
+            encode = { jsonObjectOf("command" to JsonString(it.command), "timeout" to JsonNumber(it.timeout.toDouble())) },
+            decode = { v -> (v as JsonObject).let { Script((it["command"] as JsonString).value, (it["timeout"] as JsonNumber).value.toInt()) } },
+            fallback = { old -> (old as? String)?.let { Script(it, 10) } },
+        )
+        val json = GraphJson(mapOf("script" to codec))
+        val text = json.encode(Graph.of(listOf(GraphNode(NodeId("s1"), "script", Offset.Zero, emptyList(), "echo old")), emptyList()))
+        assertEquals(Script("echo old", 10), json.decode(text).graph.node(NodeId("s1"))!!.data)
+    }
 }
 
 class ValueJsonTest {

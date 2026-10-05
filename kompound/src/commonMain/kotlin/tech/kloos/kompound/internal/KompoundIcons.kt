@@ -48,4 +48,10 @@ internal object KompoundIcons {
     val Calendar: ImageVector by lazy {
         icon("calendar", "M20,3h-1V1h-2v2H7V1H5v2H4c-1.1,0 -2,0.9 -2,2v16c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V5c0,-1.1 -0.9,-2 -2,-2zM20,21H4V8h16v13z")
     }
+    val Add: ImageVector by lazy {
+        icon("add", "M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z")
+    }
+    val Delete: ImageVector by lazy {
+        icon("delete", "M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2V7H6v12zM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4z")
+    }
 }

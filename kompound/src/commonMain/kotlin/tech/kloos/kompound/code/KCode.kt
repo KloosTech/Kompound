@@ -18,6 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -57,6 +62,7 @@ import tech.kloos.kompound.text.KText
  * @param colors Token, background and gutter colours; follows the theme by default, see [KCodeColors.OneDark].
  * @param style Overrides merged over [KCodeDefaults.style].
  * @param focusRequester Request focus for the editor from outside.
+ * @param diagnostics Problems to show: each range is underlined and tinted, and the messages are listed under the editor (and announced).
  */
 @Composable
 public fun KCode(
@@ -68,8 +74,9 @@ public fun KCode(
     colors: KCodeColors = KCodeDefaults.colors(),
     style: Style = Style,
     focusRequester: FocusRequester? = null,
+    diagnostics: List<KCodeDiagnostic> = emptyList(),
 ) {
-    KCodeFrame(code, modifier, language, showLineNumbers, colors, style) { textStyle, transformation ->
+    KCodeFrame(code, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
         BasicTextField(
             value = code,
             onValueChange = { onCodeChange?.invoke(it) },
@@ -92,6 +99,7 @@ public fun KCode(
  * @param onValueChange Called with the new value on every edit and selection change.
  * @param focusRequester Request focus for the editor, for example after inserting text from a button.
  * @param language See [KCode].
+ * @param diagnostics See [KCode].
  */
 @Composable
 public fun KCode(
@@ -103,8 +111,9 @@ public fun KCode(
     colors: KCodeColors = KCodeDefaults.colors(),
     style: Style = Style,
     focusRequester: FocusRequester? = null,
+    diagnostics: List<KCodeDiagnostic> = emptyList(),
 ) {
-    KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style) { textStyle, transformation ->
+    KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -133,13 +142,15 @@ private fun KCodeFrame(
     showLineNumbers: Boolean,
     colors: KCodeColors,
     style: Style,
+    diagnostics: List<KCodeDiagnostic>,
     field: @Composable (textStyle: TextStyle, transformation: VisualTransformation) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val styleState = rememberUpdatedStyleState(null) {}
     val textStyle = KCodeDefaults.textStyle(colors)
-    val transformation = remember(language, colors) { HighlightTransformation(language, colors) }
-    BoxWithConstraints(modifier) {
+    val transformation = remember(language, colors, diagnostics) { HighlightTransformation(language, colors, diagnostics) }
+    Column(modifier) {
+    BoxWithConstraints {
         // Only scroll vertically when the caller bounded the height; inside a scrolling parent the code shows in full.
         val boundedHeight = constraints.hasBoundedHeight
         Row(
@@ -163,7 +174,32 @@ private fun KCodeFrame(
             }
         }
     }
+    DiagnosticMessages(code, diagnostics)
+    }
 }
+
+@Composable
+private fun DiagnosticMessages(code: String, diagnostics: List<KCodeDiagnostic>) {
+    if (diagnostics.isEmpty()) return
+    val color = MaterialTheme.colorScheme.error
+    val textStyle = MaterialTheme.typography.labelMedium.copy(color = color)
+    val messageStyle = Style { textStyle(textStyle) }
+    Column(Modifier.padding(top = 4.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (d in diagnostics.take(5)) {
+            val line = code.substring(0, d.start.coerceIn(0, code.length)).count { it == '\n' } + 1
+            val text = "Line $line: ${d.message}"
+            KText(text, Modifier.semantics { contentDescription = text }, style = messageStyle)
+        }
+        if (diagnostics.size > 5) KText("+${diagnostics.size - 5}", style = messageStyle)
+    }
+}
+
+/**
+ * A problem in the code of a [KCode]: the characters from [start] (inclusive) to [end] (exclusive) are underlined and [message] is shown
+ * under the editor. An empty or out-of-range span is clamped to the text; use `end = start + 1` to mark a single position.
+ */
+@Immutable
+public data class KCodeDiagnostic(val start: Int, val end: Int, val message: String)
 
 /** Colours of a [KCode]: background, plain text, line-number gutter and one colour per token type. */
 @Immutable
@@ -180,6 +216,8 @@ public data class KCodeColors(
     val annotation: Color,
     val property: Color,
     val punctuation: Color,
+    /** Underline tint and message colour of a [KCodeDiagnostic]. */
+    val error: Color = Color(0xFFE5484D),
 ) {
     internal fun of(type: KCodeTokenType): Color = when (type) {
         KCodeTokenType.Keyword -> keyword
@@ -222,14 +260,14 @@ public object KCodeDefaults {
                     background = c.surfaceContainer, plain = c.onSurface, gutter = c.onSurfaceVariant.copy(alpha = 0.6f),
                     keyword = Color(0xFFD7A5F0), type = Color(0xFFF2CC7B), string = Color(0xFFA5DB8A), number = Color(0xFFF2A06D),
                     comment = c.onSurfaceVariant.copy(alpha = 0.8f), function = Color(0xFF8DB8FF), annotation = Color(0xFFE6B450),
-                    property = Color(0xFF7FD6E8), punctuation = c.onSurfaceVariant,
+                    property = Color(0xFF7FD6E8), punctuation = c.onSurfaceVariant, error = c.error,
                 )
             } else {
                 KCodeColors(
                     background = c.surfaceContainer, plain = c.onSurface, gutter = c.onSurfaceVariant.copy(alpha = 0.7f),
                     keyword = Color(0xFF8E24AA), type = Color(0xFF9A5400), string = Color(0xFF276E2B), number = Color(0xFFC2410C),
                     comment = c.onSurfaceVariant, function = Color(0xFF1565C0), annotation = Color(0xFF8A6100),
-                    property = Color(0xFF00707F), punctuation = c.onSurfaceVariant,
+                    property = Color(0xFF00707F), punctuation = c.onSurfaceVariant, error = c.error,
                 )
             }
         }
@@ -257,6 +295,7 @@ public object KCodeDefaults {
 private class HighlightTransformation(
     private val language: KCodeLanguage,
     private val colors: KCodeColors,
+    private val diagnostics: List<KCodeDiagnostic>,
 ) : VisualTransformation {
     private var lastCode: String? = null
     private var lastResult: AnnotatedString? = null
@@ -264,16 +303,21 @@ private class HighlightTransformation(
     override fun filter(text: AnnotatedString): TransformedText {
         val code = text.text
         val cached = lastResult
-        val result = if (cached != null && code == lastCode) cached else highlight(code, language, colors).also { lastCode = code; lastResult = it }
+        val result = if (cached != null && code == lastCode) cached else highlight(code, language, colors, diagnostics).also { lastCode = code; lastResult = it }
         return TransformedText(result, OffsetMapping.Identity)
     }
 }
 
-internal fun highlight(code: String, language: KCodeLanguage, colors: KCodeColors): AnnotatedString = buildAnnotatedString {
+internal fun highlight(code: String, language: KCodeLanguage, colors: KCodeColors, diagnostics: List<KCodeDiagnostic> = emptyList()): AnnotatedString = buildAnnotatedString {
     append(code)
     for (token in language.tokenize(code)) {
         if (token.start < 0 || token.end > code.length || token.start >= token.end) continue
         val italic = if (token.type == KCodeTokenType.Comment) FontStyle.Italic else null
         addStyle(SpanStyle(color = colors.of(token.type), fontStyle = italic), token.start, token.end)
+    }
+    for (d in diagnostics) {
+        val start = d.start.coerceIn(0, code.length)
+        val end = d.end.coerceIn(start, code.length).let { if (it == start) minOf(code.length, start + 1) else it }
+        if (start < end) addStyle(SpanStyle(textDecoration = TextDecoration.Underline, background = colors.error.copy(alpha = 0.25f)), start, end)
     }
 }

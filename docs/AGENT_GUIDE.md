@@ -109,7 +109,7 @@ Exact parameters in the source file; this lists what each is for and the paramet
 ### Foundations
 | Composable | Use | Notes |
 |---|---|---|
-| `KText(text: String, modifier, style, maxLines, overflow)` / `KText(AnnotatedString, …, textStyle)` | all text | |
+| `KText(text: String, modifier, style, maxLines, overflow)` / `KText(AnnotatedString, …, textStyle)` | all text | `KText(text, textStyle = MaterialTheme.typography.titleLarge)` or `KTextDefaults.heading()` for Material text styles |
 | `KIcon(imageVector \| bitmap \| painter, contentDescription: String?, modifier, style, tint)` | icons | `contentDescription = null` for decorative |
 | `KSurface(modifier, style, contentColor, content)` / `KSurface(onClick, …)` | container; the clickable overload is a button-like surface | |
 | `KDivider(modifier, style, orientation)` | separator | |
@@ -139,7 +139,8 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | `KNumberField(value: String, onValueChange, allowDecimal, allowNegative, …)` | value is a `String` |
 | `KPasswordField(value, onValueChange, strength: ((String)->KPasswordStrength)?, …)` and `KStrengthMeter(level, segments)` | |
 | `KSearchBar(query, onQueryChange, onSearch, placeholder, trailingActions, …)` | |
-| `KInlineEdit(value, onValueChange, validate: (String)->String?, …)` | click-to-edit text |
+| `KInlineEdit(value, onValueChange, validate: (String)->String?, …)` | click-to-edit text; `fillWidth`, `startEditing`, or hoist with `editing` + `onEditingChange` |
+| `KIcons.Edit`, `Check`, `Close`, `Add`, `Delete`, `Search`, `ChevronDown`, `ChevronRight`, `MoreVertical`, `Eye`, `EyeOff`, `Calendar`, `Error` | the icons Kompound draws, as `ImageVector`s for any `icon` slot |
 | `KMarkdownField(value, onValueChange, …)` | editor that previews markdown |
 | `KDropdown(options: List<T>, selected: T?, onSelect, optionLabel, label, …)` | single choice |
 | `KMultiDropdown(options, selected: Set<T>, onSelectionChange, …)` | multiple choice |
@@ -156,7 +157,7 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | `KStepList(steps: List<KStep>, labels)` with `KStep(title, state: KStepState, trailing)` | `KStepState.Waiting`, `InProgress(progress)`, `Done` |
 | `KEmptyState(title, description, illustration, action)` / `KErrorState(title, description, onRetry, …)` | empty and error screens |
 | `KMarkdown(markdown, onLinkClick, selectable, …)` | renders markdown |
-| `KCode(code, onCodeChange?, language: KCodeLanguage, showLineNumbers, …, focusRequester)` and `KCode(value: TextFieldValue, onValueChange, …)` | code view; editable when `onCodeChange` is set. Languages: `Kotlin`, `Json`, `Shell`, `Plain`, `KCodeLanguage.cLike(keywords)` or your own (`KCodeLexing` helpers). The `TextFieldValue` overload exposes the caret and selection: `value.insertAtCursor("$X")` from a button, then `focusRequester.requestFocus()` |
+| `KCode(code, onCodeChange?, language: KCodeLanguage, showLineNumbers, …, focusRequester)` and `KCode(value: TextFieldValue, onValueChange, …)` | code view; editable when `onCodeChange` is set. Languages: `Kotlin`, `Json`, `Shell`, `Plain`, `KCodeLanguage.cLike(keywords)` or your own (`KCodeLexing` helpers). The `TextFieldValue` overload exposes the caret and selection: `value.insertAtCursor("$X")` from a button, then `focusRequester.requestFocus()` Pass `diagnostics = listOf(KCodeDiagnostic(start, end, message))` to underline errors and list their messages. |
 | `KTooltip(text, placement: KTooltipPlacement.Above/Below, …, content)` | wraps the thing it describes |
 | `KExpandable(title \| header slot, expanded, onExpandedChange, …, content)` | one collapsible section |
 | `KAccordion(state = rememberKAccordionState(exclusive, initiallyExpanded), …) { Item(key, title = …) { content } }` (or `Item(key, header = { … }) { content }`) | a group of sections; `key` must be unique |
@@ -279,7 +280,7 @@ val text = state.toJson(json)          // nodes, ports, data, pins, groups, scop
 state.loadJson(text, json)             // clears history and selection
 ```
 
-Unknown node kinds survive load and save unchanged (data is kept as raw `JsonValue`). Data types without a codec throw `GraphJsonException` naming the type. Typed values (pins, test inputs) use `ValueJson` (`Int`, `Long`, `Float`, lists, maps, your own types via `valueCodec`).
+Unknown node kinds survive load and save unchanged (data is kept as raw `JsonValue`). Data types without a codec throw `GraphJsonException` naming the node and type; `nodeDataCodec<T>(encode, decode, fallback = { old -> … })` also writes data of an older type, and wrong-typed data fails with the node id and kind. Typed values (pins, test inputs) use `ValueJson` (`Int`, `Long`, `Float`, lists, maps, your own types via `valueCodec`).
 
 ### 7.4 Running a graph (execution engine, `graph.runtime`)
 
@@ -306,6 +307,7 @@ val engine = rememberGraphEngine(state, runners)         // follows the editor: 
 - **Streaming**: a node may `emit` many times. Each input port has `PortSpec.input(..., signal = SignalMode.X)`: `Latest` (default, re-run on each value, cancelling the one in progress), `Each` (one run per value, in order), `Collect` (wait for the end, get a list), `Final` (wait for the end, get the last).
 - **Optional inputs**: `SignalMode.Any` runs the node once the input has a value or its upstream finished, with `null` when none came (a `Merge` of two branches is two `Any` inputs). `NodeRun.Blocked(by, declined = true)` means a node behind a refused (`beforeRun`) node, not a failure.
 - **Branching**: a runner returns `NoSignal` for a port that has nothing (`mapOf("then" to value, "else" to NoSignal)`); nodes that need that input are `NodeRun.Skipped` without running, and the skip spreads. A port a runner simply leaves out still reads as `null`. `Collect` inputs still run (with an empty list).
+- **Settings that are not inputs**: `GraphEngine(isRelevantChange = { old, new -> … })` (also on `rememberGraphEngine`) says whether a data change makes the node stale; return `false` for notes, saved test inputs or UI state.
 - **Changing saved behaviour**: `GraphEngine(signalMode = { node, port -> … })` overrides the `SignalMode` saved in port specs; `GraphJson(migrate = { node -> … })` fixes nodes as they load; `GraphCommand.UpdateNodePorts(id, ports)` changes a node's ports as one undo step.
 - **Subgraphs** are routed through at any depth. **Pins**: `state.pin(id, outputs)` fixes a node's outputs (the node and nodes only it would feed are not run); `state.unpin(id)`.
 - **Test one node alone**: `engine.testNode(id, mapOf("a" to 41))` returns a `NodeTestRun` (status, attempt, real outputs, `cancel()`), recorded as an execution with trigger `Test`.

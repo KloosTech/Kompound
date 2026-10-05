@@ -30,10 +30,20 @@ public interface NodeDataCodec {
     public fun decode(json: JsonValue): Any
 }
 
-/** A [NodeDataCodec] from two lambdas. */
-public fun <T : Any> nodeDataCodec(encode: (T) -> JsonValue, decode: (JsonValue) -> T): NodeDataCodec = object : NodeDataCodec {
-    @Suppress("UNCHECKED_CAST")
-    override fun encode(data: Any): JsonValue = encode(data as T)
+/**
+ * A [NodeDataCodec] from two lambdas. Data that is not a [T] (a node saved before its data type changed) is passed to [fallback]; when
+ * that returns `null` too, encoding fails with a [GraphJsonException] that says what type was found (and [GraphJson] adds the node).
+ */
+public inline fun <reified T : Any> nodeDataCodec(
+    crossinline encode: (T) -> JsonValue,
+    crossinline decode: (JsonValue) -> T,
+    crossinline fallback: (Any) -> T? = { null },
+): NodeDataCodec = object : NodeDataCodec {
+    override fun encode(data: Any): JsonValue {
+        val typed = data as? T ?: fallback(data)
+            ?: throw GraphJsonException("data is ${data::class.simpleName}, expected ${T::class.simpleName}")
+        return encode(typed)
+    }
     override fun decode(json: JsonValue): Any = decode(json)
 }
 
@@ -135,7 +145,13 @@ public class GraphJson(
         var dataType: String? = null
         val dataJson: JsonValue? = when {
             data == null -> null
-            nodeData[node.kind] != null -> nodeData.getValue(node.kind).encode(data)
+            nodeData[node.kind] != null -> try {
+                nodeData.getValue(node.kind).encode(data)
+            } catch (e: GraphJsonException) {
+                throw GraphJsonException("Node \"${node.id}\" (kind \"${node.kind}\"): ${e.message}")
+            } catch (e: ClassCastException) {
+                throw GraphJsonException("Node \"${node.id}\" (kind \"${node.kind}\") has data of type ${data::class.simpleName} that its NodeDataCodec cannot write")
+            }
             data is JsonValue -> data
             data is Boolean -> JsonBool(data)
             data is String -> JsonString(data)
