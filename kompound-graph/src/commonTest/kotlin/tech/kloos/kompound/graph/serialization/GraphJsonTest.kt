@@ -178,6 +178,23 @@ class GraphJsonTest {
         val text = json.encode(Graph.of(listOf(GraphNode(NodeId("s1"), "script", Offset.Zero, emptyList(), "echo old")), emptyList()))
         assertEquals(Script("echo old", 10), json.decode(text).graph.node(NodeId("s1"))!!.data)
     }
+
+    @Test
+    fun aSecretPortSurvivesASaveAndLoad() {
+        val g = Graph.of(listOf(GraphNode(NodeId("k"), "var", Offset.Zero, listOf(PortSpec.output("out", secret = true), PortSpec.output("other")))), emptyList())
+        val back = GraphJson().decode(GraphJson().encode(g)).graph.node(NodeId("k"))!!
+        assertTrue(back.port("out")!!.secret)
+        assertTrue(!back.port("other")!!.secret)
+        assertTrue("secret" !in GraphJson(pretty = false).encode(Graph.of(listOf(math("a", Offset.Zero)), emptyList())), "nothing is written for ports that are not secret")
+    }
+
+    @Test
+    fun afterSurvivesASaveAndLoad() {
+        val g = Graph.of(listOf(math("a", Offset.Zero), math("b", Offset.Zero).copy(after = setOf(NodeId("a")))), emptyList())
+        val back = GraphJson().decode(GraphJson().encode(g)).graph
+        assertEquals(setOf(NodeId("a")), back.node(NodeId("b"))!!.after)
+        assertEquals(emptySet(), back.node(NodeId("a"))!!.after)
+    }
 }
 
 class ValueJsonTest {

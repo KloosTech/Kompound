@@ -173,6 +173,7 @@ public class GraphJson(
             "pin" to node.pin?.let { pin -> JsonObject(pin.entries.associate { (port, v) -> port.value to values.encode(v) }) },
             "group" to node.group?.let { JsonString(it.value) },
             "scope" to node.scope?.let { JsonString(it.value) },
+            "after" to node.after.takeIf { it.isNotEmpty() }?.let { ids -> JsonArray(ids.map { JsonString(it.value) }) },
         )
     }
 
@@ -204,6 +205,7 @@ public class GraphJson(
             pin = (o["pin"] as? JsonObject)?.fields?.entries?.associate { (port, v) -> PortId(port) to values.decode(v) },
             group = (o["group"] as? JsonString)?.let { GroupId(it.value) },
             scope = (o["scope"] as? JsonString)?.let { NodeId(it.value) },
+            after = (o["after"] as? JsonArray)?.items?.mapNotNull { (it as? JsonString)?.value?.let(::NodeId) }?.toSet() ?: emptySet(),
         )
     }
 
@@ -214,6 +216,8 @@ public class GraphJson(
         "type" to JsonString(p.type.id),
         "capacity" to JsonString(p.capacity.name),
         "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
+        "secret" to p.secret.takeIf { it }?.let { JsonBool(true) },
+        "errorOutput" to p.errorOutput.takeIf { it }?.let { JsonBool(true) },
     )
 
     private fun portFromJson(o: JsonObject, at: String): PortSpec {
@@ -227,6 +231,8 @@ public class GraphJson(
             types[typeId] ?: PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
             (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
+            (o["secret"] as? JsonBool)?.value ?: false,
+            (o["errorOutput"] as? JsonBool)?.value ?: false,
         )
     }
 

@@ -64,6 +64,11 @@ public enum class SignalMode {
  * @property type Value type, used for compatibility and colour.
  * @property capacity How many edges it takes: inputs default to [PortCapacity.One], outputs to [PortCapacity.Many].
  * @property signal For inputs: how the engine treats a stream of values arriving here.
+ * @property errorOutput An output that receives the node's failure: when the node's runner throws and this port has a wire, the run is not a
+ * failure; a [tech.kloos.kompound.graph.runtime.GraphError] comes out here and the node's other outputs stay silent ([NoSignal] semantics),
+ * so the nodes wired to this port can handle the problem (log it, retry, use a default). Without a wire the failure behaves as usual. Declare one with [PortSpec.error].
+ * @property secret The values at this port are secrets (an API key, a token): wire labels, the inspector and recorded traces show
+ * [KSecret.Mask] instead. The runners and the graph still see the real values. Wrap a single value in [KSecret] for the same effect without marking the port.
  */
 public data class PortSpec(
     public val id: PortId,
@@ -72,14 +77,37 @@ public data class PortSpec(
     public val type: PortType = PortType.Any,
     public val capacity: PortCapacity = if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
     public val signal: SignalMode = SignalMode.Latest,
+    public val secret: Boolean = false,
+    public val errorOutput: Boolean = false,
 ) {
     public companion object {
         /** An input port. */
-        public fun input(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.One, signal: SignalMode = SignalMode.Latest): PortSpec =
-            PortSpec(PortId(id), PortDirection.Input, label, type, capacity, signal)
+        public fun input(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.One, signal: SignalMode = SignalMode.Latest, secret: Boolean = false): PortSpec =
+            PortSpec(PortId(id), PortDirection.Input, label, type, capacity, signal, secret)
+
+        /** An output that catches the node's failure (see [errorOutput]); its wire is drawn in the colour of the `error` port type. */
+        public fun error(id: String = "error", label: String = "Error"): PortSpec =
+            PortSpec(PortId(id), PortDirection.Output, label, PortType.of("error"), PortCapacity.Many, errorOutput = true)
 
         /** An output port. */
-        public fun output(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.Many): PortSpec =
-            PortSpec(PortId(id), PortDirection.Output, label, type, capacity)
+        public fun output(id: String, label: String = id, type: PortType = PortType.Any, capacity: PortCapacity = PortCapacity.Many, secret: Boolean = false): PortSpec =
+            PortSpec(PortId(id), PortDirection.Output, label, type, capacity, secret = secret)
+    }
+}
+
+/**
+ * Wraps a value that must not show up in the UI: [toString] is [Mask], and wire labels, the inspector and recorded traces show the mask (the
+ * trace stores [Hidden], never the value). A node that outputs `KSecret(apiKey)` hands the next node the wrapper; read it with [value].
+ * To hide everything at a port without wrapping, set [PortSpec.secret].
+ */
+public class KSecret(public val value: Any?) {
+    override fun toString(): String = Mask
+
+    public companion object {
+        /** What is shown in place of a secret. */
+        public const val Mask: String = "••••••"
+
+        /** The stand-in stored in traces. */
+        public val Hidden: KSecret = KSecret(null)
     }
 }
