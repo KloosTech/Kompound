@@ -14,7 +14,7 @@ follows `COMPONENT_SPEC.md` (style parameter, states, accessibility, demo, tests
 | 2 Navigation and layout | `KTabRow`, `KNavigationBar`, `KNavigationRail`, `KNavigationDrawer`, `KContextMenuArea`, `KSplitPane`, `KSkeleton` / shimmer | done |
 | 3 Data | `KDataTable` (sortable, virtualized), `KTreeView`, `KSparkline`, `KBarChart`, `KLineChart` | done |
 | 4 Input | `KCommandPalette`, `KCombobox`, `KTagInput`, `KTimePicker`, `KColorPicker` | done |
-| 5 Forms and accessibility | form state and validation (`KFormState`, `KForm`, `KFormField`), accessibility audit (keyboard matrix document, automated semantics checks over every demo) | planned |
+| 5 Forms and accessibility | form state and validation (`KFormState`, `KForm`, `KFormField`), accessibility audit (keyboard matrix document, automated semantics checks over every demo) | done |
 
 ## Decisions
 

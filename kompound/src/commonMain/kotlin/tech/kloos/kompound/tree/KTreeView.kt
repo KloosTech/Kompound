@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -241,7 +242,7 @@ private fun <T> TreeRowItem(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(24.dp).then(if (row.hasChildren) Modifier.clickable(role = Role.Button, onClickLabel = if (isOpen) collapseLabel else expandLabel) { onToggle() } else Modifier), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(24.dp).then(if (row.hasChildren) Modifier.clickable(role = Role.Button, onClickLabel = if (isOpen) collapseLabel else expandLabel) { onToggle() }.semantics { contentDescription = if (isOpen) collapseLabel else expandLabel } else Modifier), contentAlignment = Alignment.Center) {
             if (row.hasChildren) Chevron(isOpen, scheme.onSurfaceVariant)
         }
         CompositionLocalProvider(LocalKContentColor provides tint) { content(row.node, row.depth) }

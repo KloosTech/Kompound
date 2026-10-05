@@ -137,8 +137,7 @@ public fun KTagInput(
                 Modifier
                     .fillMaxWidth()
                     .pointerInput(enabled) { if (enabled) detectTapGestures { focusRequester.requestFocus() } }
-                    .styleable(state, KTextFieldDefaults.style(), style)
-                    .semantics { if (label != null) contentDescription = label },
+                    .styleable(state, KTextFieldDefaults.style(), style),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
                 itemVerticalAlignment = Alignment.CenterVertically,
@@ -184,7 +183,10 @@ public fun KTagInput(
                                 else -> false
                             }
                         }
-                        .semantics { if (failed) error(shownError ?: "Invalid input") },
+                        .semantics {
+                            if (label != null) contentDescription = label
+                            if (failed) error(shownError ?: "Invalid input")
+                        },
                     enabled = enabled,
                     singleLine = true,
                     textStyle = KTextFieldDefaults.textStyle(enabled),

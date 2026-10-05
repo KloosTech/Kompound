@@ -69,6 +69,7 @@ internal val ErrorKey: StyleStateKey<Boolean> = StyleStateKey(false)
  * @param visualTransformation e.g. password masking.
  * @param style Overrides merged over [KTextFieldDefaults.style] (the container).
  * @param interactionSource Feeds hovered/focused state into the style.
+ * @param contentDescription The accessibility name when there is no visible [label] (a search box, a note); default: the label.
  */
 @Composable
 public fun KTextField(
@@ -92,6 +93,7 @@ public fun KTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     style: Style = Style,
     interactionSource: MutableInteractionSource? = null,
+    contentDescription: String? = null,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val source = interactionSource ?: remember { MutableInteractionSource() }
@@ -123,7 +125,7 @@ public fun KTextField(
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
                             .semantics {
-                                if (label != null) contentDescription = label
+                                (contentDescription ?: label)?.let { this.contentDescription = it }
                                 if (isError) error(supportingText ?: "Invalid input")
                             },
                         enabled = enabled,
