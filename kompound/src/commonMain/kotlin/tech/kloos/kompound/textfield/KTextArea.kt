@@ -29,11 +29,12 @@ public fun KTextArea(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     style: Style = Style,
     interactionSource: MutableInteractionSource? = null,
+    contentDescription: String? = null,
 ) {
     KTextField(
         value = value, onValueChange = onValueChange, modifier = modifier, label = label, placeholder = placeholder,
         supportingText = supportingText, isError = isError, enabled = enabled, readOnly = readOnly, singleLine = false,
         minLines = minLines, maxLines = maxLines, maxLength = maxLength, keyboardOptions = keyboardOptions,
-        keyboardActions = keyboardActions, style = style, interactionSource = interactionSource,
+        keyboardActions = keyboardActions, style = style, interactionSource = interactionSource, contentDescription = contentDescription,
     )
 }

@@ -62,6 +62,7 @@ import tech.kloos.kompound.text.KText
  * @param colors Token, background and gutter colours; follows the theme by default, see [KCodeColors.OneDark].
  * @param style Overrides merged over [KCodeDefaults.style].
  * @param focusRequester Request focus for the editor from outside.
+ * @param contentDescription The accessibility name of the code (default: the localised word "Code"); screen readers then read the text itself.
  * @param diagnostics Problems to show: each range is underlined and tinted, and the messages are listed under the editor (and announced).
  */
 @Composable
@@ -75,12 +76,14 @@ public fun KCode(
     style: Style = Style,
     focusRequester: FocusRequester? = null,
     diagnostics: List<KCodeDiagnostic> = emptyList(),
+    contentDescription: String? = null,
 ) {
+    val name = contentDescription ?: tech.kloos.kompound.theme.KompoundTheme.strings.code
     KCodeFrame(code, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
         BasicTextField(
             value = code,
             onValueChange = { onCodeChange?.invoke(it) },
-            modifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            modifier = (if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier).semantics { this.contentDescription = name },
             readOnly = onCodeChange == null,
             textStyle = textStyle,
             cursorBrush = SolidColor(colors.plain),
@@ -100,6 +103,7 @@ public fun KCode(
  * @param focusRequester Request focus for the editor, for example after inserting text from a button.
  * @param language See [KCode].
  * @param diagnostics See [KCode].
+ * @param contentDescription See [KCode].
  */
 @Composable
 public fun KCode(
@@ -112,12 +116,14 @@ public fun KCode(
     style: Style = Style,
     focusRequester: FocusRequester? = null,
     diagnostics: List<KCodeDiagnostic> = emptyList(),
+    contentDescription: String? = null,
 ) {
+    val name = contentDescription ?: tech.kloos.kompound.theme.KompoundTheme.strings.code
     KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            modifier = (if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier).semantics { this.contentDescription = name },
             textStyle = textStyle,
             cursorBrush = SolidColor(colors.plain),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),

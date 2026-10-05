@@ -74,6 +74,11 @@ public data class KompoundStrings(
     val addTag: String = "Add a tag",
     /** Announcement of the button that removes the tag or item called [name]. */
     val removeNamed: (name: String) -> String = { "Remove $it" },
+    val formErrors: (count: Int) -> String = { if (it == 1) "1 field needs attention" else "$it fields need attention" },
+    val tooShort: (min: Int) -> String = { "Use at least $it characters" },
+    val invalidEmail: String = "Enter a valid e-mail address",
+    val submitFailed: String = "Could not submit",
+    val code: String = "Code",
     /** Announcement of a sparkline or chart: `"Chart, 12 values from 3 to 9"`. */
     val chartSummary: (count: Int, min: String, max: String) -> String = { count, min, max -> "Chart, $count values from $min to $max" },
 ) {
@@ -90,7 +95,7 @@ public data class KompoundStrings(
         "searchCommands" to searchCommands, "noCommands" to noCommands, "select" to select, "hour" to hour, "minute" to minute, "am" to am, "pm" to pm,
         "hue" to hue, "saturation" to saturation, "brightness" to brightness, "opacity" to opacity, "hexColor" to hexColor,
         "required" to required, "submit" to submit, "submitting" to submitting, "invalidValue" to invalidValue, "addTag" to addTag,
-        "removeNamed" to removeNamed("X"), "chartSummary" to chartSummary(3, "1", "2"),
+        "removeNamed" to removeNamed("X"), "formErrors" to formErrors(2), "tooShort" to tooShort(3), "invalidEmail" to invalidEmail, "submitFailed" to submitFailed, "code" to code, "chartSummary" to chartSummary(3, "1", "2"),
     )
 
     public companion object {
@@ -111,6 +116,8 @@ public data class KompoundStrings(
             hue = "Farbton", saturation = "Sättigung", brightness = "Helligkeit", opacity = "Deckkraft", hexColor = "Hex-Farbe",
             required = "Pflichtfeld", submit = "Absenden", submitting = "Wird gesendet", invalidValue = "Ungültiger Wert", addTag = "Tag hinzufügen",
             removeNamed = { "$it entfernen" },
+            formErrors = { if (it == 1) "1 Feld braucht Aufmerksamkeit" else "$it Felder brauchen Aufmerksamkeit" }, tooShort = { "Mindestens $it Zeichen verwenden" },
+            invalidEmail = "Gültige E-Mail-Adresse eingeben", submitFailed = "Senden nicht möglich", code = "Code",
             chartSummary = { count, min, max -> "Diagramm, $count Werte von $min bis $max" },
         )
 
@@ -128,6 +135,8 @@ public data class KompoundStrings(
             hue = "Teinte", saturation = "Saturation", brightness = "Luminosité", opacity = "Opacité", hexColor = "Couleur hexadécimale",
             required = "Obligatoire", submit = "Envoyer", submitting = "Envoi en cours", invalidValue = "Valeur invalide", addTag = "Ajouter une étiquette",
             removeNamed = { "Supprimer $it" },
+            formErrors = { if (it == 1) "1 champ à corriger" else "$it champs à corriger" }, tooShort = { "Utilisez au moins $it caractères" },
+            invalidEmail = "Saisissez une adresse e-mail valide", submitFailed = "Envoi impossible", code = "Code",
             chartSummary = { count, min, max -> "Graphique, $count valeurs de $min à $max" },
         )
 
@@ -145,6 +154,8 @@ public data class KompoundStrings(
             hue = "Tono", saturation = "Saturación", brightness = "Brillo", opacity = "Opacidad", hexColor = "Color hexadecimal",
             required = "Obligatorio", submit = "Enviar", submitting = "Enviando", invalidValue = "Valor no válido", addTag = "Añadir etiqueta",
             removeNamed = { "Quitar $it" },
+            formErrors = { if (it == 1) "1 campo requiere atención" else "$it campos requieren atención" }, tooShort = { "Usa al menos $it caracteres" },
+            invalidEmail = "Introduce un correo electrónico válido", submitFailed = "No se pudo enviar", code = "Código",
             chartSummary = { count, min, max -> "Gráfico, $count valores de $min a $max" },
         )
 
@@ -162,6 +173,8 @@ public data class KompoundStrings(
             hue = "Tonalità", saturation = "Saturazione", brightness = "Luminosità", opacity = "Opacità", hexColor = "Colore esadecimale",
             required = "Obbligatorio", submit = "Invia", submitting = "Invio in corso", invalidValue = "Valore non valido", addTag = "Aggiungi tag",
             removeNamed = { "Rimuovi $it" },
+            formErrors = { if (it == 1) "1 campo richiede attenzione" else "$it campi richiedono attenzione" }, tooShort = { "Usa almeno $it caratteri" },
+            invalidEmail = "Inserisci un indirizzo e-mail valido", submitFailed = "Invio non riuscito", code = "Codice",
             chartSummary = { count, min, max -> "Grafico, $count valori da $min a $max" },
         )
 

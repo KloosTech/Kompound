@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -223,7 +225,7 @@ fun DemoScope.KLogicGatesDemo() {
                         KNode(node, sw.label) {
                             Content {
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    KSwitch(sw.on, { state.execute(GraphCommand.UpdateNodeData(node.id, sw.copy(on = it))) })
+                                    KSwitch(sw.on, { state.execute(GraphCommand.UpdateNodeData(node.id, sw.copy(on = it))) }, Modifier.semantics { contentDescription = sw.label })
                                     KText(if (sw.on) "1" else "0")
                                 }
                             }

@@ -75,6 +75,7 @@ public fun KComment(node: GraphNode, modifier: Modifier = Modifier, width: Dp = 
                 if (!focus.isFocused && draft != (node.data as? String ?: "")) state.execute(GraphCommand.UpdateNodeData(node.id, draft))
             },
             placeholder = "Note",
+            contentDescription = "Comment text",
             minLines = 2,
             maxLines = 8,
         )

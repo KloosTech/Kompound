@@ -200,11 +200,14 @@ public fun KNode(
         ) {
             if (collapsible) {
                 val open = !state.isCollapsed(node.id)
-                KIcon(
-                    if (open) GraphIcons.ExpandMore else GraphIcons.ChevronRight,
-                    if (open) expandedDescription else collapsedDescription,
-                    Modifier.size(18.dp).clickable(role = Role.Button) { state.setCollapsed(node.id, open) },
-                )
+                // 24dp target around the 18dp icon (WCAG 2.2 target size)
+                Box(Modifier.size(24.dp).clickable(role = Role.Button) { state.setCollapsed(node.id, open) }, contentAlignment = Alignment.Center) {
+                    KIcon(
+                        if (open) GraphIcons.ExpandMore else GraphIcons.ChevronRight,
+                        if (open) expandedDescription else collapsedDescription,
+                        Modifier.size(18.dp),
+                    )
+                }
             }
             KText(title, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             LocalNodeStatus.current?.invoke(node)?.let { KNodeStatusBadge(it) }

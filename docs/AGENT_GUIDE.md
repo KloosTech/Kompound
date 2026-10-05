@@ -149,6 +149,7 @@ Exact parameters in the source file; this lists what each is for and the paramet
 | `KColorPicker(color, onColorChange, showAlpha, showHex, swatches)` / `KColorField(value: Color?, onValueChange, …)` | `KColors.toHex` and `parseHex` |
 | `KCombobox(value, onValueChange, options, onOptionSelected, optionLabel, filterOptions = true, onSubmit)` | autocomplete; text is yours, picking writes the label via `onValueChange`; `filterOptions = false` for server-side results |
 | `KTagInput(tags, onTagsChange, suggestions, separators, allowDuplicates, maxTags, validate)` | Enter or `,` ends a tag |
+| `rememberKFormState()`, `rememberKField(form, key, initial, vararg validators)`, `KForm(form) { }`, `KFormTextField(field, label, helperText)`, `KFormField(field) { value, onChange, error -> }`, `KFieldGroup(title) { }`, `KSubmitButton(form, onSubmit)` | forms: errors show after a field was left or a submit was tried; a refused submit focuses the first invalid field; `form.submit { }` runs suspend work (`isSubmitting`, `submitError`, `form.setServerError(key, msg)`, `reset()`); `KValidators.required/minLength/email/pattern/intInRange/isTrue/notNull/check` |
 | `KCommandPalette(open, onDismissRequest, commands: List<KCommand>)` and `Modifier.kCommandShortcut { open = true }` | `KCommand(id, title, onRun, subtitle, icon, shortcut, keywords, section, enabled)`; `KFuzzy.match` / `filter` for your own search |
 
 ### Display

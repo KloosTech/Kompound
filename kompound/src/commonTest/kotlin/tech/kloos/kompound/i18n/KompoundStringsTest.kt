@@ -25,8 +25,8 @@ class KompoundStringsBundlesTest {
 
     /** Words that are the same in the language as in English (names, abbreviations, loan words). */
     private val sameAsEnglish = mapOf(
-        "de" to setOf("ok", "statusOnline", "statusOffline", "minute", "am", "pm"),
-        "fr" to setOf("ok", "minute", "saturation", "am", "pm"),
+        "de" to setOf("ok", "statusOnline", "statusOffline", "minute", "am", "pm", "code"),
+        "fr" to setOf("ok", "minute", "saturation", "am", "pm", "code"),
         "es" to emptySet(),
         "it" to setOf("ok", "statusOnline", "statusOffline", "am", "pm"),
     )
