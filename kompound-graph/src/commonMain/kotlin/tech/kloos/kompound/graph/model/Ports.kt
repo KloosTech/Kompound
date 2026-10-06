@@ -23,7 +23,20 @@ public interface PortType {
 
         /** A type with the given [id]. */
         public fun of(id: String): PortType = SimpleType(id)
+
+        /**
+         * A port that carries JSON (a [tech.kloos.kompound.json.JsonValue], or text that parses as JSON), optionally of the shape [schema] (the subset
+         * [tech.kloos.kompound.json.JsonSchema.validate] understands; unknown keywords are kept, not enforced). Connects to `any` and to other JSON ports.
+         * The engine remembers the last value of every JSON output as its sample, which is where the fields of a port without a schema come from.
+         */
+        public fun json(schema: tech.kloos.kompound.json.JsonValue? = null): PortType = JsonPortType(schema)
     }
+}
+
+/** The type behind [PortType.json]: id `json`, with an optional schema that is saved with the port. */
+public data class JsonPortType(public val schema: tech.kloos.kompound.json.JsonValue? = null) : PortType {
+    override val id: String get() = "json"
+    override fun toString(): String = "json"
 }
 
 private data class SimpleType(override val id: String) : PortType {

@@ -1,6 +1,6 @@
 # ADR 0007: Structured (JSON) values on ports, fields and templates (proposal)
 
-Status: **proposed**, nothing here is implemented. Source: a feature request from the workflow app team (tested against `0.1.0-alpha07`,
+Status: **proposed**; slice 1 is implemented (see "Progress" at the end). Source: a feature request from the workflow app team (tested against `0.1.0-alpha07`,
 entries 33, 34, 37, 38 and 39 of their notes). Builds on ADR 0004 (model, engine), ADR 0005 (linked subgraphs, triggers; implemented
 before this one) and the JSON helpers and `KCombobox` / `KCode(diagnostics)` that came with 0.2.
 
@@ -106,3 +106,9 @@ Full JSON Schema; an expression language in templates; mandatory typing (a port 
 ## Open questions
 1. Sample size cap: 64 KB per port is a guess; should it be a `GraphEngine` option? Proposal: yes, `maxSampleBytes`.
 2. `Template.parse` offsets and `\{{` inside JSON bodies: a body such as `{"a": {{x}}}` has `}}}`; the parser takes the first `}}` after `{{`. Proposal: documented, tested.
+
+## Progress
+- **Slice 1 done**: `PortType.json` / `JsonPortType` (schema saved with the port), samples in the engine (`sampleOf`, `sampleSnapshot`, `loadSamples`, cap `maxSampleBytes`),
+  `SampleStore` and `InMemorySampleStore`, `fieldsOf` (declared schema first, examples from the sample; `Collect` inputs get `[*]`), `GraphJson(samples = true)`,
+  and in `:kompound` `FieldInfo`, `JsonFields`, `JsonSchema.example` and `fromNestedShorthand`. Open question 1 is answered: the cap is `GraphEngine(maxSampleBytes)` (default 64 KB).
+  Correction to section 2: kompound-graph has a `KNodeType`, but only as the add-node menu entry; the `schemaFor` hook (slice 4) is still an engine function like `signalMode`.
