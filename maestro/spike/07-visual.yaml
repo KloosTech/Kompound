@@ -1,0 +1,20 @@
+appId: tech.kloos.kompound.catalog
+name: spike - assertScreenshot stability
+---
+- launchApp:
+    appId: tech.kloos.kompound.catalog
+    stopApp: true
+- tapOn:
+    text: "KButton"
+    retryTapIfNoChange: false
+- assertVisible: "Preview"
+- assertScreenshot:
+    path: base-kbutton.png
+    thresholdPercentage: 99
+    label: whole screen incl. status bar
+- assertScreenshot:
+    path: base-kbutton-crop.png   # the reference must be a crop of the same element (takeScreenshot with cropOn)
+    thresholdPercentage: 99
+    cropOn:
+      text: "All variants"
+    label: cropped to one element

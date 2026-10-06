@@ -1,6 +1,6 @@
 # ADR 0008: Android UI testing with Maestro (plan)
 
-Status: **accepted as a plan** (decisions of 2026-10-06 are in section 11); nothing here is built yet; this is the plan for a Maestro framework that tests every Kompound component on a real Android
+Status: **accepted as a plan** (decisions of 2026-10-06 are in section 11; phase 0 spike results in appendix A); no framework code exists yet; this is the plan for a Maestro framework that tests every Kompound component on a real Android
 device, one component at a time, improving the framework as we go. Sources: the Maestro documentation (what-is-maestro, Jetpack Compose,
 selectors, CLI commands and options, workspace and tags, reports and artifacts, hooks, devices, wait commands, known issues; page index at
 `https://docs.maestro.dev/llms.txt`) and the current state of this repository (checked on 2026-10-06).
@@ -167,7 +167,7 @@ The same `maestro.sh` runs everywhere; `--device <serial>` selects the phone whe
 
 - **Flake budget**: a flow that fails and then passes on a rerun is a bug in the flow or the app, logged in `maestro/FLAKES.md`. One automatic retry in CI (`retry` is for steps, not for hiding failures); a flow with more than one flake in 20 runs is tagged `quarantine` within a day (excluded from gates, still run nightly) and fixed or deleted within a week.
 - **Stability check for new flows**: `maestro.sh --repeat 20 --component <id>` must be green before merge.
-- **Time budgets**: smoke suite under 3 minutes on the OnePlus 9 Pro (about 6 on an emulator); the full suite reported, not gated.
+- **Time budgets** (revised after the spike, appendix A): a smoke flow costs about 5 to 8 s (deep link, a few assertions, one or two taps), so the 68-demo smoke suite targets **under 8 minutes on one phone** and about 4 on two; the full suite is reported, not gated. The earlier 3-minute target assumed faster taps than the phone delivers.
 - **Version pinning**: Maestro CLI version in `.maestro-version`, installed in CI by a cached step; bumped in its own PR with a full nightly run.
 - **Failure triage**: the first artifact to read is `screen-hierarchy/`, then `logs/` (crashes and ANRs are in there), then the recording.
 - **Review checklist** for a flow PR: header, tags, selectors per 4.3, no sleeps, subflows reused, states and environment covered or marked not applicable, 20x green, `FRAMEWORK_LOG.md` updated when the framework changed.
@@ -179,7 +179,7 @@ The same `maestro.sh` runs everywhere; `--device <serial>` selects the phone whe
 | 0 Spike (1 to 2 days) | Install Maestro under JDK 21, connect the OnePlus 9 Pro, run against the existing catalog: tap through to one demo, read the hierarchy dump, try `swipe` on a slider, try `assertScreenshot`, check `launchApp` arguments, record the device profile and the OxygenOS quirks that bite. | A written list of what works, what does not, gesture precision numbers and the device profile, appended to this ADR and to `devices.md`. |
 | 1 Harness | Deep link, bare mode, control tags, `harness:ready`, `testTagsAsResourceId`, `maestro` build type, `demos.json` export. | `openLink` to any of the 68 demos reaches `harness:ready` on the phone; a Compose test checks the deep-link parser. |
 | 2 Framework and pilots | `config.yaml`, `_lib`, `maestro.sh`, `device-setup.sh` (with `--check`), `scaffold.sh`, `coverage.sh`, pilots 1 to 5 of the table, `FRAMEWORK_LOG.md`. | Pilot flows 20x green on the phone; scaffold generates a runnable skeleton for any demo. |
-| 3 Breadth | Remaining components in the order of section 5, cross-cutting suites, environment matrix, coverage ratchet turned on (hard fail). | Every demo has a smoke flow; allowlist empty or justified; full smoke under 3 minutes. |
+| 3 Breadth | Remaining components in the order of section 5, cross-cutting suites, environment matrix, coverage ratchet turned on (hard fail). | Every demo has a smoke flow; allowlist empty or justified; full smoke under 8 minutes on the phone. |
 | 4 Local gate | The pre-merge smoke habit in section 7, the PR summary line, `devices.md` measured times. | Two weeks of PRs with the gate run and no unexplained flake. |
 | 5 CI | `maestro.yml` on an API 34 emulator, artifacts, JUnit summary, path filters, pinned Maestro version. | A pull request that breaks a pilot component fails the emulator gate with usable artifacts. |
 | 6 Visual regression (decision deferred, see question 1) | Baselines of every component's preview in light and dark on the phone, update workflow, threshold policy. | A deliberate style change shows up as a failing screenshot flow and is accepted with `--update-baselines` in a reviewed PR. |
@@ -204,3 +204,37 @@ The same `maestro.sh` runs everywhere; `--device <serial>` selects the phone whe
 3. **Devices and API levels**: **start with the OnePlus 9 Pro (Snapdragon 888, Android 14) only.** No API 37 or API 24 coverage for now; a later emulator mirrors API 34.
 4. **Harness in the release APK**: no. The harness (deep link, bare mode, tags) exists only in a separate `maestro` build type, so the published catalog APK stays as it is.
 5. **The fast phone**: the OnePlus 9 Pro.
+
+## Appendix A. Phase 0 spike results (2026-10-06)
+
+Setup: Maestro CLI **2.11.0** (GitHub release `cli-2.11.0`, sha256 verified, unpacked into `~/.maestro`, no shell-profile edits) under
+JetBrains Runtime 21.0.5 (`JAVA_HOME` set per process; the machine default JDK 23 is untouched); `MAESTRO_CLI_NO_ANALYTICS=1`. Phone: OnePlus 9 Pro,
+OxygenOS 14 (profile and quirks in `maestro/devices.md`). App: the current catalog debug APK, installed with `adb install -r -g`. Flows and
+measurements: `maestro/spike/`.
+
+### What works
+- **The accessibility hierarchy** (`maestro hierarchy`, and `screen-hierarchy/` in the artifacts) shows Compose content as `View` / `TextView` nodes: visible text in `text`,
+  `contentDescription` in `accessibilityText`, `enabled`, `selected`, `checked`, bounds. `tapOn: "Switch to dark mode"` matches a content description. There are **no resource ids**
+  yet (`testTagsAsResourceId` is off), and `clickable` is `false` even on buttons, so flows must not select on it.
+- **Reading values**: `copyTextFrom` plus `evalScript: ${console.log(...)}` (visible in `maestro.log`) or `assertTrue` on `maestro.copiedText` reads a readout such as "Value: 40".
+- **Tap precision** on `KSlider` (track 195 to 885 px): target 59.4, result 60. **Drag precision**: target 10.9, result 7; target 81.3, result 84. So a tap is within about 1 of 100 and a drag within about 4 (touch slop). Use taps for exact values, drags with a +/- 5 tolerance.
+- **`assertScreenshot`** works: a whole-screen comparison at 99 % tolerated a changed status-bar clock; with `cropOn` the reference must be a crop of the same element (create it with `takeScreenshot` plus `cropOn`). `takeScreenshot` paths must be relative to the output folder (absolute paths are rejected).
+- `eraseText`, `inputText` (ASCII), `hideKeyboard`, `pressKey: Back`, `back`, `scroll`, `launchApp` with `stopApp: true` all work. A suite in one `maestro test <dir>` process pays the JVM start (about 8 s) once.
+
+### What does not, or hurts
+- **Speed** (per step on this phone, animations at scale 1.0): `assertVisible` 0.2 to 0.5 s, `takeScreenshot` 0.3 s, `back` 1.1 s, `eraseText` 1.3 s, `hideKeyboard` 2 s, `inputText` 2.5 s, **`tapOn` 3.8 s** (2.7 s with `retryTapIfNoChange: false`; `waitToSettleTimeoutMs: 200` changed nothing), and **`scrollUntilVisible` over the 67-item list 54 s**. Navigating the catalog by scrolling and tapping costs about a minute per component, which is the case for the deep link (section 4.1): it removes the scroll, the search and the first tap.
+- **The phone sleeps** after 30 s and `adb` cannot extend it (`SecurityException`), so long steps failed with black screenshots until a keep-awake loop ran. Fix by hand once ("One-time setup" in `devices.md`), keep the loop as a fallback in `device-setup.sh`.
+- **The soft keyboard confuses selectors**: Gboard's suggestion strip repeats the typed word, so `tapOn: "KSlider"` with the keyboard open can tap the suggestion. Rule: never `tapOn` text while the keyboard is up; `hideKeyboard`, assert it is gone, then tap. The harness avoids typing for navigation altogether.
+- **Locale**: the phone is `de-DE`, and Kompound's own labels follow it ("Suche loeschen" for the clear button) while the catalog's labels are English. The harness deep link must force the strings language (`lang=en`), and the device is set to English (US) anyway.
+- **Coordinates depend on layout**: a swipe at 50 % screen height hit the surface selector instead of the slider until the page was scrolled. Gesture flows need the deterministic bare-mode layout, or `scroll` first; never absolute guesses.
+- **System UI nodes** (status-bar icons, in German) appear in the hierarchy and can match text selectors.
+
+### Not verified yet (needs the harness)
+`openLink` deep links into the app, `launchApp` `arguments`, `testTagsAsResourceId` ids, `swipe` with `from:` an element, and animation-off speed (needs the one-time Developer options setup).
+
+### Consequences for the plan
+1. The harness (phase 1) is the biggest speed lever and is confirmed as the first piece of work.
+2. Add `retryTapIfNoChange: false` to the flow conventions for taps that are known to change nothing visible, and measure again with animations off.
+3. The smoke target moved from 3 to 8 minutes (section 8); sharding across two attached devices is the next lever.
+4. `device-setup.sh` gains the keep-awake fallback, the Developer options checklist and an English-locale check; `--check` fails when animations are not off or the locale is not `en-US`.
+5. Visual regression is feasible: whole-screen at 99 % or cropped to the preview, baselines made with `takeScreenshot`.

@@ -1,0 +1,22 @@
+appId: tech.kloos.kompound.catalog
+name: spike - tap speed options
+---
+- launchApp:
+    appId: tech.kloos.kompound.catalog
+    stopApp: true
+- assertVisible: "Search components"
+- tapOn: "KButton"
+- assertVisible: "Preview"
+- back
+- assertVisible: "Search components"
+- tapOn:
+    text: "KButton"
+    retryTapIfNoChange: false
+- assertVisible: "Preview"
+- back
+- assertVisible: "Search components"
+- tapOn:
+    text: "KButton"
+    retryTapIfNoChange: false
+    waitToSettleTimeoutMs: 200
+- assertVisible: "Preview"
