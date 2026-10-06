@@ -30,7 +30,25 @@ public interface PortType {
          * The engine remembers the last value of every JSON output as its sample, which is where the fields of a port without a schema come from.
          */
         public fun json(schema: tech.kloos.kompound.json.JsonValue? = null): PortType = JsonPortType(schema)
+
+        /**
+         * A JSON port whose values have the shape of the **items** of the array that arrives at this node's input [input]: the output of a node that
+         * emits one signal per item (a `JSON each`). The engine follows the wire at that input, so the item's fields keep flowing after a loop and a changed
+         * upstream shape flows through. Connects like [json].
+         */
+        public fun itemOf(input: String): PortType = ItemOfPortType(input)
+
+        /** A JSON port that carries an array of items of the shape [item] (the collecting side of a loop); [item] `null` for any items. */
+        public fun arrayOf(item: tech.kloos.kompound.json.JsonValue? = null): PortType = JsonPortType(
+            tech.kloos.kompound.json.jsonObjectOf("type" to tech.kloos.kompound.json.JsonString("array"), "items" to item),
+        )
     }
+}
+
+/** The type behind [PortType.itemOf]: id `json`, the shape is read from the array at the node's input [input]. */
+public data class ItemOfPortType(public val input: String) : PortType {
+    override val id: String get() = "json"
+    override fun toString(): String = "json item of $input"
 }
 
 /** The type behind [PortType.json]: id `json`, with an optional schema that is saved with the port. */

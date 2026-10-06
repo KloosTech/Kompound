@@ -13,6 +13,8 @@ import tech.kloos.kompound.graph.model.GraphResolver
 import tech.kloos.kompound.graph.model.LinkedSubgraphs
 import tech.kloos.kompound.graph.model.ObservableGraphResolver
 import tech.kloos.kompound.graph.model.PortSpec
+import tech.kloos.kompound.json.JsonValue
+import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.SignalMode
 
 /**
@@ -31,6 +33,7 @@ import tech.kloos.kompound.graph.model.SignalMode
  * @param triggers Trigger kinds that start event runs (see [GraphEngine]).
  * @param eventPolicy What to do with events that arrive while earlier ones still run (see [GraphEngine]).
  * @param samples Where the last JSON value of every JSON output is kept (see [SampleStore]).
+ * @param schemaFor JSON Schemas of a node's ports from its data (see [GraphEngine]).
  * @param kindConcurrency How many runs of one node kind may be active at once (see [GraphEngine]).
  * @param isRelevantChange Whether a change of a node's data makes it stale (see [GraphEngine]).
  */
@@ -48,11 +51,12 @@ public fun rememberGraphEngine(
     kindConcurrency: Map<String, Int> = emptyMap(),
     links: GraphResolver? = null,
     samples: SampleStore? = null,
+    schemaFor: ((GraphNode) -> Map<PortId, JsonValue>)? = null,
     triggers: Map<String, TriggerRunner> = emptyMap(),
     eventPolicy: (GraphNode) -> EventPolicy = { EventPolicy.Default },
 ): GraphEngine {
     val scope = rememberCoroutineScope()
-    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency, triggers = triggers, eventPolicy = eventPolicy, samples = samples) }
+    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency, triggers = triggers, eventPolicy = eventPolicy, samples = samples, schemaFor = schemaFor) }
     LaunchedEffect(engine, links) {
         snapshotFlow { state.graph to ((links as? ObservableGraphResolver)?.revision ?: 0) }.collect { (graph, _) ->
             engine.update(if (links == null) graph else LinkedSubgraphs.expand(graph, links).graph)

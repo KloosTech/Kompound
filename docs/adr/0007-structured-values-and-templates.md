@@ -1,6 +1,6 @@
 # ADR 0007: Structured (JSON) values on ports, fields and templates (proposal)
 
-Status: **proposed**; slice 1 is implemented (see "Progress" at the end). Source: a feature request from the workflow app team (tested against `0.1.0-alpha07`,
+Status: **implemented** (see "Progress" at the end for where it differs). Source: a feature request from the workflow app team (tested against `0.1.0-alpha07`,
 entries 33, 34, 37, 38 and 39 of their notes). Builds on ADR 0004 (model, engine), ADR 0005 (linked subgraphs, triggers; implemented
 before this one) and the JSON helpers and `KCombobox` / `KCode(diagnostics)` that came with 0.2.
 
@@ -118,3 +118,6 @@ Full JSON Schema; an expression language in templates; mandatory typing (a port 
 - **Slice 3 done**: `KTemplateField` / `KTemplateArea`, `KFieldPicker`, `KFieldMapper` (`FieldBinding`, `ParamSpec`) in `:kompound` with a plain `fields: List<FieldInfo>` provider, and in `:kompound-graph`
   extensions `KNodeScope.TemplateField` / `TemplateArea` / `FieldPicker` that take the engine (`KNodeGraph` has no engine, so it is passed explicitly) plus `GraphEngine.templateFields(node, from)`.
   Bare paths are offered when exactly one input has fields, prefixed ones (`a.title`) otherwise, whichever input `from` selects, because that is what `ctx.render` can resolve. The acceptance UI test (type `{{` in a node's field, pick `description`) is `KTemplateNodeTest`.
+- **Slice 4 done**: `GraphEngine(schemaFor)` (an engine function like `signalMode`, not a node-type member), `schemaOf`, `PortType.itemOf(input)` and `arrayOf(item)` (item-of is a reference resolved while following wires,
+  saved as `"itemOf"` on the port), `wireWarning(edge)` and `KNodeGraph(edgeWarning)`, `JsonSchema.incompatibilities`. Precedence of shapes is `schemaFor`, the port type's schema, then the sample. The acceptance test is
+  `StructuredValuesTest` (parts 1 to 3 and 5) and `KTemplateNodeTest` (part 4). Not done, by design: schemas are never enforced, and nothing blocks a connection.

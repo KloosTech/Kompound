@@ -22,6 +22,11 @@ import tech.kloos.kompound.graph.KRerouteKind
 import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.KSecret
+import tech.kloos.kompound.json.incompatibilities
+import tech.kloos.kompound.json.JsonNull
+import tech.kloos.kompound.json.JsonSchema
+import tech.kloos.kompound.graph.model.Edge
+import tech.kloos.kompound.graph.model.ItemOfPortType
 import tech.kloos.kompound.graph.model.JsonPortType
 import tech.kloos.kompound.json.jsonObjectOf
 import tech.kloos.kompound.json.at
@@ -82,6 +87,9 @@ import tech.kloos.kompound.graph.model.PortId
  * @param eventPolicy What to do with an event that arrives while earlier events of the same trigger still run (default: one at a time, a queue of 64).
  * @param samples Where the last JSON value of every JSON output port is kept between runs of the app (see [SampleStore]); `null` keeps them in memory only.
  * @param maxSampleBytes Samples bigger than this (as JSON text) are cut down to their shape, or dropped.
+ * @param schemaFor The JSON Schema of a node's ports derived from its data (an `Ollama structured` node whose settings hold the shape of its answer): return a map
+ * from port id to schema (inputs and outputs). Asked whenever a shape is needed, so it follows edits of the data; nothing is stored in the graph.
+ * It wins over the schema of `PortType.json(schema)`, which wins over the sample.
  * @param kindConcurrency How many runs of nodes of one kind may be active at the same time, by node kind (`"http.request" to 2`), on top of
  * [maxConcurrency] (which counts every kind together). Runs over the limit wait their turn. A node with [SignalMode.Each] inputs already
  * processes its values one after the other; this limit is for many nodes of one kind (a fan-out of requests) that must not all start at once.
@@ -105,6 +113,7 @@ public class GraphEngine(
     private val eventPolicy: (GraphNode) -> EventPolicy = { EventPolicy.Default },
     private val mirror: (() -> Unit)? = null,
     private val samples: SampleStore? = null,
+    private val schemaFor: ((GraphNode) -> Map<PortId, JsonValue>)? = null,
     private val maxSampleBytes: Int = 64 * 1024,
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
@@ -145,10 +154,9 @@ public class GraphEngine(
         val node = graph.node(id) ?: return emptyList()
         val spec = node.port(port)?.takeIf { it.direction == PortDirection.Input } ?: return emptyList()
         val source = Router(graph).source(PortRef(id, spec.id)) ?: return emptyList()
-        val sourceSpec = graph.node(source.node)?.port(source.port)
-        val secret = sourceSpec?.secret == true
-        val sample = if (secret) null else sampleMap[source]
-        val schema = (sourceSpec?.type as? JsonPortType)?.schema
+        val secret = graph.node(source.node)?.port(source.port)?.secret == true
+        val sample = if (secret) null else shapeSample(source, 0)
+        val schema = schemaOf(source)
         val collect = signalMode(node, spec) == SignalMode.Collect
         val fields = when {
             schema != null -> {
@@ -165,9 +173,52 @@ public class GraphEngine(
         return if (secret) fields.map { it.copy(example = null) } else fields
     }
 
+    /**
+     * The JSON Schema known for the port [port] (input or output): what `schemaFor` says about its node, else the schema in its `PortType.json`, else (for
+     * `PortType.itemOf`) the items of the array schema at the named input. `null` when none is known. Observable.
+     */
+    public fun schemaOf(port: PortRef): JsonValue? = schemaOf(port, 0)
+
+    private fun schemaOf(ref: PortRef, depth: Int): JsonValue? {
+        if (depth > 16) return null
+        val node = graph.node(ref.node) ?: return null
+        val spec = node.port(ref.port) ?: return null
+        schemaFor?.invoke(node)?.get(ref.port)?.let { return it }
+        return when (val type = spec.type) {
+            is JsonPortType -> type.schema
+            is ItemOfPortType -> {
+                val input = node.port(type.input)?.takeIf { it.direction == PortDirection.Input } ?: return null
+                val upstream = Router(graph).source(PortRef(node.id, input.id)) ?: return null
+                (schemaOf(upstream, depth + 1) as? JsonObject)?.takeIf { it["type"].let { t -> t is JsonString && t.value == "array" } }?.get("items")
+            }
+            else -> null
+        }
+    }
+
+    // The sample of the port, or for an item-of port without one the first item of the sample upstream.
+    private fun shapeSample(ref: PortRef, depth: Int): JsonValue? {
+        sampleMap[ref]?.let { return it }
+        if (depth > 16) return null
+        val node = graph.node(ref.node) ?: return null
+        val type = node.port(ref.port)?.type as? ItemOfPortType ?: return null
+        val input = node.port(type.input)?.takeIf { it.direction == PortDirection.Input } ?: return null
+        val upstream = Router(graph).source(PortRef(node.id, input.id)) ?: return null
+        return (shapeSample(upstream, depth + 1) as? JsonArray)?.items?.firstOrNull { it != JsonNull }
+    }
+
+    /**
+     * Why the wire [edge] may not fit: the shape it carries ([schemaOf] its output) cannot satisfy the shape its input expects (a wrong `type`, a
+     * `required` property the output does not have). `null` when it fits or when either side declares no shape. A hint for `KNodeGraph(edgeWarning = ...)`; connections are never blocked.
+     */
+    public fun wireWarning(edge: Edge): String? {
+        val from = schemaOf(edge.from) ?: return null
+        val to = schemaOf(edge.to) ?: return null
+        return JsonSchema.incompatibilities(from, to).firstOrNull()
+    }
+
     private fun recordSample(node: NodeId, port: PortId, value: Any?) {
         val spec = graph.node(node)?.port(port) ?: return
-        if (spec.direction != PortDirection.Output || spec.type !is JsonPortType || spec.secret) return
+        if (spec.direction != PortDirection.Output || !(spec.type is JsonPortType || spec.type is ItemOfPortType) || spec.secret) return
         val json = JsonSamples.from(value)?.let { JsonSamples.capped(it, maxSampleBytes) } ?: return
         val ref = PortRef(node, port)
         if (sampleMap[ref] == json) return
@@ -366,7 +417,7 @@ public class GraphEngine(
         // Samples of ports that no longer exist or are no longer JSON outputs are forgotten.
         for (ref in sampleMap.keys.toList()) {
             val sp = new.node(ref.node)?.port(ref.port)
-            if (sp == null || sp.direction != PortDirection.Output || sp.type !is JsonPortType) sampleMap.remove(ref)
+            if (sp == null || sp.direction != PortDirection.Output || !(sp.type is JsonPortType || sp.type is ItemOfPortType)) sampleMap.remove(ref)
         }
         invalidate(stale, listOf(newRouter, oldRouter), new)
         if (triggers.isNotEmpty()) {
