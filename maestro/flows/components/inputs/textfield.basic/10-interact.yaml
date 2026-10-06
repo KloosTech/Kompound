@@ -1,0 +1,22 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.basic interact
+tags:
+  - interact
+  - component:textfield.basic
+  - category:inputs
+properties:
+  junitClassname: textfield.basic
+---
+- runFlow: _core.yaml
+# a second round of typing after the keyboard was closed
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "a@b.co"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "a@b.co" }
+- hideKeyboard
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "a@b.co" }

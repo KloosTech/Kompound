@@ -1,12 +1,12 @@
 appId: tech.kloos.kompound.catalog.maestro
-name: KButton environments
+name: textfield.basic environments
 tags:
   - env
   - slow
-  - component:button.primary
-  - category:buttons
+  - component:textfield.basic
+  - category:inputs
 properties:
-  junitClassname: button.primary
+  junitClassname: textfield.basic
 ---
 - runFlow:
     file: _core.yaml

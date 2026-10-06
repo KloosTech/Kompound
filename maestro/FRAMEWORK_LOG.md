@@ -3,6 +3,12 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-06, pilots 2 and 3: KTextField and KPasswordField
+- **Missing**: Maestro parses every flow it discovers, also those tagged `todo`, and rejects a file without a command (`Commands Section Required`). **Changed**: `scaffold.sh` puts an `open-demo` step into every skeleton.
+- **Missing**: Kompound's own labels change with the language, so a flow that looks for "Show password" fails under `LANG: de`. **Added**: `_lib/strings.js` (the words flows need, in all five languages; `runScript` with `LANG`, then `${output.s.showPassword}`). Keep it in sync with `KompoundStrings`.
+- **Learned**: the field's own node has no text until something is typed (placeholder and label are separate nodes), so tap the placeholder text or, for a field without one, the content description inside the field (`text: "Password"`, `index: 1`, scoped above the controls). Typing costs 2.5 s plus 2 s to close the keyboard, so typing flows stay short. The `env` flows are tagged `slow` (over a minute each).
+- Real behaviour checked on the phone: typing and erasing, a character limit with its counter, disabled and read-only fields ignore typing, an error message, password text hidden and shown with the eye (also in German), strength meter label changes.
+
 ## 2026-10-06, pilot 1: KButton
 - **Missing**: text selectors also match the controls card (`Filled` is a variant chip as well as a button), so assertions passed or failed for the wrong element. **Changed**: `_lib/preview-see`, `preview-not-see`, `preview-tap` scope every selector to the preview with `above: id harness:controls`. The convention is now "assert and tap in the preview through these helpers".
 - **Missing**: no way to assert a disabled button; the text node reports `enabled=true`, only its container is disabled. **Changed**: `_lib/assert-disabled` and `assert-enabled` use `enabled` plus `containsChild` (relational selectors), scoped to the preview.

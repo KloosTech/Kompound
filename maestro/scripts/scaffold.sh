@@ -62,7 +62,9 @@ EOF
 "
   echo "# TODO: disabled, error, empty, loading, long text. Preset controls with CONTROLS (url-encoded, Name::value):"
   echo "#   - runFlow: { file: ../../../_lib/open-demo.yaml, env: { DEMO: $ID, CONTROLS: \"control=Enabled::false\" } }"
-  echo "# Controls of this demo:"; echo "$CONTROLS"; } > "$DIR/20-states.yaml"
+  echo "# Controls of this demo:"; echo "$CONTROLS"
+  # Maestro parses every flow it discovers, even tagged todo ones, and a flow needs at least one command.
+  echo "- runFlow:"; echo "    file: ../../../_lib/open-demo.yaml"; echo "    env:"; echo "      DEMO: $ID"; } > "$DIR/20-states.yaml"
 { HEADER environments env "  - todo
 "
   for e in 'THEME: dark' 'RTL: "true"' 'FONT: "2.0"' 'DENSITY: compact' 'LANG: de'; do echo "- runFlow:"; echo "    file: _core.yaml"; echo "    env: { $e }"; done; } > "$DIR/30-env.yaml"

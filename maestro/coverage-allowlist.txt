@@ -56,9 +56,7 @@ table.data
 tag.input
 template.fields
 textfield.area
-textfield.basic
 textfield.number
-textfield.password
 theme.presets
 theme.tokens
 time.picker

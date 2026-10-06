@@ -1,0 +1,47 @@
+# What KPasswordField does: typed text is hidden, the eye shows it, the strength meter reacts.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env:
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- tapOn:
+    text: "Password"
+    index: 1
+    above:
+      id: "harness:controls"
+    retryTapIfNoChange: false
+- inputText: "Secret123!"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Secret123!" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Very weak" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.showPassword}" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Secret123!" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.hidePassword}" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.hidePassword}" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Secret123!" }
+- hideKeyboard
+- runFlow: ../../../_lib/assert-no-crash.yaml
