@@ -31,7 +31,6 @@ keyvalue.basic
 list.item
 markdown.view
 menu.actions
-menu.basic
 menu.context
 navigation.bar-rail-drawer
 progress.indicators

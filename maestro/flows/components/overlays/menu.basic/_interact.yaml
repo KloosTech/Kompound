@@ -1,0 +1,46 @@
+# KMenu: picking an item reports it and closes the menu; back and an outside tap close it without a pick.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Nothing picked yet" }
+- tapOn:
+    text: "Duplicate"
+    retryTapIfNoChange: false
+- assertNotVisible: "Delete"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Duplicate" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Duplicate" }
+- assertVisible: "Edit"
+- tapOn:
+    text: "Edit"
+    retryTapIfNoChange: false
+- assertNotVisible: "Delete"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Edit" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Edit" }
+- assertVisible: "Delete"
+- tapOn:
+    point: "50%,6%"
+    retryTapIfNoChange: false
+- assertNotVisible: "Duplicate"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Edit" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

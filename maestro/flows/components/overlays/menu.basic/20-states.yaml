@@ -1,0 +1,49 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.basic states
+tags:
+  - states
+  - component:menu.basic
+  - category:overlays
+properties:
+  junitClassname: menu.basic
+---
+# last item disabled: it is shown disabled and picking it does nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+      CONTROLS: "control=Disable%20last%20item::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Nothing picked yet" }
+- assertVisible: "Delete"
+- assertVisible:
+    enabled: false
+    containsChild: "Delete"
+- tapOn:
+    text: "Delete"
+    retryTapIfNoChange: false
+- assertVisible: "Duplicate"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+# no leading icons: items keep their labels
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+      CONTROLS: "control=Leading%20icons::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Nothing picked yet" }
+- assertVisible: "Edit"
+- assertVisible: "Duplicate"
+- assertVisible: "Delete"
+- tapOn:
+    text: "Edit"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Edit" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
