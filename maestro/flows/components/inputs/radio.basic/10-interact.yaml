@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: radio.basic interact
+tags:
+  - interact
+  - component:radio.basic
+  - category:inputs
+properties:
+  junitClassname: radio.basic
+---
+- runFlow: _interact.yaml

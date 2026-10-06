@@ -1,0 +1,10 @@
+# The toggle in the demo's preview whose label is LABEL is checked (checkbox, switch, radio button).
+# The checked flag sits on the container around the label text, so the selector is "checked and contains LABEL".
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    checked: true
+    containsChild: "${LABEL}"
+    above:
+      id: "harness:controls"

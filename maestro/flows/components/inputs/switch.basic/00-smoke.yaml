@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: switch.basic smoke
+tags:
+  - smoke
+  - component:switch.basic
+  - category:inputs
+properties:
+  junitClassname: switch.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: switch.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Wi-Fi" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

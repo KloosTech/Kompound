@@ -120,7 +120,7 @@ EXEMPT_PID=""
 trap '[ -n "$KEEP_PID" ] && kill "$KEEP_PID" 2>/dev/null; kill "$EXEMPT_PID" 2>/dev/null' EXIT
 
 # --- run -------------------------------------------------------------------------------------------------------
-ARGS=(--device "$SERIAL" test "${DRIVER_ARG[@]}" "$TARGET" --config maestro/config.yaml)
+ARGS=(--device "$SERIAL" test ${DRIVER_ARG[@]+"${DRIVER_ARG[@]}"} "$TARGET" --config maestro/config.yaml)
 [ -n "$TAGS" ] && ARGS+=(--include-tags "$TAGS")
 [ -n "$EXCLUDE" ] && ARGS+=(--exclude-tags "$EXCLUDE")
 for e in ${ENVS[@]+"${ENVS[@]}"}; do ARGS+=(--env "$e"); done

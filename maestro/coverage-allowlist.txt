@@ -9,7 +9,6 @@ button.icon
 button.progress
 button.toggle
 chart.simple
-checkbox.basic
 chip.basic
 code.view
 color.picker
@@ -37,7 +36,6 @@ menu.basic
 menu.context
 navigation.bar-rail-drawer
 progress.indicators
-radio.basic
 scaffold.screen
 search.bar
 segmented.control
@@ -50,7 +48,6 @@ state.empty
 state.error
 steps.list
 surface.basic
-switch.basic
 tab.row
 table.data
 tag.input

@@ -1,0 +1,47 @@
+# KRadioButton: taps change the checked state, as seen through the accessibility tree.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: radio.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Medium" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Medium" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Small" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Large" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Large" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Medium" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Large" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Large" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Small" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Small" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Large" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

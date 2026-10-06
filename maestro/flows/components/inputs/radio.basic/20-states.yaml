@@ -1,0 +1,34 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: radio.basic states
+tags:
+  - states
+  - component:radio.basic
+  - category:inputs
+properties:
+  junitClassname: radio.basic
+---
+# disabled: all options are disabled and a tap changes nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: radio.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Small" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Medium" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Large" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Large" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Small" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Large" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

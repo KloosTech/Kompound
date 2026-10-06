@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: switch.basic interact
+tags:
+  - interact
+  - component:switch.basic
+  - category:inputs
+properties:
+  junitClassname: switch.basic
+---
+- runFlow: _interact.yaml

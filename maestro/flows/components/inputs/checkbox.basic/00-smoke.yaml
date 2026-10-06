@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: checkbox.basic smoke
+tags:
+  - smoke
+  - component:checkbox.basic
+  - category:inputs
+properties:
+  junitClassname: checkbox.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Receive updates" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
