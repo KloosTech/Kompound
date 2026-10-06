@@ -162,3 +162,40 @@ public object JsonSchema {
 
     private fun join(path: String, key: String) = if (path.isEmpty()) key else "$path.$key"
 }
+
+/**
+ * Why a value of the shape [source] may not satisfy [target] (both JSON Schemas, the subset [JsonSchema.validate] knows): a different `type`
+ * (`integer` fits `number`; a list of types fits if one matches), a `required` property the source's `properties` do not have, or the same
+ * problem inside a property or the items of an array. Empty when it can fit or when the source says too little to tell. A hint, not a proof: schemas are never enforced.
+ */
+public fun JsonSchema.incompatibilities(source: JsonValue, target: JsonValue): List<String> = ArrayList<String>().also { compare(source, target, "", 0, it) }
+
+private fun schemaTypes(s: JsonObject): Set<String> = when (val t = s["type"]) {
+    is JsonString -> setOf(t.value)
+    is JsonArray -> t.items.filterIsInstance<JsonString>().map { it.value }.toSet()
+    else -> emptySet()
+}
+
+private fun typesFit(source: Set<String>, target: Set<String>): Boolean =
+    source.isEmpty() || target.isEmpty() || source.any { s -> s in target || (s == "integer" && "number" in target) }
+
+private fun compare(source: JsonValue, target: JsonValue, path: String, depth: Int, out: MutableList<String>) {
+    val s = source as? JsonObject ?: return
+    val t = target as? JsonObject ?: return
+    if (depth > 6) return
+    fun where(text: String) = if (path.isEmpty()) text else "$path: $text"
+    val st = schemaTypes(s)
+    val tt = schemaTypes(t)
+    if (!typesFit(st, tt)) { out += where("expected ${tt.joinToString(" or ")}, gets ${st.joinToString(" or ")}"); return }
+    val sp = s["properties"] as? JsonObject
+    val tp = t["properties"] as? JsonObject
+    if (sp != null) {
+        (t["required"] as? JsonArray)?.items?.filterIsInstance<JsonString>()?.forEach { r ->
+            if (r.value !in sp.fields) out += where("missing field \"${r.value}\"")
+        }
+        if (tp != null) for ((key, sub) in tp.fields) sp[key]?.let { compare(it, sub, if (path.isEmpty()) key else "$path.$key", depth + 1, out) }
+    }
+    val si = s["items"]
+    val ti = t["items"]
+    if (si != null && ti != null) compare(si, ti, "$path[*]", depth + 1, out)
+}
