@@ -3,6 +3,11 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-06, pilot 5: KTabRow
+- **Added**: `_lib/assert-selected` and `assert-unselected` (the `selected` flag sits on the container around the tab label; same negative form as `assert-unchecked`).
+- **Learned**: tab badges are not exposed as separate nodes (not asserted). A scrollable row is reached by `swipe` along the row (`85%,15%` to `10%,15%`, three times for 14 tabs); the tap on the far tab then works. A disabled tab ignores taps (content unchanged).
+- Flows: initial state, select each tab, disabled tab, nothing disabled, icons, many tabs and scrolling; the environment matrix incl. RTL passes. 4 flows in 1m51s.
+
 ## 2026-10-06, pilot 4: KCheckbox, KSwitch, KRadioButton
 - **Missing**: asserting the checked state. Compose puts `checked` on the container around the label, not on the text. **Added**: `_lib/assert-checked` (`checked: true` + `containsChild: LABEL`) and `_lib/assert-unchecked` (label visible and no checked container around it). `checked: false` together with `containsChild` never matches in Maestro 2.11 (neither does `enabled: true` + `containsChild`, while `enabled: false` does), hence the negative form; assert-checked on an unchecked toggle fails, so the pair is not vacuous. An indeterminate checkbox reports `checked=false` and nothing else, so the tri-state is only asserted as "not checked".
 - **Fixed**: `maestro.sh` died on macOS bash 3.2 (`DRIVER_ARG[@]: unbound variable`) when the driver was not installed yet; empty-array-safe expansion.

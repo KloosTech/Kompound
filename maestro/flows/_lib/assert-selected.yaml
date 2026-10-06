@@ -1,0 +1,9 @@
+# The tab / item in the demo's preview whose label is LABEL is selected (the `selected` flag sits on the container around the label).
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    selected: true
+    containsChild: "${LABEL}"
+    above:
+      id: "harness:controls"

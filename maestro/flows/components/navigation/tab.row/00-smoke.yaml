@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tab.row smoke
+tags:
+  - smoke
+  - component:tab.row
+  - category:navigation
+properties:
+  junitClassname: tab.row
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Overview" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

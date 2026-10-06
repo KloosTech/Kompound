@@ -1,0 +1,29 @@
+# KTabRow initial state in the caller's environment (assertions only).
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Overview' }
+- runFlow:
+    file: ../../../_lib/assert-unselected.yaml
+    env: { LABEL: 'Activity' }
+- runFlow:
+    file: ../../../_lib/assert-unselected.yaml
+    env: { LABEL: 'Billing' }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: 'Settings' }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: 'Content of "Overview".*' }
+- runFlow: ../../../_lib/assert-no-crash.yaml

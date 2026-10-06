@@ -1,0 +1,70 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tab.row states
+tags:
+  - states
+  - component:tab.row
+  - category:navigation
+properties:
+  junitClassname: tab.row
+---
+# nothing disabled: the third tab can be selected
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+      CONTROLS: "control=Disable%20one%20tab::false"
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: 'Settings' }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: 'Settings' }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Settings' }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: 'Content of "Settings".*' }
+# icons: tabs keep their labels and selection
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+      CONTROLS: "control=Icons::true"
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Overview' }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: 'Billing' }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Billing' }
+# many tabs scroll: a far tab is reached by swiping the row, then selected
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+      CONTROLS: "control=Many%20tabs::true"
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Section 1' }
+- swipe:
+    start: 85%, 15%
+    end: 10%, 15%
+- swipe:
+    start: 85%, 15%
+    end: 10%, 15%
+- swipe:
+    start: 85%, 15%
+    end: 10%, 15%
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: 'Section 14' }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: 'Section 14' }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: 'Content of "Section 14".*' }
+- runFlow: ../../../_lib/assert-no-crash.yaml

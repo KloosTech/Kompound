@@ -48,7 +48,6 @@ state.empty
 state.error
 steps.list
 surface.basic
-tab.row
 table.data
 tag.input
 template.fields
