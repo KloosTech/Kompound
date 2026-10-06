@@ -79,6 +79,12 @@ public data class KompoundStrings(
     val invalidEmail: String = "Enter a valid e-mail address",
     val submitFailed: String = "Could not submit",
     val code: String = "Code",
+    val fieldMode: String = "Field",
+    val valueMode: String = "Value",
+    val templateMode: String = "Template",
+    val unknownField: (path: String) -> String = { "Unknown field \"$it\"" },
+    val noFieldsKnown: String = "No fields known yet",
+    val resultLabel: String = "Result",
     /** Announcement of a sparkline or chart: `"Chart, 12 values from 3 to 9"`. */
     val chartSummary: (count: Int, min: String, max: String) -> String = { count, min, max -> "Chart, $count values from $min to $max" },
 ) {
@@ -95,7 +101,7 @@ public data class KompoundStrings(
         "searchCommands" to searchCommands, "noCommands" to noCommands, "select" to select, "hour" to hour, "minute" to minute, "am" to am, "pm" to pm,
         "hue" to hue, "saturation" to saturation, "brightness" to brightness, "opacity" to opacity, "hexColor" to hexColor,
         "required" to required, "submit" to submit, "submitting" to submitting, "invalidValue" to invalidValue, "addTag" to addTag,
-        "removeNamed" to removeNamed("X"), "formErrors" to formErrors(2), "tooShort" to tooShort(3), "invalidEmail" to invalidEmail, "submitFailed" to submitFailed, "code" to code, "chartSummary" to chartSummary(3, "1", "2"),
+        "removeNamed" to removeNamed("X"), "formErrors" to formErrors(2), "tooShort" to tooShort(3), "invalidEmail" to invalidEmail, "submitFailed" to submitFailed, "code" to code, "fieldMode" to fieldMode, "valueMode" to valueMode, "templateMode" to templateMode, "unknownField" to unknownField("x"), "noFieldsKnown" to noFieldsKnown, "resultLabel" to resultLabel, "chartSummary" to chartSummary(3, "1", "2"),
     )
 
     public companion object {
@@ -118,6 +124,7 @@ public data class KompoundStrings(
             removeNamed = { "$it entfernen" },
             formErrors = { if (it == 1) "1 Feld braucht Aufmerksamkeit" else "$it Felder brauchen Aufmerksamkeit" }, tooShort = { "Mindestens $it Zeichen verwenden" },
             invalidEmail = "Gültige E-Mail-Adresse eingeben", submitFailed = "Senden nicht möglich", code = "Code",
+            fieldMode = "Feld", valueMode = "Wert", templateMode = "Vorlage", unknownField = { "Unbekanntes Feld \"$it\"" }, noFieldsKnown = "Noch keine Felder bekannt", resultLabel = "Ergebnis",
             chartSummary = { count, min, max -> "Diagramm, $count Werte von $min bis $max" },
         )
 
@@ -137,6 +144,7 @@ public data class KompoundStrings(
             removeNamed = { "Supprimer $it" },
             formErrors = { if (it == 1) "1 champ à corriger" else "$it champs à corriger" }, tooShort = { "Utilisez au moins $it caractères" },
             invalidEmail = "Saisissez une adresse e-mail valide", submitFailed = "Envoi impossible", code = "Code",
+            fieldMode = "Champ", valueMode = "Valeur", templateMode = "Modèle", unknownField = { "Champ inconnu « $it »" }, noFieldsKnown = "Aucun champ connu pour l'instant", resultLabel = "Résultat",
             chartSummary = { count, min, max -> "Graphique, $count valeurs de $min à $max" },
         )
 
@@ -156,6 +164,7 @@ public data class KompoundStrings(
             removeNamed = { "Quitar $it" },
             formErrors = { if (it == 1) "1 campo requiere atención" else "$it campos requieren atención" }, tooShort = { "Usa al menos $it caracteres" },
             invalidEmail = "Introduce un correo electrónico válido", submitFailed = "No se pudo enviar", code = "Código",
+            fieldMode = "Campo", valueMode = "Valor", templateMode = "Plantilla", unknownField = { "Campo desconocido \"$it\"" }, noFieldsKnown = "Aún no se conocen campos", resultLabel = "Resultado",
             chartSummary = { count, min, max -> "Gráfico, $count valores de $min a $max" },
         )
 
@@ -175,6 +184,7 @@ public data class KompoundStrings(
             removeNamed = { "Rimuovi $it" },
             formErrors = { if (it == 1) "1 campo richiede attenzione" else "$it campi richiedono attenzione" }, tooShort = { "Usa almeno $it caratteri" },
             invalidEmail = "Inserisci un indirizzo e-mail valido", submitFailed = "Invio non riuscito", code = "Codice",
+            fieldMode = "Campo", valueMode = "Valore", templateMode = "Modello", unknownField = { "Campo sconosciuto \"$it\"" }, noFieldsKnown = "Nessun campo noto per ora", resultLabel = "Risultato",
             chartSummary = { count, min, max -> "Grafico, $count valori da $min a $max" },
         )
 

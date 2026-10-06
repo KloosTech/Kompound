@@ -55,6 +55,7 @@ import tech.kloos.kompound.theme.KompoundTheme
  * @param maxOptions At most this many options are listed.
  * @param noResultsText Shown when nothing matches; `null` shows no list then.
  * @param onSubmit Called with the text when Enter is pressed and no option is highlighted.
+ * @param contentDescription The accessibility name when there is no visible [label]; default: the label.
  * @param style Overrides merged over the field container style.
  */
 @Composable
@@ -75,6 +76,7 @@ public fun <T> KCombobox(
     maxOptions: Int = 100,
     noResultsText: String? = KompoundTheme.strings.noResults,
     onSubmit: ((String) -> Unit)? = null,
+    contentDescription: String? = null,
     style: Style = Style,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -125,6 +127,7 @@ public fun <T> KCombobox(
             trailing = { KIcon(KompoundIcons.ChevronDown, contentDescription = null) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke(value) }),
+            contentDescription = contentDescription,
             style = style,
         )
         if (expanded && (shown.isNotEmpty() || (noResultsText != null && value.isNotEmpty()))) {

@@ -115,3 +115,6 @@ Full JSON Schema; an expression language in templates; mandatory typing (a port 
 - **Slice 2 done**: `Template` with `parse` (parts with offsets), `names`, `problems`, `render`; filters `json`, `url`, `default:x`; `MissingFieldException(path, node, port)` lives in
   `:kompound` with optional node and port (the graph fills them in), `TemplateScope`; `ctx.render(text, vararg extra)`, `ctx.templateScope()`, `ctx.inputs.json(port)` as extensions. Open question 2
   (a body like `{"a": {{x}}}`) is answered: the first `}}` after `{{` closes the placeholder, so `{{x}}}` leaves one literal `}`; tested.
+- **Slice 3 done**: `KTemplateField` / `KTemplateArea`, `KFieldPicker`, `KFieldMapper` (`FieldBinding`, `ParamSpec`) in `:kompound` with a plain `fields: List<FieldInfo>` provider, and in `:kompound-graph`
+  extensions `KNodeScope.TemplateField` / `TemplateArea` / `FieldPicker` that take the engine (`KNodeGraph` has no engine, so it is passed explicitly) plus `GraphEngine.templateFields(node, from)`.
+  Bare paths are offered when exactly one input has fields, prefixed ones (`a.title`) otherwise, whichever input `from` selects, because that is what `ctx.render` can resolve. The acceptance UI test (type `{{` in a node's field, pick `description`) is `KTemplateNodeTest`.
