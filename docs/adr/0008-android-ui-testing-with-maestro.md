@@ -1,6 +1,6 @@
 # ADR 0008: Android UI testing with Maestro (plan)
 
-Status: **proposed**. Nothing here is built yet; this is the plan for a Maestro framework that tests every Kompound component on a real Android
+Status: **accepted as a plan** (decisions of 2026-10-06 are in section 11); nothing here is built yet; this is the plan for a Maestro framework that tests every Kompound component on a real Android
 device, one component at a time, improving the framework as we go. Sources: the Maestro documentation (what-is-maestro, Jetpack Compose,
 selectors, CLI commands and options, workspace and tags, reports and artifacts, hooks, devices, wait commands, known issues; page index at
 `https://docs.maestro.dev/llms.txt`) and the current state of this repository (checked on 2026-10-06).
@@ -77,7 +77,7 @@ maestro/
         30-env.yaml            dark, RTL, font 200 %, density (runs the interact core through wrappers)
         40-visual.yaml         screenshots (tag: visual)
     suites/                    cross-cutting: a11y-targets.yaml, orientation.yaml, process-death.yaml
-  baselines/                   reference screenshots (phase 5; see risks)
+  baselines/                   reference screenshots (phase 6; storage decided then)
   scripts/
     maestro.sh                 the one entry point (section 6)
     device-setup.sh            normalise a device (section 7)
@@ -103,7 +103,7 @@ maestro/
 3. **States**: through `controls=` and control taps: disabled (assert `enabled: false`, taps do nothing), error, empty, loading, long text.
 4. **Environment matrix**: the interaction core again in dark, RTL, font scale 2.0, `compact` density, and landscape (one wrapper flow per environment, so the matrix costs no copies).
 5. **Accessibility**: names exist (`assertVisible` by description), state is exposed (`checked`, `selected`), and **touch targets** via dimension matchers (at least 48 dp for standard density, 40 dp compact, never below 24 dp).
-6. **Visual** (phase 5): `takeScreenshot` baselines of the preview in light and dark, compared with `assertScreenshot` on the pinned emulator only.
+6. **Visual** (phase 6): `takeScreenshot` baselines of the preview in light and dark, compared with `assertScreenshot` on the reference phone only.
 7. **Keyboard**: arrow keys are outside `pressKey`'s set, so the keyboard matrix (`docs/KEYBOARD.md`) stays in the Compose tests; Maestro covers IME actions (Done, Next, Search) and Back, Enter and Backspace.
 
 ## 5. The component-by-component method, and how the framework improves
@@ -136,32 +136,38 @@ maestro/scripts/maestro.sh --tags smoke                       # the gate
 maestro/scripts/maestro.sh --component color.picker           # one component, all layers
 maestro/scripts/maestro.sh --tags env --device <serial>       # environment matrix on a given device
 maestro/scripts/maestro.sh --shard 3 --tags smoke             # split across three connected devices
-maestro/scripts/maestro.sh --visual --update-baselines        # refresh screenshots (pinned emulator only)
+maestro/scripts/maestro.sh --visual --update-baselines        # refresh screenshots (reference phone only)
 ```
 
-It checks the prerequisites (JDK 17 or 21, `maestro` version pinned in `.maestro-version`, `adb`, a device), builds and installs the `maestro` build type only when the APK changed (hash of the build output), runs `device-setup.sh`, then `maestro test` with `--format junit --output build/maestro/report.xml --test-output-dir build/maestro/artifacts --debug-output build/maestro/debug` and the tag filters, and prints the failing flows with their screenshot and hierarchy paths. Exit codes are the CLI's.
+It checks the prerequisites (JDK 17 or 21, `maestro` version pinned in `.maestro-version`, `adb`, the reference phone attached), builds and installs the `maestro` build type only when the APK changed (hash of the build output), runs `device-setup.sh`, then `maestro test` with `--format junit --output build/maestro/report.xml --test-output-dir build/maestro/artifacts --debug-output build/maestro/debug` and the tag filters, and prints the failing flows with their screenshot and hierarchy paths. Exit codes are the CLI's.
 
 ## 7. Devices
 
-**Emulator (reference device).** One pinned AVD definition checked in (`maestro/avd/`): Pixel 9 class, Google APIs image of a fixed API level (37 matches `targetSdk`), 1080x2400 at 420 dpi, hardware keyboard off, `en-US`, fixed time zone, snapshot boot. Used for the PR gate and for baselines, so screenshots are comparable. A second image on API 24 or 26 covers the minSdk edge in the nightly job.
+**Reference device (decided): OnePlus 9 Pro, Snapdragon 888, Android 14 (API 34).** All development and all gates run on this phone first. Its
+exact profile (OxygenOS build, `adb shell wm size`, `wm density`, refresh rate, font scale) is read in the phase 0 spike and recorded in
+`maestro/devices.md`; flows never depend on pixel positions, so the profile only matters for screenshots and speed. Consequences:
+- **The minSdk edge (API 24) and API 37 (our `targetSdk`) are not covered for now.** A later CI emulator mirrors the phone (API 34) rather than the newest image.
+- **Visual baselines, if we adopt them, are recorded on this phone** (the one reference device), with display size, font scale, theme and refresh rate pinned by `device-setup.sh --check`. A different phone never updates them.
+- **OxygenOS belongs to the Oppo family**, which the Maestro known-issues page lists for "unable to clear state" and driver activation problems: expect to need "Disable permission monitoring" and "Verify apps over USB" off in developer options (both are in `device-setup.sh`'s checklist), avoid `clearState` (use `stopApp` plus a harness reset), and allow USB installs ("Install via USB") for the driver and the test build.
+- **Nothing needs an emulator to start**; `Kompound_API37` stays as a fallback for people without the phone.
 
 **Normalisation (`device-setup.sh`, idempotent, run before every session).** `adb shell settings put global window_animation_scale 0`, `transition_animation_scale 0`, `animator_duration_scale 0`; stay awake while charging and screen timeout max; rotation locked to portrait unless a flow rotates; navigation mode and font scale reset; `adb shell cmd locale` to `en-US`; disable "Verify apps over USB" and enable "Disable permission monitoring" where the device offers them (the known-issue workarounds); install the APK with `adb install -r -g`; dismiss the keyboard and notification shade. It prints what it changed, and a `--check` mode fails when the device deviates (used by CI).
 
-**Physical device (the fast lane, later).** The goal is speed: a fast phone on USB 3, animations off, screen on, pre-installed APK, then
+**Speed on the phone.** The goal is speed (a fast Snapdragon 888 on USB 3 is the main lane, not a later one): a fast phone on USB 3, animations off, screen on, pre-installed APK, then
 - **deep links skip navigation** (the largest saving: no sidebar, no scrolling, no search),
 - **no per-flow reinstall**: `launchApp` with `stopApp` instead of `clearState` unless the flow tests persistence,
 - **`--shard-split N` across several attached devices** (a phone plus emulators) for the full suite,
 - **`--continuous` while developing** a component, so a saved flow re-runs at once,
-- a **device registry** in `maestro/devices.md` (model, Android version, quirks, the workaround flags above, measured full-suite time) so we know which phones are trusted for which lanes.
-The same `maestro.sh` runs on it; the only change is `--device <serial>`. Visual baselines are never updated from a physical phone (pixels differ).
+- a **device registry** in `maestro/devices.md` (model, Android version, quirks, the workaround flags above, measured full-suite time), starting with the OnePlus 9 Pro; more phones are added only with their quirks and a measured time.
+The same `maestro.sh` runs everywhere; `--device <serial>` selects the phone when several are attached.
 
-**CI.** A new workflow `maestro.yml`: Linux runner with KVM, an emulator started from the pinned AVD (`reactivecircus/android-emulator-runner` or `sdkmanager` plus `emulator -no-window -no-audio -gpu swiftshader_indirect`), the APK built once (`assembleMaestro`), `maestro.sh --tags smoke` on every pull request that touches `kompound/`, `catalog/` or `maestro/` (path filter, so docs-only changes stay free), the full suite nightly and on release branches, JUnit published to the job summary, artifacts (`commands.json`, logs, screenshots, hierarchy, recordings of failures) uploaded on failure. Self-hosted runners with real phones are a later option, not a prerequisite.
+**CI (later, and not on the phone).** GitHub-hosted runners cannot use the phone, so until a self-hosted runner exists the gate is **local**: a pull request that changes `kompound/`, `catalog/` or `maestro/` runs `maestro/scripts/maestro.sh --tags smoke` on the phone before merge and pastes the one-line summary the script prints (flows, passed, duration, device, build hash) into the PR. When that habit is stable, `maestro.yml` is added: a Linux runner with KVM and an **API 34 emulator** (matching the phone's OS) running the smoke tag on pull requests (path filtered) and the full suite nightly, JUnit in the job summary, artifacts (`commands.json`, logs, screenshots, hierarchy, recordings) uploaded on failure. A self-hosted runner with the phone attached is an option after that.
 
 ## 8. Reliability and quality gates
 
 - **Flake budget**: a flow that fails and then passes on a rerun is a bug in the flow or the app, logged in `maestro/FLAKES.md`. One automatic retry in CI (`retry` is for steps, not for hiding failures); a flow with more than one flake in 20 runs is tagged `quarantine` within a day (excluded from gates, still run nightly) and fixed or deleted within a week.
 - **Stability check for new flows**: `maestro.sh --repeat 20 --component <id>` must be green before merge.
-- **Time budgets**: smoke suite under 6 minutes on the emulator, under 3 on the fast phone; the full suite reported, not gated.
+- **Time budgets**: smoke suite under 3 minutes on the OnePlus 9 Pro (about 6 on an emulator); the full suite reported, not gated.
 - **Version pinning**: Maestro CLI version in `.maestro-version`, installed in CI by a cached step; bumped in its own PR with a full nightly run.
 - **Failure triage**: the first artifact to read is `screen-hierarchy/`, then `logs/` (crashes and ANRs are in there), then the recording.
 - **Review checklist** for a flow PR: header, tags, selectors per 4.3, no sleeps, subflows reused, states and environment covered or marked not applicable, 20x green, `FRAMEWORK_LOG.md` updated when the framework changed.
@@ -170,13 +176,13 @@ The same `maestro.sh` runs on it; the only change is `--device <serial>`. Visual
 
 | Phase | Work | Exit criterion |
 |---|---|---|
-| 0 Spike (1 to 2 days) | Install Maestro under JDK 21, run against the existing catalog on `Kompound_API37`: tap through to one demo, read the hierarchy dump, try `swipe` on a slider, try `assertScreenshot`, check `launchApp` arguments. | A written list of what works, what does not, and gesture precision numbers, appended to this ADR. |
-| 1 Harness | Deep link, bare mode, control tags, `harness:ready`, `testTagsAsResourceId`, `maestro` build type, `demos.json` export. | `openLink` to any of the 68 demos reaches `harness:ready` on the emulator; a Compose test checks the deep-link parser. |
-| 2 Framework and pilots | `config.yaml`, `_lib`, `maestro.sh`, `device-setup.sh`, `scaffold.sh`, `coverage.sh`, pilots 1 to 5 of the table, `FRAMEWORK_LOG.md`. | Pilot flows 20x green; scaffold generates a runnable skeleton for any demo. |
-| 3 CI | `maestro.yml` smoke gate, artifacts, JUnit summary, path filters, pinned AVD and Maestro version. | A pull request that breaks a pilot component fails the gate with usable artifacts. |
-| 4 Breadth | Remaining components in the order of section 5, cross-cutting suites, environment matrix, coverage ratchet turned on (hard fail). | Every demo has a smoke flow; allowlist empty or justified. |
-| 5 Physical device lane | `devices.md`, sharding across devices, `--continuous` workflow, measured speed. | Full smoke on the fast phone under 3 minutes; documented setup that a new contributor can follow. |
-| 6 Visual regression | Baselines for the preview of every component in light and dark on the pinned emulator, update workflow, threshold policy. | A deliberate style change shows up as a failing screenshot flow and is accepted with `--update-baselines` in a reviewed PR. |
+| 0 Spike (1 to 2 days) | Install Maestro under JDK 21, connect the OnePlus 9 Pro, run against the existing catalog: tap through to one demo, read the hierarchy dump, try `swipe` on a slider, try `assertScreenshot`, check `launchApp` arguments, record the device profile and the OxygenOS quirks that bite. | A written list of what works, what does not, gesture precision numbers and the device profile, appended to this ADR and to `devices.md`. |
+| 1 Harness | Deep link, bare mode, control tags, `harness:ready`, `testTagsAsResourceId`, `maestro` build type, `demos.json` export. | `openLink` to any of the 68 demos reaches `harness:ready` on the phone; a Compose test checks the deep-link parser. |
+| 2 Framework and pilots | `config.yaml`, `_lib`, `maestro.sh`, `device-setup.sh` (with `--check`), `scaffold.sh`, `coverage.sh`, pilots 1 to 5 of the table, `FRAMEWORK_LOG.md`. | Pilot flows 20x green on the phone; scaffold generates a runnable skeleton for any demo. |
+| 3 Breadth | Remaining components in the order of section 5, cross-cutting suites, environment matrix, coverage ratchet turned on (hard fail). | Every demo has a smoke flow; allowlist empty or justified; full smoke under 3 minutes. |
+| 4 Local gate | The pre-merge smoke habit in section 7, the PR summary line, `devices.md` measured times. | Two weeks of PRs with the gate run and no unexplained flake. |
+| 5 CI | `maestro.yml` on an API 34 emulator, artifacts, JUnit summary, path filters, pinned Maestro version. | A pull request that breaks a pilot component fails the emulator gate with usable artifacts. |
+| 6 Visual regression (decision deferred, see question 1) | Baselines of every component's preview in light and dark on the phone, update workflow, threshold policy. | A deliberate style change shows up as a failing screenshot flow and is accepted with `--update-baselines` in a reviewed PR. |
 
 ## 10. Risks and open questions
 
@@ -185,15 +191,16 @@ The same `maestro.sh` runs on it; the only change is `--device <serial>`. Visual
 | Custom Canvas widgets (colour square, charts, node graph canvas) expose little through accessibility, so Maestro can only drive them by coordinates and read what we describe. | Test gestures by their visible effect (a text readout in the demo), add semantics where they are missing anyway (the accessibility audit wants them), keep geometry-heavy checks in Compose tests. Graph editing stays mostly out of scope for Maestro. |
 | `swipe` may be too coarse for slider and divider values. | Phase 0 measures it; fall back to coarse assertions (moved right, value increased) and keep exact values in Compose tests. |
 | `inputText` is ASCII only; no arrow keys. | Documented; Unicode input and keyboard navigation stay in Compose tests. |
-| Screenshot baselines are device-specific and fragile; baseline files grow the repository. | Pinned AVD only, per-flow thresholds, baselines in Git LFS or a separate artifact bucket (decision below), never from physical phones. |
+| Screenshot baselines are device-specific and fragile; baseline files grow the repository. | One reference device (the OnePlus 9 Pro) with pinned display settings, per-flow thresholds, storage decided at phase 6 (no baselines in git before). |
 | Popups and dialogs are separate windows; the hierarchy may need a moment. | `assertVisible` polling, `extendedWaitUntil` where known; helper subflows. |
 | Fully managed or "hardened" phones reject Maestro's driver app. | Use plain consumer phones for the device lane. |
 | Maestro upgrades change behaviour. | Version pinned, upgrade in its own PR. |
 | Test time grows with 68 components times environments. | Environment wrappers reuse cores; shard across devices; smoke gate stays small; full matrix nightly. |
 
-Open questions for you:
-1. **Baselines storage**: Git LFS in this repository, or CI artifacts only (no baselines in git, compare against the main branch's last nightly)? Recommendation: start without baselines (phases 0 to 5), decide at phase 6 once we know the churn.
-2. **Maestro Cloud** for real-device coverage later (it exists; it is a paid service), or only own devices? Recommendation: own devices; revisit when we need many models.
-3. **API levels** for the nightly matrix: 37 (target) and 24 (minSdk) only, or also one in between? Recommendation: 37 and 24, plus the physical phone's.
-4. **Scope of the Android catalog changes** in phase 1 (deep link, bare mode, tags): fine to ship them in the release APK behind a debug-only switch, or only in a separate `maestro` variant? Recommendation: separate variant, so the published catalog APK stays as it is.
-5. **Which phone** is the fast one (model, Android version), so the device registry starts correct.
+## 11. Decisions (2026-10-06)
+
+1. **Baselines**: no baselines in git until phase 6; then decide between Git LFS and CI artifacts with the churn we have measured by then.
+2. **Real-device coverage**: our own devices. Maestro Cloud is revisited only when we need many models.
+3. **Devices and API levels**: **start with the OnePlus 9 Pro (Snapdragon 888, Android 14) only.** No API 37 or API 24 coverage for now; a later emulator mirrors API 34.
+4. **Harness in the release APK**: no. The harness (deep link, bare mode, tags) exists only in a separate `maestro` build type, so the published catalog APK stays as it is.
+5. **The fast phone**: the OnePlus 9 Pro.
