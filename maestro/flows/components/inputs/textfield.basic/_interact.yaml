@@ -1,5 +1,5 @@
-# KTextField renders in whatever environment the caller opens it in (assertions only).
-# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+# Typing into KTextField: the placeholder invites, typed text replaces it, erasing brings it back.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
 appId: tech.kloos.kompound.catalog.maestro
 ---
 - runFlow:
@@ -12,12 +12,17 @@ appId: tech.kloos.kompound.catalog.maestro
       DENSITY: ${DENSITY}
       LANG: ${LANG}
 - runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "hello"
+- runFlow:
     file: ../../../_lib/preview-see.yaml
-    env: { TEXT: "Email" }
+    env: { TEXT: "hello" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "name@example.com" }
+- eraseText: 5
 - runFlow:
     file: ../../../_lib/preview-see.yaml
     env: { TEXT: "name@example.com" }
-- runFlow:
-    file: ../../../_lib/preview-see.yaml
-    env: { TEXT: "We never share it" }
 - runFlow: ../../../_lib/assert-no-crash.yaml

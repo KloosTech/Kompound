@@ -1,4 +1,4 @@
-# What KButton does, in whatever environment the caller opens it in.
+# KButton renders in whatever environment the caller opens it in (assertions only: no taps, so the environment matrix stays fast).
 # env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
 appId: tech.kloos.kompound.catalog.maestro
 ---
@@ -13,15 +13,20 @@ appId: tech.kloos.kompound.catalog.maestro
       LANG: ${LANG}
 - runFlow:
     file: ../../../_lib/preview-see.yaml
-    env: { TEXT: "Filled" }
-# a tap changes nothing visible (the demo's onClick is empty) and nothing crashes
+    env: { TEXT: "Button" }
 - runFlow:
-    file: ../../../_lib/preview-tap.yaml
+    file: ../../../_lib/preview-see.yaml
     env: { TEXT: "Filled" }
 - runFlow:
-    file: ../../../_lib/preview-tap.yaml
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Tonal" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Outlined" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
     env: { TEXT: "Text" }
-- runFlow: ../../../_lib/assert-no-crash.yaml
 - runFlow:
     file: ../../../_lib/assert-enabled.yaml
     env: { LABEL: Filled }
+- runFlow: ../../../_lib/assert-no-crash.yaml

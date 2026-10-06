@@ -27,6 +27,8 @@ data class HarnessLaunch(
     val lang: String = "en",
     val bare: Boolean = true,
     val controls: Map<String, String> = emptyMap(),
+    /** Not part of the link: the launcher counts every received link, so opening the same link twice still starts the demo afresh (typed text and toggled controls do not leak between flows). */
+    val nonce: Int = 0,
 ) {
     /** The entry this launch names, or `null` for an unknown demo. */
     fun resolve(entries: List<DemoEntry>): DemoEntry? = entries.firstOrNull { it.qualifiedId == demo } ?: entries.firstOrNull { it.meta.id == demo }

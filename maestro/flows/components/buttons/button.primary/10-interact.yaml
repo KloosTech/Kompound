@@ -1,5 +1,5 @@
 appId: tech.kloos.kompound.catalog.maestro
-name: KButton interact
+name: button.primary interact
 tags:
   - interact
   - component:button.primary
@@ -7,7 +7,7 @@ tags:
 properties:
   junitClassname: button.primary
 ---
-- runFlow: _core.yaml
+- runFlow: _interact.yaml
 # the label control: the first button shows what the link preset
 - runFlow:
     file: ../../../_lib/open-demo.yaml

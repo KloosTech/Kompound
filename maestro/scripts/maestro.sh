@@ -98,10 +98,29 @@ STAY=$(adb -s "$SERIAL" shell settings get global stay_on_while_plugged_in | tr 
 if [ "$STAY" = "0" ] || [ "$STAY" = "null" ]; then
   ( while true; do adb -s "$SERIAL" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1; sleep 8; done ) & KEEP_PID=$!
 fi
-trap '[ -n "$KEEP_PID" ] && kill "$KEEP_PID" 2>/dev/null' EXIT
+
+# OnePlus (Oplus HANS) freezes the Maestro driver app for ~50 s at a time (steps stall) unless it is on the Doze
+# whitelist. A reinstall wipes the whitelist, so keep the driver installed (--no-reinstall-driver) and whitelist
+# it; on the very first run the driver appears mid-run, so a background loop whitelists it as soon as it exists.
+DRIVER_PKGS=(dev.mobile.maestro dev.mobile.maestro.test)
+whitelist_driver() {
+  for p in "${DRIVER_PKGS[@]}"; do
+    adb -s "$SERIAL" shell pm path "$p" 2>/dev/null | grep -q package &&
+      adb -s "$SERIAL" shell dumpsys deviceidle whitelist +"$p" >/dev/null 2>&1
+  done
+  return 0
+}
+DRIVER_ARG=()
+if adb -s "$SERIAL" shell pm path dev.mobile.maestro 2>/dev/null | grep -q package; then
+  DRIVER_ARG=(--no-reinstall-driver)
+fi
+whitelist_driver
+EXEMPT_PID=""
+( while true; do whitelist_driver; sleep 2; done ) & EXEMPT_PID=$!
+trap '[ -n "$KEEP_PID" ] && kill "$KEEP_PID" 2>/dev/null; kill "$EXEMPT_PID" 2>/dev/null' EXIT
 
 # --- run -------------------------------------------------------------------------------------------------------
-ARGS=(--device "$SERIAL" test "$TARGET" --config maestro/config.yaml)
+ARGS=(--device "$SERIAL" test "${DRIVER_ARG[@]}" "$TARGET" --config maestro/config.yaml)
 [ -n "$TAGS" ] && ARGS+=(--include-tags "$TAGS")
 [ -n "$EXCLUDE" ] && ARGS+=(--exclude-tags "$EXCLUDE")
 for e in ${ENVS[@]+"${ENVS[@]}"}; do ARGS+=(--env "$e"); done

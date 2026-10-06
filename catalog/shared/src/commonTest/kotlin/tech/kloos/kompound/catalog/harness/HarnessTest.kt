@@ -9,7 +9,10 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.runComposeUiTest
 import tech.kloos.kompound.catalog.KompoundAllDemos
 import tech.kloos.kompound.catalog.ui.KompoundCatalog
@@ -140,6 +143,22 @@ class HarnessTest {
         launch = HarnessLaunch(other.qualifiedId)
         repeat(4) { mainClock.advanceTimeByFrame() }
         assertEquals(listOf(other.qualifiedId), onNodeWithTag("harness:ready").fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription))
+    }
+
+    @Test
+    fun theSameLinkReceivedAgainStartsTheDemoAfresh() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        val fields = KompoundAllDemos.entries.first { it.meta.id == "textfield.basic" }
+        var launch by androidx.compose.runtime.mutableStateOf(HarnessLaunch(fields.qualifiedId, nonce = 1))
+        setContent { MaterialTheme { KompoundCatalog(launch = launch) } }
+        repeat(4) { mainClock.advanceTimeByFrame() }
+        // the preview's field comes first (the controls card has a "Placeholder" text control with the same words)
+        onAllNodesWithText("name@example.com").onFirst().performTextInput("typed")
+        repeat(2) { mainClock.advanceTimeByFrame() }
+        onNodeWithText("typed").assertExists()
+        launch = HarnessLaunch(fields.qualifiedId, nonce = 2)   // the identical link, received once more
+        repeat(4) { mainClock.advanceTimeByFrame() }
+        assertEquals(0, onAllNodesWithText("typed").fetchSemanticsNodes().size)
     }
 }
 

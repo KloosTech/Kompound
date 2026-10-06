@@ -1,5 +1,5 @@
 appId: tech.kloos.kompound.catalog.maestro
-name: KButton environments
+name: button.primary environments
 tags:
   - env
   - slow
@@ -23,3 +23,7 @@ properties:
 - runFlow:
     file: _core.yaml
     env: { LANG: de }
+# the interaction once, in a combination of all of them
+- runFlow:
+    file: _interact.yaml
+    env: { THEME: dark, RTL: "true", FONT: "1.5", DENSITY: compact, LANG: de }

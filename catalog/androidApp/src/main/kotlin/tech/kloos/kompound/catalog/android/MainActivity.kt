@@ -20,9 +20,10 @@ import tech.kloos.kompound.catalog.ui.KompoundCatalog
 class MainActivity : ComponentActivity() {
     // Only the `maestro` build type has the harness: a deep link then opens one demo in a given environment (ADR 0008).
     private var launch by mutableStateOf<HarnessLaunch?>(null)
+    private var received = 0
 
     private fun harnessLaunch(intent: Intent?): HarnessLaunch? =
-        if (BuildConfig.HARNESS && intent?.action == Intent.ACTION_VIEW) intent.dataString?.let(HarnessLaunch::parse) else null
+        if (BuildConfig.HARNESS && intent?.action == Intent.ACTION_VIEW) intent.dataString?.let(HarnessLaunch::parse)?.copy(nonce = ++received) else null
 
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
