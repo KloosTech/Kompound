@@ -12,6 +12,7 @@ import tech.kloos.kompound.graph.model.NodeGroup
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortCapacity
 import tech.kloos.kompound.graph.model.PortDirection
+import tech.kloos.kompound.graph.model.ItemOfPortType
 import tech.kloos.kompound.graph.model.JsonPortType
 import tech.kloos.kompound.graph.model.LinkedSubgraphs
 import tech.kloos.kompound.graph.model.SubgraphLink
@@ -239,6 +240,7 @@ public class GraphJson(
         "label" to JsonString(p.label),
         "type" to JsonString(p.type.id),
         "schema" to (p.type as? JsonPortType)?.schema,
+        "itemOf" to (p.type as? ItemOfPortType)?.let { JsonString(it.input) },
         "capacity" to JsonString(p.capacity.name),
         "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
         "secret" to p.secret.takeIf { it }?.let { JsonBool(true) },
@@ -253,7 +255,7 @@ public class GraphJson(
         return PortSpec(
             PortId(id), direction,
             (o["label"] as? JsonString)?.value ?: id,
-            types[typeId] ?: if (typeId == "json") PortType.json(o["schema"]?.takeUnless { it == JsonNull }) else PortType.of(typeId),
+            types[typeId] ?: if (typeId == "json") ((o["itemOf"] as? JsonString)?.let { PortType.itemOf(it.value) } ?: PortType.json(o["schema"]?.takeUnless { it == JsonNull })) else PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
             (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
             (o["secret"] as? JsonBool)?.value ?: false,

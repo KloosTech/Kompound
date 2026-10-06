@@ -110,6 +110,7 @@ import kotlin.math.roundToInt
  * @param nodeStatus A progress mark in each [KNode]'s title bar (spinner, check, cross, ...); return `null` for none. Read observable state in it (for example a `GraphEngine`) and it updates live.
  * @param edgeLabel A short text on the middle of a wire (for example the value that passed it); return `null` for none.
  * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
+ * @param edgeWarning A problem with a wire (for example `engine.wireWarning(edge)`: the shape it carries cannot satisfy its input): a wire with a message is drawn dashed in the warning colour and labelled with it. Never blocks a connection.
  * @param onOpenLink Called when the user opens a link node ([LinkedSubgraphs.LinkKind]); load the target document. Without it link nodes have no open button.
  * @param nodeContent Draws one node (reroute, comment, subgraph, boundary and link nodes are drawn by the editor).
  */
@@ -131,6 +132,7 @@ public fun KNodeGraph(
     nodeStatus: ((node: GraphNode) -> KNodeStatus?)? = null,
     edgeLabel: ((edge: Edge) -> String?)? = null,
     edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
+    edgeWarning: ((edge: Edge) -> String?)? = null,
     onOpenLink: ((GraphNode) -> Unit)? = null,
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
@@ -141,6 +143,7 @@ public fun KNodeGraph(
     val focus = remember { FocusRequester() }
     val gridColor = KNodeGraphDefaults.gridColor()
     val scheme = MaterialTheme.colorScheme
+    val warningColour = tech.kloos.kompound.theme.KompoundTheme.tokens.colors.warning
     val palette = KNodeGraphDefaults.portPalette()
     val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
     val labelStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp, color = scheme.onSurfaceVariant)
@@ -266,16 +269,17 @@ public fun KNodeGraph(
                         val b = resolved.to
                         val selected = e.id in state.selectedEdges
                         val look = edgeStyle(e)
-                        val base = if (look.color != Color.Unspecified) look.color else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
+                        val warning = edgeWarning?.invoke(e)
+                        val base = if (warning != null) warningColour else if (look.color != Color.Unspecified) look.color else colorOf(graph.port(e.from)?.type ?: tech.kloos.kompound.graph.model.PortType.Any)
                         val colour = if (selected) scheme.primary else base
                         val lineWidth = (if (look.width != androidx.compose.ui.unit.Dp.Unspecified) look.width.toPx() / zoom else width) * (if (selected) 1.6f else 1f)
-                        val dashed = look.dashed || look.animated
+                        val dashed = look.dashed || look.animated || warning != null
                         val effect = if (dashed) {
                             val on = 10.dp.toPx() / zoom
                             androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(on, on * 0.6f), if (look.animated) -flow * on * 1.6f else 0f)
                         } else null
                         drawPath(EdgeGeometry.path(look.shape ?: edgeShape, a, b), colour, style = Stroke(width = lineWidth, cap = if (dashed) StrokeCap.Butt else StrokeCap.Round, pathEffect = effect))
-                        val label = edgeLabel?.invoke(e)
+                        val label = edgeLabel?.invoke(e) ?: warning?.let { "! " + it.take(48) }
                         if (label != null) {
                             val measured = textMeasurer.measure(label, labelStyle)
                             val middle = Offset((a.x + b.x) / 2f, (a.y + b.y) / 2f)
