@@ -45,6 +45,9 @@ public enum class KNodeStatus(internal val description: String) {
 
     /** Was not started because the app refused it (see `GraphEngine`'s `beforeRun`). */
     Declined("Not run"),
+
+    /** A trigger that is armed and waits for events. */
+    Listening("Listening"),
 }
 
 internal val LocalNodeStatus = compositionLocalOf<((GraphNode) -> KNodeStatus?)?> { null }
@@ -57,7 +60,7 @@ internal fun KNodeStatusBadge(status: KNodeStatus, modifier: Modifier = Modifier
     val tone: Color = when (status) {
         KNodeStatus.Done -> success
         KNodeStatus.Failed, KNodeStatus.Blocked -> scheme.error
-        KNodeStatus.Pinned -> scheme.primary
+        KNodeStatus.Pinned, KNodeStatus.Listening -> scheme.primary
         else -> scheme.outline
     }
     val semanticsModifier = modifier.semantics { contentDescription = status.description }
@@ -91,6 +94,10 @@ internal fun KNodeStatusBadge(status: KNodeStatus, modifier: Modifier = Modifier
                 drawLine(tone, Offset(s * 0.6f, s * 0.5f), Offset(s * 0.85f, s * 0.5f), w, StrokeCap.Round)
             }
             KNodeStatus.Declined -> drawCircle(tone, s * 0.38f, center, style = stroke)
+            KNodeStatus.Listening -> {
+                drawCircle(tone, s * 0.42f, center, style = stroke)
+                drawCircle(tone, s * 0.16f, center)
+            }
             KNodeStatus.Cancelled -> {
                 drawLine(tone, Offset(s * 0.2f, s * 0.5f), Offset(s * 0.8f, s * 0.5f), w, StrokeCap.Round)
             }

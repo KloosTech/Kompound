@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -67,6 +68,9 @@ import tech.kloos.kompound.graph.model.PortId
  * A refused node is [NodeRun.Declined], nodes after it are [NodeRun.Blocked], and it is asked again on the next [start] or [rerun]. Use it
  * to keep runners with side effects (processes, network) from running on an automatic run, or to ask the user first. Also asked for
  * [testNode] (with [TraceTrigger.Test]).
+ * @param triggers Trigger kinds ([TriggerRunner]): nodes that wait for outside events and start an isolated **event run** of everything downstream of them
+ * each time they fire. A trigger is [NodeRun.Listening] while armed. Event runs are recorded as executions with [TraceTrigger.Event].
+ * @param eventPolicy What to do with an event that arrives while earlier events of the same trigger still run (default: one at a time, a queue of 64).
  * @param kindConcurrency How many runs of nodes of one kind may be active at the same time, by node kind (`"http.request" to 2`), on top of
  * [maxConcurrency] (which counts every kind together). Runs over the limit wait their turn. A node with [SignalMode.Each] inputs already
  * processes its values one after the other; this limit is for many nodes of one kind (a fan-out of requests) that must not all start at once.
@@ -78,14 +82,17 @@ public class GraphEngine(
     private val scope: CoroutineScope,
     private val runners: Map<String, NodeRunner>,
     private val autoRun: Boolean = true,
-    maxConcurrency: Int = 4,
+    private val maxConcurrency: Int = 4,
     private val runDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val trace: TraceOptions = TraceOptions(),
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
     private val beforeRun: ((node: GraphNode, trigger: TraceTrigger) -> Boolean)? = null,
     private val signalMode: (node: GraphNode, port: PortSpec) -> SignalMode = { _, port -> port.signal },
     private val isRelevantChange: (old: GraphNode, new: GraphNode) -> Boolean = { _, _ -> true },
-    kindConcurrency: Map<String, Int> = emptyMap(),
+    private val kindConcurrency: Map<String, Int> = emptyMap(),
+    private val triggers: Map<String, TriggerRunner> = emptyMap(),
+    private val eventPolicy: (GraphNode) -> EventPolicy = { EventPolicy.Default },
+    private val mirror: (() -> Unit)? = null,
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private val kindPermits: Map<String, Semaphore> = kindConcurrency.mapValues { Semaphore(it.value.coerceAtLeast(1)) }
@@ -128,6 +135,9 @@ public class GraphEngine(
     private var currentExecution: Execution? = null
     private var executionCounter = 0
     private var pendingTrigger = TraceTrigger.Auto
+    private val listeners = HashMap<NodeId, Job>()
+    private val eventStates = HashMap<NodeId, EventState>()
+    private var activeEvents = 0
 
     /** Recorded runs, oldest first (at most [TraceOptions.maxExecutions]); the last one may still be running. Observable. */
     public val executions: List<Execution> get() = history
@@ -172,6 +182,7 @@ public class GraphEngine(
         own.filterIsInstance<NodeRun.Declined>().firstOrNull()?.let { return it }
         own.filterIsInstance<NodeRun.Blocked>().firstOrNull()?.let { return it }
         if (own.any { it is NodeRun.Running }) return NodeRun.Running
+        if (own.any { it is NodeRun.Listening }) return NodeRun.Listening
         if (own.any { it is NodeRun.Waiting }) return NodeRun.Waiting
         if (own.any { it is NodeRun.Idle }) return NodeRun.Idle
         val router = Router(graph)
@@ -222,12 +233,15 @@ public class GraphEngine(
      */
     public val isActive: Boolean get() = active
 
+    /** Whether at least one trigger is armed and waiting for events ([NodeRun.Listening]). Observable. `isBusy` is about runners working, not about listening. */
+    public val isListening: Boolean get() = states.values.any { it is NodeRun.Listening }
+
     /** Whether any runner is still working. Observable. */
     public val isBusy: Boolean get() = busy
 
     /** Suspends until no runner is working (returns at once when none is). Nodes waiting for permission or input do not count as working. */
     public suspend fun awaitIdle() {
-        val waiter = locked { if (jobs.isEmpty()) null else kotlinx.coroutines.CompletableDeferred<Unit>().also { idleWaiters += it } } ?: return
+        val waiter = locked { if (jobs.isEmpty() && activeEvents == 0) null else kotlinx.coroutines.CompletableDeferred<Unit>().also { idleWaiters += it } } ?: return
         waiter.await()
     }
 
@@ -272,6 +286,14 @@ public class GraphEngine(
             }
         }
         invalidate(stale, listOf(newRouter, oldRouter), new)
+        if (triggers.isNotEmpty()) {
+            // An edit inside what a running event is executing: that event's graph is out of date.
+            val deps = newRouter.dependencies()
+            for (n in new.nodes.values) {
+                if (!triggers.containsKey(n.kind) || eventStates[n.id]?.running.isNullOrEmpty()) continue
+                if (n.id in stale || downstreamOf(n.id, deps).any { it in stale }) cancelEvents(n.id)
+            }
+        }
         for (node in new.nodes.values) if (isReal(node) && node.id !in states) states[node.id] = NodeRun.Idle
         refresh()
     }
@@ -337,6 +359,8 @@ public class GraphEngine(
 
     private fun cancel(id: NodeId) {
         jobs.remove(id)?.cancel()
+        listeners.remove(id)?.cancel()
+        cancelEvents(id)
         generation[id] = (generation[id] ?: 0) + 1
         liveAttempts.remove(id)?.let { attempt ->
             attempt.status = TraceStatus.Cancelled
@@ -347,11 +371,12 @@ public class GraphEngine(
     private fun refresh() {
         schedule()
         finishIfIdle(cancelled = false)
+        mirror?.invoke()
     }
 
     private fun finishIfIdle(cancelled: Boolean) {
-        busy = jobs.isNotEmpty()
-        if (jobs.isNotEmpty()) return
+        busy = jobs.isNotEmpty() || activeEvents > 0
+        if (jobs.isNotEmpty() || activeEvents > 0) return
         runRequested = false   // a requested one-shot run is over
         if (idleWaiters.isNotEmpty()) {
             idleWaiters.forEach { it.complete(Unit) }
@@ -601,6 +626,7 @@ public class GraphEngine(
             }
         }
         val demanded = demanded(Router(graph))
+        val eventManaged = if (triggers.isEmpty()) emptySet() else eventNodes()
         // A node's state can unblock or block the nodes after it, which may come earlier in node order: sweep until nothing changes.
         var changed = true
         var sweeps = 0
@@ -612,6 +638,10 @@ public class GraphEngine(
                 val id = node.id
                 if (id in cycle) continue
                 val current = states[id] ?: NodeRun.Idle
+                val trigger = triggers[node.kind]
+                if (trigger != null) { if (armTrigger(node, trigger, current)) changed = true; continue }
+                // What event runs produce is mirrored into these nodes; the sweep must not second-guess it.
+                if (id in eventManaged) continue
                 if (current is NodeRun.Done || current is NodeRun.Failed || current is NodeRun.Declined || current is NodeRun.Skipped) continue
                 if (id !in demanded) {
                     // Only pinned nodes would have read it: nothing needs its output, so it stays idle.
@@ -775,6 +805,215 @@ public class GraphEngine(
             }
         }
         return NodeTestRun(execution, attempt, job) { testResult }
+    }
+
+    // --- triggers and event runs -----------------------------------------------------------------------------
+
+    private class EventState {
+        val running = ArrayList<EventRun>()
+        val queue = ArrayDeque<Map<PortId, Any?>>()
+    }
+
+    /** One event of a trigger: a private engine that runs what is downstream of the trigger once, and what was recorded for it. */
+    private class EventRun(
+        val node: GraphNode,
+        val execution: Execution,
+        val scope: CoroutineScope,
+        val downstream: Set<NodeId>,
+    ) {
+        lateinit var child: GraphEngine
+        var copied = 0
+        var finished = false
+    }
+
+    private fun downstreamOf(trigger: NodeId, deps: Map<NodeId, Set<NodeId>>): Set<NodeId> {
+        val readers = HashMap<NodeId, MutableList<NodeId>>()
+        for ((n, sources) in deps) for (src in sources) readers.getOrPut(src) { ArrayList() } += n
+        val seen = LinkedHashSet<NodeId>()
+        val queue = ArrayDeque(readers[trigger].orEmpty())
+        while (queue.isNotEmpty()) {
+            val id = queue.removeFirst()
+            if (!seen.add(id)) continue
+            readers[id]?.let { queue.addAll(it) }
+        }
+        return seen
+    }
+
+    /** Every real node that reads, directly or not, from a trigger: its state comes from event runs, not from the sweep. */
+    private fun eventNodes(): Set<NodeId> {
+        val deps = Router(graph).dependencies()
+        val result = HashSet<NodeId>()
+        for (node in graph.nodes.values) if (isReal(node) && triggers.containsKey(node.kind)) result += downstreamOf(node.id, deps)
+        return result
+    }
+
+    /** Arms the trigger [node] (starts its listener). Returns whether something changed. */
+    private fun armTrigger(node: GraphNode, runner: TriggerRunner, current: NodeRun): Boolean {
+        if (current is NodeRun.Listening || current is NodeRun.Done || current is NodeRun.Failed || current is NodeRun.Declined) return false
+        val id = node.id
+        val gate = beforeRun
+        if (gate != null && !gate(node, currentExecution?.trigger ?: pendingTrigger)) {
+            states[id] = NodeRun.Declined
+            return true
+        }
+        val pin = node.pin
+        if (pin != null) {
+            // A pinned trigger does not listen: it fires its pinned values once, so what is downstream can be developed against them.
+            states[id] = NodeRun.Done(pin)
+            fireLocked(node, pin)
+            return true
+        }
+        val gen = (generation[id] ?: 0) + 1
+        generation[id] = gen
+        states[id] = NodeRun.Listening
+        val context = object : TriggerContext {
+            override val node: GraphNode get() = graph.node(id) ?: node
+            override fun fire(outputs: Map<String, Any?>) {
+                locked { if (generation[id] == gen) fireLocked(this.node, outputs.mapKeys { PortId(it.key) }) }
+            }
+        }
+        listeners[id] = scope.launch {
+            try {
+                withContext(runDispatcher) { runner.listen(context) }
+                locked { if (generation[id] == gen) { listeners.remove(id); states[id] = NodeRun.Done(emptyMap()); refresh() } }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                locked { if (generation[id] == gen) { listeners.remove(id); states[id] = NodeRun.Failed(e); refresh() } }
+            }
+        }
+        return true
+    }
+
+    private fun fireLocked(node: GraphNode, outputs: Map<PortId, Any?>) {
+        val state = eventStates.getOrPut(node.id) { EventState() }
+        val policy = eventPolicy(node)
+        if (state.running.size >= policy.maxConcurrent.coerceAtLeast(1)) {
+            when (policy.mode) {
+                EventPolicy.Mode.Drop -> return
+                EventPolicy.Mode.Latest -> state.running.toList().forEach { stopEvent(it, state) }
+                EventPolicy.Mode.Queue -> {
+                    state.queue.addLast(outputs)
+                    while (state.queue.size > policy.maxQueued.coerceAtLeast(1)) state.queue.removeFirst()
+                    return
+                }
+            }
+        }
+        startEvent(node, outputs, state)
+    }
+
+    /** The graph one event runs: the trigger pinned to the event, what it needs from upstream pinned to its last result, everything else inert. */
+    private fun eventGraph(trigger: GraphNode, outputs: Map<PortId, Any?>, downstream: Set<NodeId>): Graph {
+        val deps = Router(graph).dependencies()
+        val upstream = LinkedHashSet<NodeId>()
+        val queue = ArrayDeque(downstream)
+        while (queue.isNotEmpty()) {
+            val id = queue.removeFirst()
+            for (source in deps[id].orEmpty()) {
+                if (source == trigger.id || source in downstream || !upstream.add(source)) continue
+                // A node that has a result is pinned to it (its own upstream is not needed); one that has not runs in the event.
+                if (states[source] !is NodeRun.Done) queue += source
+            }
+        }
+        val nodes = ArrayList<GraphNode>()
+        for (n in graph.nodes.values) {
+            nodes += when {
+                !isReal(n) -> n
+                n.id == trigger.id -> n.copy(pin = n.ports.filter { it.direction == PortDirection.Output }.associate { it.id to outputs[it.id] })
+                n.id in downstream -> n
+                n.id in upstream -> (states[n.id] as? NodeRun.Done)?.let { done -> n.copy(pin = n.pin ?: done.outputs) } ?: n
+                else -> n.copy(pin = n.ports.filter { it.direction == PortDirection.Output }.associate { it.id to NoSignal })
+            }
+        }
+        return Graph.of(nodes, graph.edges.values, graph.groups.values)
+    }
+
+    private fun startEvent(node: GraphNode, outputs: Map<PortId, Any?>, state: EventState) {
+        val execution = Execution(++executionCounter, TraceTrigger.Event, clock())
+        history += execution
+        while (history.size > trace.maxExecutions.coerceAtLeast(1)) history.removeAt(0)
+        val captured = trace.captureValues
+        // The trigger's own attempt carries the event's data, so the inspector shows what arrived.
+        val attempt = NodeAttempt(node.id, 1, 0, clock(), emptyMap(), captured)
+        attempt.outputs = if (captured) outputs.mapValues { (port, v) -> recorded(node, port, v) } else emptyMap()
+        attempt.status = TraceStatus.Succeeded
+        attempt.finishedAt = clock()
+        execution.add(attempt)
+        for ((port, value) in outputs) {
+            val ref = PortRef(node.id, port)
+            latestValues[ref] = value
+            signalCounts[ref] = (signalCounts[ref] ?: 0) + 1
+        }
+        val downstream = downstreamOf(node.id, Router(graph).dependencies())
+        val eventScope = CoroutineScope(scope.coroutineContext + Job(scope.coroutineContext[Job]))   // cancelled with the engine's scope, and when the event ends
+        val run = EventRun(node, execution, eventScope, downstream)
+        run.child = GraphEngine(
+            eventScope, runners, true, maxConcurrency, runDispatcher, trace, clock,
+            beforeRun = beforeRun?.let { gate -> { n, _ -> gate(n, TraceTrigger.Event) } },
+            signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency,
+            mirror = { scope.launch { locked { mirrorEvent(run) } } },
+        )
+        state.running += run
+        activeEvents++
+        busy = true
+        run.child.update(eventGraph(node, outputs, downstream))
+        eventScope.launch {
+            run.child.awaitIdle()
+            locked { finishEvent(run, state) }
+        }
+    }
+
+    /** Copies what the event's private engine knows into this one: states, newest values, attempts. */
+    private fun mirrorEvent(run: EventRun) {
+        if (run.finished) return
+        val child = run.child
+        for (id in run.downstream) {
+            val st = child.runOf(id)
+            if (states[id] != st) states[id] = st
+            val node = graph.node(id) ?: continue
+            for (spec in node.ports) if (spec.direction == PortDirection.Output) {
+                val count = child.signalCount(id, spec.id.value)
+                if (count > 0) {
+                    val ref = PortRef(id, spec.id)
+                    latestValues[ref] = child.latest(id, spec.id.value)
+                    signalCounts[ref] = count
+                }
+            }
+        }
+        val attempts = child.executions.lastOrNull()?.attempts ?: return
+        while (run.copied < attempts.size) run.execution.add(attempts[run.copied++])
+    }
+
+    private fun finishEvent(run: EventRun, state: EventState) {
+        if (run.finished) return
+        mirrorEvent(run)
+        run.finished = true
+        state.running.remove(run)
+        activeEvents--
+        run.execution.status = if (run.execution.anyLatestFailed()) TraceStatus.Failed else TraceStatus.Succeeded
+        run.execution.finishedAt = clock()
+        run.scope.cancel()
+        val next = state.queue.removeFirstOrNull()
+        val trigger = graph.node(run.node.id)
+        if (next != null && trigger != null && listeners.containsKey(trigger.id)) fireLocked(trigger, next)
+        finishIfIdle(cancelled = false)
+    }
+
+    private fun stopEvent(run: EventRun, state: EventState) {
+        if (run.finished) return
+        run.finished = true
+        state.running.remove(run)
+        activeEvents--
+        run.scope.cancel()
+        for (a in run.execution.attempts) if (a.status == TraceStatus.Running) { a.status = TraceStatus.Cancelled; a.finishedAt = clock() }
+        run.execution.status = TraceStatus.Cancelled
+        run.execution.finishedAt = clock()
+    }
+
+    private fun cancelEvents(trigger: NodeId) {
+        val state = eventStates.remove(trigger) ?: return
+        state.queue.clear()
+        state.running.toList().forEach { stopEvent(it, state) }
     }
 
     private fun launchRun(node: GraphNode, runner: NodeRunner, inputs: NodeInputs) {

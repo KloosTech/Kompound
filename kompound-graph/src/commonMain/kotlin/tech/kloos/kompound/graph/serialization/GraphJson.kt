@@ -12,6 +12,8 @@ import tech.kloos.kompound.graph.model.NodeGroup
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortCapacity
 import tech.kloos.kompound.graph.model.PortDirection
+import tech.kloos.kompound.graph.model.LinkedSubgraphs
+import tech.kloos.kompound.graph.model.SubgraphLink
 import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
 import tech.kloos.kompound.graph.model.PortSpec
@@ -70,13 +72,16 @@ public class LoadedGraph(public val graph: Graph, public val offset: Offset?, pu
  * @property values How pinned output values are written (see [ValueJson]); pass one with your [ValueCodec]s if pins hold your own types.
  */
 public class GraphJson(
-    private val nodeData: Map<String, NodeDataCodec> = emptyMap(),
+    nodeData: Map<String, NodeDataCodec> = emptyMap(),
     portTypes: Collection<PortType> = emptyList(),
     private val pretty: Boolean = true,
     private val values: ValueJson = ValueJson(),
     private val migrate: (GraphNode) -> GraphNode = { it },
 ) {
     private val types: Map<String, PortType> = portTypes.associateBy { it.id }
+
+    // Link nodes (LinkedSubgraphs) are written by the library unless the app registered its own codec for the kind.
+    private val nodeData: Map<String, NodeDataCodec> = mapOf(LinkedSubgraphs.LinkKind to LinkCodec(values)) + nodeData
 
     /** The JSON text of [graph]; pass [viewport] to save the view with it. */
     public fun encode(graph: Graph, viewport: KViewportState? = null): String = encodeToValue(graph, viewport).toJson(pretty)
@@ -302,4 +307,27 @@ public fun KGraphState.loadJson(text: String, json: GraphJson = GraphJson()) {
     val loaded = json.decode(text)
     load(loaded.graph)
     if (loaded.offset != null && loaded.zoom != null) viewport.restore(loaded.offset, loaded.zoom)
+}
+
+/** Writes [SubgraphLink]: `{"ref", "version"?, "pins"?}`. Pinned values go through [ValueJson]. */
+private class LinkCodec(private val values: ValueJson) : NodeDataCodec {
+    override fun encode(data: Any): JsonValue {
+        val link = data as? SubgraphLink ?: throw GraphJsonException("a link node holds a SubgraphLink")
+        return jsonObjectOf(
+            "ref" to JsonString(link.ref),
+            "version" to link.version?.let { JsonString(it) },
+            "pins" to link.pins.takeIf { it.isNotEmpty() }?.let { pins ->
+                JsonObject(pins.mapValues { (_, byPort) -> JsonObject(byPort.entries.associate { (port, v) -> port.value to values.encode(v) }) })
+            },
+        )
+    }
+
+    override fun decode(json: JsonValue): Any {
+        val o = json as? JsonObject ?: throw GraphJsonException("a link node's data is an object")
+        val ref = (o["ref"] as? JsonString)?.value ?: throw GraphJsonException("a link node needs a ref")
+        val pins = (o["pins"] as? JsonObject)?.fields?.mapValues { (_, v) ->
+            (v as? JsonObject)?.fields?.entries?.associate { (port, value) -> PortId(port) to values.decode(value) } ?: emptyMap()
+        } ?: emptyMap()
+        return SubgraphLink(ref, (o["version"] as? JsonString)?.value, pins)
+    }
 }

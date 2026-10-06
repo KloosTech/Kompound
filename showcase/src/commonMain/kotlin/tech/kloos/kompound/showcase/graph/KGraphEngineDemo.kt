@@ -162,6 +162,7 @@ private fun StatusLine(run: NodeRun) {
             is NodeRun.Done -> KText("Done")
             NodeRun.Declined -> KText("Not run")
             NodeRun.Skipped -> KText("Skipped")
+            NodeRun.Listening -> KText("Listening for events")
             is NodeRun.Failed -> KText(run.error.message ?: "Failed", maxLines = 2)
         }
     }

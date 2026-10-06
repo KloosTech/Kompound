@@ -30,6 +30,7 @@ import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.PortDirection
 import tech.kloos.kompound.graph.model.PortId
 import tech.kloos.kompound.graph.model.PortRef
+import tech.kloos.kompound.graph.model.SubgraphLink
 import tech.kloos.kompound.graph.model.Subgraphs
 import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.text.KText
@@ -87,6 +88,28 @@ internal fun KSubgraphNode(node: GraphNode) {
         for (p in node.ports.filter { it.direction == PortDirection.Input }) Input(p.id.value, p.label)
         for (p in node.ports.filter { it.direction == PortDirection.Output }) Output(p.id.value, p.label)
         if (node.ports.isEmpty()) Content { KText("No ports yet", style = KNodeDefaults.portLabelStyle()) }
+    }
+}
+
+/**
+ * A link node (see [LinkedSubgraphs]) as the editor draws it: the subgraph look, titled with the document's name, one row per port of the
+ * target's interface, and an "open" button when [onOpen] is given (the app loads the target; the library never edits it from here).
+ */
+@Composable
+public fun KLinkNode(node: GraphNode, modifier: Modifier = Modifier, onOpen: ((GraphNode) -> Unit)? = null, openLabel: String = "Open") {
+    val link = node.data as? SubgraphLink
+    val title = link?.ref ?: "Link"
+    KNode(
+        node = node,
+        title = title,
+        modifier = modifier,
+        headerStyle = KSubgraphDefaults.headerStyle(),
+        onDoubleClick = onOpen?.let { open -> { open(node) } },
+        actions = onOpen?.let { open -> { KIconButton({ open(node) }, "$openLabel $title") { KIcon(GraphIcons.ChevronRight, null) } } },
+    ) {
+        for (p in node.ports.filter { it.direction == PortDirection.Input }) Input(p.id.value, p.label)
+        for (p in node.ports.filter { it.direction == PortDirection.Output }) Output(p.id.value, p.label)
+        if (node.ports.isEmpty()) Content { KText("Document not found", style = KNodeDefaults.portLabelStyle()) }
     }
 }
 

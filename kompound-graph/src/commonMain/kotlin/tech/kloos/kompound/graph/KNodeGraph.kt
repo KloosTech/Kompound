@@ -72,6 +72,7 @@ import androidx.compose.ui.zIndex
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.graph.model.Edge
 import tech.kloos.kompound.graph.model.GroupId
+import tech.kloos.kompound.graph.model.LinkedSubgraphs
 import tech.kloos.kompound.graph.model.Subgraphs
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.NodeId
@@ -109,7 +110,8 @@ import kotlin.math.roundToInt
  * @param nodeStatus A progress mark in each [KNode]'s title bar (spinner, check, cross, ...); return `null` for none. Read observable state in it (for example a `GraphEngine`) and it updates live.
  * @param edgeLabel A short text on the middle of a wire (for example the value that passed it); return `null` for none.
  * @param edgeStyle Look of each wire: shape, colour, width, dashes and animated flow; the default draws every wire the same way.
- * @param nodeContent Draws one node (reroute nodes are drawn by the editor).
+ * @param onOpenLink Called when the user opens a link node ([LinkedSubgraphs.LinkKind]); load the target document. Without it link nodes have no open button.
+ * @param nodeContent Draws one node (reroute, comment, subgraph, boundary and link nodes are drawn by the editor).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -129,6 +131,7 @@ public fun KNodeGraph(
     nodeStatus: ((node: GraphNode) -> KNodeStatus?)? = null,
     edgeLabel: ((edge: Edge) -> String?)? = null,
     edgeStyle: (edge: Edge) -> KEdgeStyle = { KEdgeStyle() },
+    onOpenLink: ((GraphNode) -> Unit)? = null,
     nodeContent: @Composable (node: GraphNode) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -303,7 +306,7 @@ public fun KNodeGraph(
                         }
                     }
                 }
-                NodeLayer(state, virtualizeAbove, nodeContent)
+                NodeLayer(state, virtualizeAbove, onOpenLink, nodeContent)
                 // the node menu lives in the world layer so it opens where the wire was dropped
             }
             if (state.scopePath.isNotEmpty()) KGraphBreadcrumbs(state, Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(8.dp))
@@ -327,7 +330,7 @@ public fun KNodeGraph(
  * with a frame behind each group and one compact box for each collapsed group.
  */
 @Composable
-private fun NodeLayer(state: KGraphState, virtualizeAbove: Int, nodeContent: @Composable (GraphNode) -> Unit) {
+private fun NodeLayer(state: KGraphState, virtualizeAbove: Int, onOpenLink: ((GraphNode) -> Unit)?, nodeContent: @Composable (GraphNode) -> Unit) {
     // Which nodes are composed: everything for small graphs; otherwise the ones near the viewport. derivedStateOf only notifies when the
     // set itself changes, so panning recomposes the layer only when a node enters or leaves the margin around the visible area.
     val composed by remember(state, virtualizeAbove) {
@@ -371,6 +374,7 @@ private fun NodeLayer(state: KGraphState, virtualizeAbove: Int, nodeContent: @Co
                             KRerouteKind -> KReroute(node)
                             KCommentKind -> KComment(node)
                             Subgraphs.Kind -> KSubgraphNode(node)
+                            LinkedSubgraphs.LinkKind -> KLinkNode(node, onOpen = onOpenLink)
                             Subgraphs.InputKind, Subgraphs.OutputKind -> KBoundaryNode(node)
                             else -> nodeContent(node)
                         }
