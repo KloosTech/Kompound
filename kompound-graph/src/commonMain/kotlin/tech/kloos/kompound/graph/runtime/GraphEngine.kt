@@ -22,6 +22,15 @@ import tech.kloos.kompound.graph.KRerouteKind
 import tech.kloos.kompound.graph.model.Graph
 import tech.kloos.kompound.graph.model.GraphNode
 import tech.kloos.kompound.graph.model.KSecret
+import tech.kloos.kompound.graph.model.JsonPortType
+import tech.kloos.kompound.json.jsonObjectOf
+import tech.kloos.kompound.json.at
+import tech.kloos.kompound.json.JsonString
+import tech.kloos.kompound.json.JsonObject
+import tech.kloos.kompound.json.JsonArray
+import tech.kloos.kompound.json.JsonValue
+import tech.kloos.kompound.json.JsonFields
+import tech.kloos.kompound.json.FieldInfo
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortDirection
 import tech.kloos.kompound.graph.model.PortRef
@@ -71,6 +80,8 @@ import tech.kloos.kompound.graph.model.PortId
  * @param triggers Trigger kinds ([TriggerRunner]): nodes that wait for outside events and start an isolated **event run** of everything downstream of them
  * each time they fire. A trigger is [NodeRun.Listening] while armed. Event runs are recorded as executions with [TraceTrigger.Event].
  * @param eventPolicy What to do with an event that arrives while earlier events of the same trigger still run (default: one at a time, a queue of 64).
+ * @param samples Where the last JSON value of every JSON output port is kept between runs of the app (see [SampleStore]); `null` keeps them in memory only.
+ * @param maxSampleBytes Samples bigger than this (as JSON text) are cut down to their shape, or dropped.
  * @param kindConcurrency How many runs of nodes of one kind may be active at the same time, by node kind (`"http.request" to 2`), on top of
  * [maxConcurrency] (which counts every kind together). Runs over the limit wait their turn. A node with [SignalMode.Each] inputs already
  * processes its values one after the other; this limit is for many nodes of one kind (a fan-out of requests) that must not all start at once.
@@ -93,6 +104,8 @@ public class GraphEngine(
     private val triggers: Map<String, TriggerRunner> = emptyMap(),
     private val eventPolicy: (GraphNode) -> EventPolicy = { EventPolicy.Default },
     private val mirror: (() -> Unit)? = null,
+    private val samples: SampleStore? = null,
+    private val maxSampleBytes: Int = 64 * 1024,
 ) {
     private val permits = Semaphore(maxConcurrency.coerceAtLeast(1))
     private val kindPermits: Map<String, Semaphore> = kindConcurrency.mapValues { Semaphore(it.value.coerceAtLeast(1)) }
@@ -108,7 +121,70 @@ public class GraphEngine(
     private fun recorded(node: GraphNode, port: PortId, value: Any?): Any? =
         if (value is KSecret || node.port(port)?.secret == true) KSecret.Hidden else trace.redact(node, port, value)
 
-    /** Whether the values at [port] of [id] are secret (see [PortSpec.secret]); the UI masks them. */
+    /** The last JSON value seen at the JSON output [port] (a [PortType.json] port), or `null` when none was seen yet. Observable; never counts as a change of the graph. */
+    public fun sampleOf(port: PortRef): JsonValue? = sampleMap[port]
+
+    /** All samples now (what a [SampleStore] gets, and what `GraphJson(samples = true)` writes). */
+    public fun sampleSnapshot(): Map<PortRef, JsonValue> = locked { sampleMap.toMap() }
+
+    /** Puts [samples] in (for example read from a graph file); existing samples of other ports stay. */
+    public fun loadSamples(samples: Map<PortRef, JsonValue>): Unit = locked { sampleMap.putAll(samples) }
+
+    /** Saves the samples to the [SampleStore] now instead of a moment after the last change. */
+    public fun flushSamples() {
+        val store = samples ?: return
+        store.save(sampleSnapshot())
+    }
+
+    /**
+     * The fields the input [port] of node [id] can see: where its wire comes from (through subgraphs and links), then the shape that port declares
+     * ([PortType.json] with a schema) and failing that its last sample. An input in `Collect` mode receives a list, so its paths start with `[*]`.
+     * Examples of a secret port are left out. Observable: it follows new samples and edits. Empty when nothing is known.
+     */
+    public fun fieldsOf(id: NodeId, port: String): List<FieldInfo> {
+        val node = graph.node(id) ?: return emptyList()
+        val spec = node.port(port)?.takeIf { it.direction == PortDirection.Input } ?: return emptyList()
+        val source = Router(graph).source(PortRef(id, spec.id)) ?: return emptyList()
+        val sourceSpec = graph.node(source.node)?.port(source.port)
+        val secret = sourceSpec?.secret == true
+        val sample = if (secret) null else sampleMap[source]
+        val schema = (sourceSpec?.type as? JsonPortType)?.schema
+        val collect = signalMode(node, spec) == SignalMode.Collect
+        val fields = when {
+            schema != null -> {
+                val shaped = if (collect) jsonObjectOf("type" to JsonString("array"), "items" to schema) else schema
+                JsonFields.ofSchema(shaped).map { f ->
+                    // Real values beat the schema's placeholders where the sample has the path.
+                    val seen = sample?.let { (if (collect) JsonArray(listOf(it)) else it).at(f.path.replace("[*]", "[0]")) }
+                    if (seen != null && seen !is JsonObject) f.copy(example = seen) else f
+                }
+            }
+            sample != null -> JsonFields.of(if (collect) JsonArray(listOf(sample)) else sample)
+            else -> emptyList()
+        }
+        return if (secret) fields.map { it.copy(example = null) } else fields
+    }
+
+    private fun recordSample(node: NodeId, port: PortId, value: Any?) {
+        val spec = graph.node(node)?.port(port) ?: return
+        if (spec.direction != PortDirection.Output || spec.type !is JsonPortType || spec.secret) return
+        val json = JsonSamples.from(value)?.let { JsonSamples.capped(it, maxSampleBytes) } ?: return
+        val ref = PortRef(node, port)
+        if (sampleMap[ref] == json) return
+        sampleMap[ref] = json
+        scheduleSampleSave()
+    }
+
+    private fun scheduleSampleSave() {
+        if (samples == null) return
+        sampleSaveJob?.cancel()
+        sampleSaveJob = scope.launch {
+            kotlinx.coroutines.delay(SampleSaveDelayMillis)
+            flushSamples()
+        }
+    }
+
+    /** Whether the values at [port] (see [PortSpec.secret]); the UI masks them. */
     public fun isSecret(id: NodeId, port: String): Boolean = graph.node(id)?.port(port)?.secret == true
 
     /** The engine's bookkeeping is not thread safe; entry points (and runner completions) take this short, never-suspending lock. */
@@ -135,6 +211,8 @@ public class GraphEngine(
     private var currentExecution: Execution? = null
     private var executionCounter = 0
     private var pendingTrigger = TraceTrigger.Auto
+    private val sampleMap = mutableStateMapOf<PortRef, JsonValue>().also { map -> samples?.load()?.let { map.putAll(it) } }
+    private var sampleSaveJob: Job? = null
     private val listeners = HashMap<NodeId, Job>()
     private val eventStates = HashMap<NodeId, EventState>()
     private var activeEvents = 0
@@ -284,6 +362,11 @@ public class GraphEngine(
                 val ref = PortRef(id, spec.id)
                 if (oldRouter.source(ref) != newRouter.source(ref)) { stale += id; break }
             }
+        }
+        // Samples of ports that no longer exist or are no longer JSON outputs are forgotten.
+        for (ref in sampleMap.keys.toList()) {
+            val sp = new.node(ref.node)?.port(ref.port)
+            if (sp == null || sp.direction != PortDirection.Output || sp.type !is JsonPortType) sampleMap.remove(ref)
         }
         invalidate(stale, listOf(newRouter, oldRouter), new)
         if (triggers.isNotEmpty()) {
@@ -550,6 +633,7 @@ public class GraphEngine(
         }
         val feed = rt(node).feeds.getOrPut(port) { Feed() }
         feed.values += value
+        recordSample(node, port, value)
         val ref = PortRef(node, port)
         latestValues[ref] = value
         signalCounts[ref] = feed.values.size
@@ -943,6 +1027,7 @@ public class GraphEngine(
             val ref = PortRef(node.id, port)
             latestValues[ref] = value
             signalCounts[ref] = (signalCounts[ref] ?: 0) + 1
+            recordSample(node.id, port, value)
         }
         val downstream = downstreamOf(node.id, Router(graph).dependencies())
         val eventScope = CoroutineScope(scope.coroutineContext + Job(scope.coroutineContext[Job]))   // cancelled with the engine's scope, and when the event ends
@@ -975,6 +1060,7 @@ public class GraphEngine(
                 val count = child.signalCount(id, spec.id.value)
                 if (count > 0) {
                     val ref = PortRef(id, spec.id)
+                    child.sampleOf(ref)?.let { if (sampleMap[ref] != it) { sampleMap[ref] = it; scheduleSampleSave() } }
                     latestValues[ref] = child.latest(id, spec.id.value)
                     signalCounts[ref] = count
                 }
@@ -1081,6 +1167,7 @@ public class GraphEngine(
 
     private companion object {
         const val Used = Int.MAX_VALUE
+        const val SampleSaveDelayMillis = 500L
         const val COMMENT = "comment"
 
         /** Whether the node runs; subgraph, boundary and comment nodes only route or annotate. */

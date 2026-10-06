@@ -30,6 +30,7 @@ import tech.kloos.kompound.graph.model.SignalMode
  * @param links Resolves link nodes ([LinkedSubgraphs]); the engine then runs the expanded graph. A resolver that is a [ObservableGraphResolver] re-expands when a document changes.
  * @param triggers Trigger kinds that start event runs (see [GraphEngine]).
  * @param eventPolicy What to do with events that arrive while earlier ones still run (see [GraphEngine]).
+ * @param samples Where the last JSON value of every JSON output is kept (see [SampleStore]).
  * @param kindConcurrency How many runs of one node kind may be active at once (see [GraphEngine]).
  * @param isRelevantChange Whether a change of a node's data makes it stale (see [GraphEngine]).
  */
@@ -46,11 +47,12 @@ public fun rememberGraphEngine(
     isRelevantChange: (old: GraphNode, new: GraphNode) -> Boolean = { _, _ -> true },
     kindConcurrency: Map<String, Int> = emptyMap(),
     links: GraphResolver? = null,
+    samples: SampleStore? = null,
     triggers: Map<String, TriggerRunner> = emptyMap(),
     eventPolicy: (GraphNode) -> EventPolicy = { EventPolicy.Default },
 ): GraphEngine {
     val scope = rememberCoroutineScope()
-    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency, triggers = triggers, eventPolicy = eventPolicy) }
+    val engine = remember(state, scope) { GraphEngine(scope, runners, autoRun, maxConcurrency, runDispatcher, trace, beforeRun = beforeRun, signalMode = signalMode, isRelevantChange = isRelevantChange, kindConcurrency = kindConcurrency, triggers = triggers, eventPolicy = eventPolicy, samples = samples) }
     LaunchedEffect(engine, links) {
         snapshotFlow { state.graph to ((links as? ObservableGraphResolver)?.revision ?: 0) }.collect { (graph, _) ->
             engine.update(if (links == null) graph else LinkedSubgraphs.expand(graph, links).graph)

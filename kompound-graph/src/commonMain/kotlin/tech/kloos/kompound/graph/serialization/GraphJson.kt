@@ -12,6 +12,7 @@ import tech.kloos.kompound.graph.model.NodeGroup
 import tech.kloos.kompound.graph.model.NodeId
 import tech.kloos.kompound.graph.model.PortCapacity
 import tech.kloos.kompound.graph.model.PortDirection
+import tech.kloos.kompound.graph.model.JsonPortType
 import tech.kloos.kompound.graph.model.LinkedSubgraphs
 import tech.kloos.kompound.graph.model.SubgraphLink
 import tech.kloos.kompound.graph.model.PortId
@@ -50,7 +51,13 @@ public inline fun <reified T : Any> nodeDataCodec(
 }
 
 /** A graph read from JSON, with the viewport that was saved next to it (if any). */
-public class LoadedGraph(public val graph: Graph, public val offset: Offset?, public val zoom: Float?)
+public class LoadedGraph(
+    public val graph: Graph,
+    public val offset: Offset?,
+    public val zoom: Float?,
+    /** Samples saved with the graph (only read when [GraphJson] was made with `samples = true`); hand them to `GraphEngine.loadSamples`. */
+    public val samples: Map<PortRef, JsonValue> = emptyMap(),
+)
 
 /**
  * Saves graphs as JSON text and loads them again, without any dependency.
@@ -69,6 +76,8 @@ public class LoadedGraph(public val graph: Graph, public val offset: Offset?, pu
  * @property migrate Applied to every node as it is loaded, so a new app version can fix up nodes saved by an older one (new ports, a changed
  * [tech.kloos.kompound.graph.model.SignalMode], renamed kinds). Edges are checked after it ran. When it renames a kind and leaves the data alone, the
  * data is read again with the new kind's `nodeData` codec (it was first read with the old kind's, or kept as raw JSON).
+ * @property samples Write and read the engine's samples (`GraphEngine.sampleSnapshot()`, the last JSON value of every JSON port) in the file, so the fields of a port are known after loading without running
+ * its node again. Off by default: samples can hold personal data and make files grow; the usual home for them is a `SampleStore` the app saves itself.
  * @property values How pinned output values are written (see [ValueJson]); pass one with your [ValueCodec]s if pins hold your own types.
  */
 public class GraphJson(
@@ -77,17 +86,19 @@ public class GraphJson(
     private val pretty: Boolean = true,
     private val values: ValueJson = ValueJson(),
     private val migrate: (GraphNode) -> GraphNode = { it },
+    private val samples: Boolean = false,
 ) {
     private val types: Map<String, PortType> = portTypes.associateBy { it.id }
 
     // Link nodes (LinkedSubgraphs) are written by the library unless the app registered its own codec for the kind.
     private val nodeData: Map<String, NodeDataCodec> = mapOf(LinkedSubgraphs.LinkKind to LinkCodec(values)) + nodeData
 
-    /** The JSON text of [graph]; pass [viewport] to save the view with it. */
-    public fun encode(graph: Graph, viewport: KViewportState? = null): String = encodeToValue(graph, viewport).toJson(pretty)
+    /** The JSON text of [graph]; pass [viewport] to save the view with it, and [samples] to save them too (only when this was made with `samples = true`). */
+    public fun encode(graph: Graph, viewport: KViewportState? = null, samples: Map<PortRef, JsonValue> = emptyMap()): String =
+        encodeToValue(graph, viewport, samples).toJson(pretty)
 
     /** Like [encode] but returns the tree. */
-    public fun encodeToValue(graph: Graph, viewport: KViewportState? = null): JsonObject = jsonObjectOf(
+    public fun encodeToValue(graph: Graph, viewport: KViewportState? = null, samples: Map<PortRef, JsonValue> = emptyMap()): JsonObject = jsonObjectOf(
         "format" to JsonString(Format),
         "version" to JsonNumber(Version.toDouble()),
         "nodes" to JsonArray(graph.nodes.values.map(::nodeToJson)),
@@ -95,6 +106,9 @@ public class GraphJson(
         "groups" to JsonArray(graph.groups.values.map(::groupToJson)),
         "viewport" to viewport?.let {
             jsonObjectOf("x" to num(it.offset.x), "y" to num(it.offset.y), "zoom" to num(it.zoom))
+        },
+        "samples" to samples.takeIf { this.samples && it.isNotEmpty() }?.let { map ->
+            JsonArray(map.entries.map { (ref, v) -> jsonObjectOf("node" to JsonString(ref.node.value), "port" to JsonString(ref.port.value), "value" to v) })
         },
     )
 
@@ -140,6 +154,11 @@ public class GraphJson(
             Graph.of(nodes, edges, groups),
             view?.let { Offset(float(it, "x", "viewport"), float(it, "y", "viewport")) },
             view?.let { float(it, "zoom", "viewport") },
+            if (!samples) emptyMap() else (root["samples"] as? JsonArray)?.items.orEmpty().mapIndexedNotNull { i, v ->
+                val o = obj(v, "samples[$i]")
+                val value = o["value"] ?: return@mapIndexedNotNull null
+                PortRef(NodeId(string(o, "node", "samples[$i]")), PortId(string(o, "port", "samples[$i]"))) to value
+            }.toMap(),
         )
     }
 
@@ -219,6 +238,7 @@ public class GraphJson(
         "direction" to JsonString(p.direction.name),
         "label" to JsonString(p.label),
         "type" to JsonString(p.type.id),
+        "schema" to (p.type as? JsonPortType)?.schema,
         "capacity" to JsonString(p.capacity.name),
         "signal" to p.signal.takeIf { it != SignalMode.Latest }?.let { JsonString(it.name) },
         "secret" to p.secret.takeIf { it }?.let { JsonBool(true) },
@@ -233,7 +253,7 @@ public class GraphJson(
         return PortSpec(
             PortId(id), direction,
             (o["label"] as? JsonString)?.value ?: id,
-            types[typeId] ?: PortType.of(typeId),
+            types[typeId] ?: if (typeId == "json") PortType.json(o["schema"]?.takeUnless { it == JsonNull }) else PortType.of(typeId),
             capacity ?: if (direction == PortDirection.Input) PortCapacity.One else PortCapacity.Many,
             (o["signal"] as? JsonString)?.let { m -> SignalMode.entries.firstOrNull { it.name == m.value } ?: throw GraphJsonException("$at.signal is not a signal mode") } ?: SignalMode.Latest,
             (o["secret"] as? JsonBool)?.value ?: false,
