@@ -1,0 +1,5 @@
+# Maestro workspace (ADR 0008). Run through maestro/scripts/maestro.sh; see maestro/README.md.
+flows:
+  - "components/**"
+  - "suites/**"
+# _lib/ holds shared subflows: it is never listed, so it is never run as a test.

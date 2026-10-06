@@ -1,6 +1,8 @@
 package tech.kloos.kompound.catalog
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -55,7 +57,8 @@ class DemoSmokeTest {
                             MaterialTheme(colorScheme = if (config.dark) darkColorScheme() else lightColorScheme()) {
                                 val controls = remember { DemoControls() }
                                 val content = entry.content
-                                Box(Modifier.testTag("demo")) { controls.content() }
+                                // like the catalog's preview: inside a vertical scroll, so the height is unbounded (a demo with its own scroll or a fill-height list must bound itself)
+                                Box(Modifier.testTag("demo").verticalScroll(rememberScrollState())) { controls.content() }
                             }
                         }
                     }

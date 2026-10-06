@@ -63,8 +63,12 @@ public class FloatControl internal constructor(
 /**
  * [DemoScope] implementation that records declared controls in [controls] (observable) while the demo
  * is composed. Create one per displayed demo.
+ *
+ * @param presets Starting values by control name, as text: `true`/`false` for a switch, the option's label for a choice, a number for a slider,
+ * the text itself for a text control. A control without a preset (or with one that does not fit) starts with the demo's own default.
+ * Used by test harnesses to open a demo in a given state.
  */
-public class DemoControls : DemoScope {
+public class DemoControls(private val presets: Map<String, String> = emptyMap()) : DemoScope {
     private val _controls = mutableStateListOf<DemoControl>()
 
     /** Controls of the demo currently composed, in declaration order. */
@@ -80,28 +84,32 @@ public class DemoControls : DemoScope {
 
     @Composable
     override fun textControl(name: String, initial: String): String {
-        val c = remember(name) { TextControl(name, initial) }
+        val c = remember(name) { TextControl(name, presets[name] ?: initial) }
         Register(c)
         return c.value
     }
 
     @Composable
     override fun boolControl(name: String, initial: Boolean): Boolean {
-        val c = remember(name) { BoolControl(name, initial) }
+        val c = remember(name) { BoolControl(name, presets[name]?.toBooleanStrictOrNull() ?: initial) }
         Register(c)
         return c.value
     }
 
     @Composable
     override fun <T> choiceControl(name: String, options: List<T>, initial: T, label: (T) -> String): T {
-        val c = remember(name) { ChoiceControl(name, options.map(label), options.indexOf(initial).coerceAtLeast(0)) }
+        val c = remember(name) {
+            val labels = options.map(label)
+            val preset = presets[name]?.let { labels.indexOf(it).takeIf { i -> i >= 0 } }
+            ChoiceControl(name, labels, preset ?: options.indexOf(initial).coerceAtLeast(0))
+        }
         Register(c)
         return options[c.selectedIndex.coerceIn(options.indices)]
     }
 
     @Composable
     override fun floatControl(name: String, range: ClosedFloatingPointRange<Float>, initial: Float): Float {
-        val c = remember(name) { FloatControl(name, range, initial) }
+        val c = remember(name) { FloatControl(name, range, presets[name]?.toFloatOrNull() ?: initial) }
         Register(c)
         return c.value
     }

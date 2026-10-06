@@ -1,0 +1,11 @@
+# Opens one demo of the catalog in the harness (bare mode) and waits until it is on screen and settled.
+# env:  DEMO (required, the demo id: slider.basic)
+#       THEME (light|dark), FONT (0.5..3.0), RTL (true|false), DENSITY (compact|comfortable|spacious), LANG (en|de|fr|es|it)
+#       CONTROLS (extra query text, already url-encoded: control=Enabled::false&control=Steps::4)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- openLink: "kompound://demo/${DEMO}?theme=${THEME || 'light'}&font=${FONT || '1.0'}&rtl=${RTL || 'false'}&density=${DENSITY || 'comfortable'}&lang=${LANG || 'en'}&bare=true&${CONTROLS || ''}"
+- extendedWaitUntil:
+    visible:
+      id: "harness:ready"
+    timeout: 15000
