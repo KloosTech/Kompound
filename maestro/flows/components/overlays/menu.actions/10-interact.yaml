@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.actions interact
+tags:
+  - interact
+  - component:menu.actions
+  - category:overlays
+properties:
+  junitClassname: menu.actions
+---
+- runFlow: _interact.yaml

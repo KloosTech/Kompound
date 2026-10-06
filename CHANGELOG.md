@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Accessibility: a `KMenuItem` / `KActionMenu` entry that is `selected` (check mark) now exposes the selected state to screen readers also with the default button role (found by the Maestro flows; it was only a decorative check icon).
 - UI test harness for the Android catalog (ADR 0008, phase 1): a `maestro` build type with a deep link `kompound://demo/<id>?theme=…&font=…&rtl=…&density=…&lang=…&control=Name::value` that opens one demo bare with tagged controls (`harness:ready`, `control:<name>`); `DemoControls(presets)` in `:kompound-demo`; `maestro/` workspace with the first flows. Fixed: the form and template demos had their own vertical scroll and crashed in the real catalog.
 - ADR 0007 step 3, editor components: `KTemplateField`, `KTemplateArea`, `KFieldPicker`, `KFieldMapper` with `FieldBinding` and `ParamSpec` (in `:kompound`), `KNodeScope.TemplateField` / `TemplateArea` / `FieldPicker` and `GraphEngine.templateFields` (in `:kompound-graph`); `KCombobox(contentDescription)`. Strings: `fieldMode`, `valueMode`, `templateMode`, `unknownField`, `noFieldsKnown`, `resultLabel`. New demo "Templates and field pickers".
 - ADR 0007 step 2, templates: `Template` (`render`, `names`, `parse`, `problems`), `TemplateScope` (`of`, `ofNamed`, `then`), `TemplatePart`, `TemplateFilter`, `MissingFieldException`, `TemplateException` in `:kompound`; `NodeRunContext.render` / `templateScope` and `NodeInputs.json` in `:kompound-graph`. Syntax `{{path}}` with `|json`, `|url`, `|default:x`, `\{{` literal.

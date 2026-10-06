@@ -1,0 +1,35 @@
+# KActionMenu: trigger, items, supporting text, group and divider show in the caller's environment, then back closes it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- assertVisible: "Sync now"
+- assertVisible: "Last sync 5 min ago"
+- assertVisible: "Dark mode"
+- assertVisible: "Sort by"
+- tapOn:
+    text: "Sort by"
+    retryTapIfNoChange: false
+- assertVisible: "Name"
+- assertVisible: "Date"
+- assertVisible: "Delete all"
+- back
+- assertNotVisible: "Sort by"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

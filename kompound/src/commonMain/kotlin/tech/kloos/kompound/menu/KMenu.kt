@@ -46,6 +46,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected as semanticsSelected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -150,6 +152,8 @@ public fun KMenuItem(
     }
     val behaviour = if (role == Role.Button) {
         Modifier.clickable(interactionSource = source, indication = null, enabled = enabled, role = role, onClick = onClick)
+            // an action item that marks the current choice (check mark) must say so to screen readers too
+            .semantics { if (selected) semanticsSelected = true }
     } else {
         Modifier.selectable(selected, source, null, enabled, role, onClick)
     }

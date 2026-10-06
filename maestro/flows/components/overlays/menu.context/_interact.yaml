@@ -1,0 +1,61 @@
+# KContextMenuArea: items report their action, Pinned keeps the menu open and toggles.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- tapOn:
+    text: "Rename"
+    retryTapIfNoChange: false
+- assertNotVisible: "Rename"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Last action: Rename" }
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- tapOn:
+    text: "Pinned"
+    retryTapIfNoChange: false
+- assertVisible: "Move to"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Last action: Pinned: true" }
+# the actions are asked when the menu opens: the next opening shows Pinned as the current choice
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- assertVisible:
+    checked: true
+    containsChild: "Pinned"
+- back
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- tapOn:
+    text: "Move to"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "Trash"
+    retryTapIfNoChange: false
+- assertNotVisible: "Rename"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Last action: Trash" }
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- tapOn:
+    point: "50%,6%"
+    retryTapIfNoChange: false
+- assertNotVisible: "Rename"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Last action: Trash" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
