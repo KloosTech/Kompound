@@ -1,0 +1,8 @@
+# TEXT is shown in the demo's preview (not in its controls card, whose chips and labels often repeat the same words).
+# env: TEXT
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    text: "${TEXT}"
+    above:
+      id: "harness:controls"

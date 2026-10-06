@@ -1,0 +1,13 @@
+# The control in the demo's preview whose label is LABEL is shown and enabled.
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertNotVisible:
+    enabled: false
+    containsChild: "${LABEL}"
+    above:
+      id: "harness:controls"
+- assertVisible:
+    text: "${LABEL}"
+    above:
+      id: "harness:controls"

@@ -1,0 +1,8 @@
+# The harness is still on screen and showing the same demo: nothing crashed, no system dialog took over.
+# env: DEMO (optional): also check the demo id.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    id: "harness:ready"
+- assertNotVisible:
+    text: ".*(isn't responding|keeps stopping|has stopped|reagiert nicht|wurde beendet).*"

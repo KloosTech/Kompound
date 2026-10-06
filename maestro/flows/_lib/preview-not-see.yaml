@@ -1,0 +1,8 @@
+# TEXT is not shown in the demo's preview.
+# env: TEXT
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertNotVisible:
+    text: "${TEXT}"
+    above:
+      id: "harness:controls"

@@ -1,0 +1,19 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: KButton interact
+tags:
+  - interact
+  - component:button.primary
+  - category:buttons
+properties:
+  junitClassname: button.primary
+---
+- runFlow: _core.yaml
+# the label control: the first button shows what the link preset
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+      CONTROLS: "control=Label::Save%20now"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Save now" }

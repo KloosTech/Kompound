@@ -1,0 +1,27 @@
+# What KButton does, in whatever environment the caller opens it in.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Filled" }
+# a tap changes nothing visible (the demo's onClick is empty) and nothing crashes
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Filled" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Text" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: Filled }

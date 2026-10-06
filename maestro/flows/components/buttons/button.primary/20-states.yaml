@@ -1,0 +1,47 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: KButton states
+tags:
+  - states
+  - component:button.primary
+  - category:buttons
+properties:
+  junitClassname: button.primary
+---
+# disabled: every button is disabled and ignores taps
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: Filled }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: Outlined }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Filled" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
+# loading: a spinner replaces the content, the label is not shown
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+      CONTROLS: "control=Loading::true"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Filled" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Tonal" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
+# the other variant of the first button
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+      CONTROLS: "control=Variant::Outlined"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Button" }

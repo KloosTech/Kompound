@@ -1,0 +1,24 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: KButton environments
+tags:
+  - env
+  - component:button.primary
+  - category:buttons
+properties:
+  junitClassname: button.primary
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
