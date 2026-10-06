@@ -33,6 +33,9 @@ public sealed interface NodeRun {
     /** [GraphEngine]'s `beforeRun` refused to start this node. It is asked again on the next start or re-run. */
     public data object Declined : NodeRun
 
+    /** A trigger node ([TriggerRunner]) that is armed and waiting for events. It is not "busy": see `GraphEngine.isListening`. */
+    public data object Listening : NodeRun
+
     /** The runner threw [error]. */
     public data class Failed(public val error: Throwable) : NodeRun
 }

@@ -25,6 +25,9 @@ public enum class TraceTrigger {
 
     /** A [NodeTestSession]. */
     Test,
+
+    /** A trigger node fired (see [TriggerRunner]): the nodes downstream of it ran once for that event. */
+    Event,
 }
 
 /** Severity of a [LogLine]. */

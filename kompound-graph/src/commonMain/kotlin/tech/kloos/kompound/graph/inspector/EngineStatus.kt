@@ -25,6 +25,7 @@ public fun GraphEngine.nodeStatus(node: GraphNode, execution: Execution? = null)
             is NodeRun.Failed -> KNodeStatus.Failed
             NodeRun.Declined -> KNodeStatus.Declined
             NodeRun.Skipped -> KNodeStatus.Skipped
+            NodeRun.Listening -> KNodeStatus.Listening
             is NodeRun.Blocked -> if (run.declined) KNodeStatus.Declined else KNodeStatus.Blocked
         }
     }

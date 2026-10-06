@@ -55,6 +55,7 @@ internal fun defaultTriggerLabel(trigger: TraceTrigger): String = when (trigger)
     TraceTrigger.Manual -> "run"
     TraceTrigger.Rerun -> "re-run"
     TraceTrigger.Test -> "test"
+    TraceTrigger.Event -> "event"
 }
 
 /**

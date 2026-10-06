@@ -1,6 +1,6 @@
-# ADR 0005: Linked subgraphs and long-lived triggers (proposal)
+# ADR 0005: Linked subgraphs and long-lived triggers
 
-Status: **proposed**, nothing here is implemented. Source: items 6 and 10 of the feedback an app team sent after using `0.1.0-alpha02`
+Status: **implemented** (see "Implementation notes" at the end for where it differs from the proposal). Source: items 6 and 10 of the feedback an app team sent after using `0.1.0-alpha02`
 (a workflow app built on `kompound-graph`). The other items of that list are done (see CHANGELOG, "Unreleased").
 Builds on ADR 0004 (model, subgraphs, engine, traces).
 
@@ -98,3 +98,24 @@ A runner that never returns and calls `ctx.emit` in a loop already behaves like 
 
 Linked subgraphs first (smaller, no engine change, unblocks reuse), then triggers. Both land behind the `Experimental` status of
 `kompound-graph`; the public names above are proposals.
+
+## 4. Implementation notes
+
+**Linked subgraphs** are implemented as proposed: `LinkedSubgraphs` (`LinkKind`, `SubgraphLink(ref, version, pins)`, `interfaceOf`, `linkNode`,
+`expand`, `syncPorts`), `GraphResolver`, `ObservableGraphResolver`, `rememberGraphEngine(links = ...)`, `KLinkNode`,
+`KNodeGraph(onOpenLink)`, JSON by name. Answers to the open questions: (1) the interface is the boundary nodes at the target's root, the
+boundary node's id is the port id; (2) `version` is passed to the resolver and has no meaning in the library; (3) pins are kept in
+`SubgraphLink.pins`, keyed by the node's id inside the document (`"inner::x"` through a nested link); (4) editing the target is the app's.
+
+**Triggers** differ from the proposal in one important way. Instead of threading an event id through `Rt`, feeds and cursors (open
+question 1), **each event runs in a private `GraphEngine`** over a derived graph: the trigger is pinned to the event's values, what the
+event needs from upstream is pinned to its last result, and every other real node is pinned to `NoSignal` (inert). The parent engine
+mirrors states, newest values and attempts from it into one `Execution(trigger = Event)`. This gives per-event isolation with all the
+existing semantics (signal modes, `NoSignal`, error ports, `kindConcurrency`, `beforeRun`) for free, and a finished event's engine is
+discarded, so memory does not grow. Consequences: nodes downstream of a trigger get their state from event runs (the sweep skips them);
+`kindConcurrency` and `maxConcurrency` count per event engine; a node fed by two triggers sees only the firing trigger's event (the other
+trigger is `NoSignal`, so `SignalMode.Any` merges work). New API: `TriggerRunner`, `TriggerContext.fire`, `EventPolicy` (`Queue`, `Drop`, `Latest`,
+`maxConcurrent`, `maxQueued`), `NodeRun.Listening`, `TraceTrigger.Event`, `KNodeStatus.Listening`, `GraphEngine.isListening`; `isBusy` and `awaitIdle()`
+ignore listening, so `awaitIdle()` returns between events. A pinned trigger fires its pin once and does not listen; the `beforeRun` gate is asked
+for the trigger (with the current trigger) and for the nodes of an event (`TraceTrigger.Event`). Editing anything an event is executing cancels that event.
+`NodeRun` and `KNodeStatus` gained a case, so exhaustive `when` expressions over them need a branch (source incompatible, binary compatible for callers that use `else`).
