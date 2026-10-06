@@ -137,7 +137,7 @@ class InspectorUiTest {
         onNodeWithText("my settings").assertExists()
         // input JSON shows both values, output JSON shows the sum
         waitUntilAtLeastOneExists(hasText("\"a\": 4,", substring = true), 10_000)
-        onNodeWithText("9", substring = true).assertExists()
+        onNodeWithText("9").assertExists()   // exact: a duration such as "29 ms" also contains a 9
     }
 
     @Test

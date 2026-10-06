@@ -112,3 +112,6 @@ Full JSON Schema; an expression language in templates; mandatory typing (a port 
   `SampleStore` and `InMemorySampleStore`, `fieldsOf` (declared schema first, examples from the sample; `Collect` inputs get `[*]`), `GraphJson(samples = true)`,
   and in `:kompound` `FieldInfo`, `JsonFields`, `JsonSchema.example` and `fromNestedShorthand`. Open question 1 is answered: the cap is `GraphEngine(maxSampleBytes)` (default 64 KB).
   Correction to section 2: kompound-graph has a `KNodeType`, but only as the add-node menu entry; the `schemaFor` hook (slice 4) is still an engine function like `signalMode`.
+- **Slice 2 done**: `Template` with `parse` (parts with offsets), `names`, `problems`, `render`; filters `json`, `url`, `default:x`; `MissingFieldException(path, node, port)` lives in
+  `:kompound` with optional node and port (the graph fills them in), `TemplateScope`; `ctx.render(text, vararg extra)`, `ctx.templateScope()`, `ctx.inputs.json(port)` as extensions. Open question 2
+  (a body like `{"a": {{x}}}`) is answered: the first `}}` after `{{` closes the placeholder, so `{{x}}}` leaves one literal `}`; tested.
