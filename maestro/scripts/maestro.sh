@@ -110,10 +110,10 @@ whitelist_driver() {
   done
   return 0
 }
-DRIVER_ARG=()
-if adb -s "$SERIAL" shell pm path dev.mobile.maestro 2>/dev/null | grep -q package; then
-  DRIVER_ARG=(--no-reinstall-driver)
-fi
+# with --no-reinstall-driver Maestro installs the driver when it is missing and then leaves it on the phone; without it the
+# driver is removed after every run and the battery setting below is lost with it
+DRIVER_ARG=(--no-reinstall-driver)
+adb -s "$SERIAL" logcat -c 2>/dev/null || true
 whitelist_driver
 EXEMPT_PID=""
 ( while true; do whitelist_driver; sleep 2; done ) & EXEMPT_PID=$!
@@ -140,12 +140,14 @@ for i in $(seq 1 "$REPEAT"); do
   fi
 done
 SECS=$(( $(date +%s) - START ))
+FROZEN=$(adb -s "$SERIAL" logcat -d 2>/dev/null | grep -c "freeze uid.*dev.mobile.maestro" || true)
 
 # --- summary ---------------------------------------------------------------------------------------------------
 TOTAL=$(awk -F'\t' '{print $3}' "$OUT/flow-results.tsv" | sort -u | wc -l | tr -d ' ')
 FAILED=$(awk -F'\t' '$2=="FAIL"{print $3}' "$OUT/flow-results.tsv" | sort -u | wc -l | tr -d ' ')
 {
   echo "Maestro $HAVE | $(adb -s "$SERIAL" shell getprop ro.product.model | tr -d '\r') $SERIAL | apk $APK_SHA | ${SECS}s | flows $TOTAL, failing $FAILED, runs $REPEAT"
+  [ "${FROZEN:-0}" -gt 0 ] && echo "WARNING the battery manager froze the Maestro driver ${FROZEN} times (steps stall); see maestro/devices.md, 'Stop the battery manager...'"
   if [ "$REPEAT" -gt 1 ]; then
     awk -F'\t' '{runs[$3]++; if($2=="FAIL") f[$3]++} END{ for(n in runs) if(f[n]>0 && f[n]<runs[n]) printf "FLAKY  %s failed %d of %d runs\n", n, f[n], runs[n]; else if(f[n]==runs[n]) printf "BROKEN %s failed all %d runs\n", n, runs[n] }' "$OUT/flow-results.tsv"
   else

@@ -1,0 +1,60 @@
+# KDialog: actions report a result, back and outside taps dismiss.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- tapOn:
+    text: "Save"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Saved" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open alert dialog" }
+- tapOn:
+    text: "Delete"
+    retryTapIfNoChange: false
+- assertNotVisible: "Delete project?"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Deleted" }
+# the system back button dismisses a dialog
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Rename project"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+# a tap outside dismisses it (dismissOnClickOutside is on by default)
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open alert dialog" }
+- assertVisible: "Delete project?"
+- tapOn:
+    point: "50%,6%"
+    retryTapIfNoChange: false
+- assertNotVisible: "Delete project?"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open alert dialog" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

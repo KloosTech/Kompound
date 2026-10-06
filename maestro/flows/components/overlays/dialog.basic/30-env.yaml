@@ -1,0 +1,29 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dialog.basic environments
+tags:
+  - env
+  - slow
+  - component:dialog.basic
+  - category:overlays
+properties:
+  junitClassname: dialog.basic
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
+# the interaction once, in a combination of all of them
+- runFlow:
+    file: _interact.yaml
+    env: { THEME: dark, RTL: "true", FONT: "1.5", DENSITY: compact, LANG: de }

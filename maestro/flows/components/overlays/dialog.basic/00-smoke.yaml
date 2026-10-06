@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dialog.basic smoke
+tags:
+  - smoke
+  - component:dialog.basic
+  - category:overlays
+properties:
+  junitClassname: dialog.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

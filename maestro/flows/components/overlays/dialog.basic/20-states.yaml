@@ -1,0 +1,102 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dialog.basic states
+tags:
+  - states
+  - component:dialog.basic
+  - category:overlays
+properties:
+  junitClassname: dialog.basic
+---
+# outside click off: a tap outside keeps the dialog, Cancel closes it
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      CONTROLS: "control=Dismiss%20on%20outside%20click::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- tapOn:
+    point: "50%,6%"
+    retryTapIfNoChange: false
+- assertVisible: "Rename project"
+- tapOn:
+    text: "Cancel"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+# close button: shown with its own label, closes the dialog
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: en }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      CONTROLS: "control=Close%20button::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Close"
+- tapOn:
+    text: "Close"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+# empty title: no title text (the Title control itself shows "Rename project" only while the dialog is closed)
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      CONTROLS: "control=Title::"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Dialogs ask for a decision or a small amount of input and block the screen behind them."
+- assertNotVisible: "Rename project"
+- tapOn:
+    text: "Cancel"
+    retryTapIfNoChange: false
+# long content scrolls inside the dialog, the footer stays
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      CONTROLS: "control=Long%20content%20(scrolls)::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Line 1 of scrolling content."
+- assertVisible: "Save"
+- scrollUntilVisible:
+    element: "Line 30 of scrolling content."
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Save"
+- tapOn:
+    text: "Cancel"
+    retryTapIfNoChange: false
+- assertNotVisible: "Save"
+# full screen
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      CONTROLS: "control=Full%20screen::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Rename project"
+- assertVisible: "Dialogs ask for a decision or a small amount of input and block the screen behind them."
+- tapOn:
+    text: "Save"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Saved" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

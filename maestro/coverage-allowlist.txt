@@ -16,7 +16,6 @@ combobox.basic
 command.palette
 date.field
 date.range
-dialog.basic
 divider.basic
 dropdown.multi
 dropdown.single
