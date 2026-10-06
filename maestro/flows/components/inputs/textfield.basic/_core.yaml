@@ -1,0 +1,23 @@
+# KTextField renders in whatever environment the caller opens it in (assertions only).
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Email" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "name@example.com" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "We never share it" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,6 +1,8 @@
 package tech.kloos.kompound.catalog
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.remember
@@ -61,7 +63,8 @@ class DemoAccessibilityTest {
                         density = LocalDensity.current.density
                         val controls = remember { DemoControls() }
                         val content = entry.content
-                        Box(Modifier.testTag("demo")) { controls.content() }
+                        // like the catalog's preview: inside a vertical scroll, so the height is unbounded
+                        Box(Modifier.testTag("demo").verticalScroll(rememberScrollState())) { controls.content() }
                     }
                 }
                 repeat(3) { mainClock.advanceTimeByFrame() }

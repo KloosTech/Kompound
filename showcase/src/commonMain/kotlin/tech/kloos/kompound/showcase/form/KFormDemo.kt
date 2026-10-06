@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +62,7 @@ fun DemoScope.KFormDemo() {
     val email = rememberKField(form, "email", "", KValidators.required(), KValidators.email())
     val age = rememberKField(form, "age", "", KValidators.intInRange(13..120))
     val terms = rememberKField(form, "terms", false, KValidators.isTrue("Please accept the terms"))
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(Modifier.padding(16.dp)) {
         KForm(form) {
             KFieldGroup("Account", description = "Try \"taken@example.com\" to see a message from the server.") {
                 KFormTextField(name, Modifier.fillMaxWidth(), label = "Name")

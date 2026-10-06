@@ -1,0 +1,9 @@
+# The control in the demo's preview whose label is LABEL is disabled (its container reports enabled=false; the text node alone does not).
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    enabled: false
+    containsChild: "${LABEL}"
+    above:
+      id: "harness:controls"

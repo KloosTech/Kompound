@@ -1,0 +1,7 @@
+# Maestro workspace (ADR 0008). Run through maestro/scripts/maestro.sh; see maestro/README.md.
+flows:
+  - "components/**"
+  - "suites/**"
+  # shared subflows and per-component cores are never run as tests:
+  - "!**/_lib/**"
+  - "!**/_*.yaml"

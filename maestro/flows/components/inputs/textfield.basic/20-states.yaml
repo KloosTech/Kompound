@@ -1,0 +1,66 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.basic states
+tags:
+  - states
+  - component:textfield.basic
+  - category:inputs
+properties:
+  junitClassname: textfield.basic
+---
+# a character limit shows its counter and stops typing at the limit
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      CONTROLS: "control=Max%20length%2020::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "0/20" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "abcdefghijklmnopqrstuvwxyz"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "20/20" }
+- hideKeyboard
+# disabled: nothing in the preview can be typed into
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      CONTROLS: "control=Enabled::false"
+- assertVisible:
+    enabled: false
+    above:
+      id: "harness:controls"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "typed"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "typed" }
+# read only: focusable, but the text does not change
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      CONTROLS: "control=Read%20only::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "typed"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "typed" }
+- hideKeyboard
+# error state keeps showing its message
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      CONTROLS: "control=Error::true&control=Supporting%20text::Not%20a%20valid%20address"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Not a valid address" }

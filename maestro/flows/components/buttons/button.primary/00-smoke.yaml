@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: KButton smoke
+tags:
+  - smoke
+  - component:button.primary
+  - category:buttons
+properties:
+  junitClassname: button.primary
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "All variants" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Filled" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Text" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

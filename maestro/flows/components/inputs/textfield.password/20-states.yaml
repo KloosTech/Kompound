@@ -1,0 +1,47 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.password states
+tags:
+  - states
+  - component:textfield.password
+  - category:inputs
+properties:
+  junitClassname: textfield.password
+---
+# without the strength meter there is no meter to react
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+      CONTROLS: "control=Strength%20meter::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Show password" }
+- assertNotVisible:
+    text: "Very weak"
+# error: the message is shown
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+      CONTROLS: "control=Error::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Passwords do not match" }
+# disabled: the eye and the field ignore taps
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+      CONTROLS: "control=Enabled::false"
+- assertVisible:
+    enabled: false
+    above:
+      id: "harness:controls"
+- tapOn:
+    text: "Password"
+    index: 1
+    above:
+      id: "harness:controls"
+    retryTapIfNoChange: false
+- inputText: "typed"
+- assertNotVisible: "typed"

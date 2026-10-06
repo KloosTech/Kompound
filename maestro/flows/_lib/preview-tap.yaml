@@ -1,0 +1,9 @@
+# Taps TEXT in the demo's preview. retryTapIfNoChange is off: most taps in the harness change nothing visible and the retry costs about a second.
+# env: TEXT
+appId: tech.kloos.kompound.catalog.maestro
+---
+- tapOn:
+    text: "${TEXT}"
+    above:
+      id: "harness:controls"
+    retryTapIfNoChange: false

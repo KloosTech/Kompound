@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.chip.KChip
 import tech.kloos.kompound.demo.BoolControl
@@ -34,20 +35,20 @@ internal fun ControlPanel(controls: List<DemoControl>, modifier: Modifier = Modi
             when (control) {
                 is TextControl -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ControlLabel(control.name)
-                    KTextField(control.value, { control.value = it })
+                    KTextField(control.value, { control.value = it }, Modifier.testTag("control:${control.name}"))
                 }
                 is BoolControl -> Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     ControlLabel(control.name, Modifier.weight(1f))
-                    KSwitch(control.value, { control.value = it })
+                    KSwitch(control.value, { control.value = it }, Modifier.testTag("control:${control.name}"))
                 }
                 is ChoiceControl -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ControlLabel(control.name)
                     if (control.options.size <= 3 && control.options.all { it.length <= 12 }) {
-                        KSegmentedControl(control.options, control.selectedIndex, { control.selectedIndex = it })
+                        KSegmentedControl(control.options, control.selectedIndex, { control.selectedIndex = it }, Modifier.testTag("control:${control.name}"))
                     } else {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FlowRow(Modifier.testTag("control:${control.name}"), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             control.options.forEachIndexed { i, label ->
-                                KChip(label, onClick = { control.selectedIndex = i }, selected = i == control.selectedIndex)
+                                KChip(label, onClick = { control.selectedIndex = i }, Modifier.testTag("control:${control.name}=$label"), selected = i == control.selectedIndex)
                             }
                         }
                     }
@@ -55,9 +56,9 @@ internal fun ControlPanel(controls: List<DemoControl>, modifier: Modifier = Modi
                 is FloatControl -> Column {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         ControlLabel(control.name, Modifier.weight(1f))
-                        KText(formatNumber(control.value), style = textRole(quiet = true) { it.labelMedium })
+                        KText(formatNumber(control.value), Modifier.testTag("control:${control.name}:value"), style = textRole(quiet = true) { it.labelMedium })
                     }
-                    KSlider(control.value, { control.value = it }, valueRange = control.range)
+                    KSlider(control.value, { control.value = it }, Modifier.testTag("control:${control.name}"), valueRange = control.range)
                 }
             }
         }

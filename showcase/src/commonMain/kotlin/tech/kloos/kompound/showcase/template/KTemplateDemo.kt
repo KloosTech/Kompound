@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,7 +74,7 @@ fun DemoScope.KTemplateDemo() {
     val fields = if (known && parsed != null) JsonFields.of(parsed) else emptyList()
     val scope = parsed?.let { TemplateScope.of(it) }
     fun rendered(text: String): String = try { scope?.let { Template.render(text, it) } ?: "(fix the JSON)" } catch (e: TemplateException) { "error: ${e.message}" }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         KTextArea(json, { json = it }, Modifier.fillMaxWidth(), label = "Data (what the previous node produced)", minLines = 6, maxLines = 10, isError = parsed == null, supportingText = if (parsed == null) "Not valid JSON" else null)
         KTemplateField(url, { url = it }, fields, Modifier.fillMaxWidth(), label = "URL", supportingText = "Type {{ to pick a field")
         KText("→ ${rendered(url)}")

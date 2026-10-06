@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.password interact
+tags:
+  - interact
+  - component:textfield.password
+  - category:inputs
+properties:
+  junitClassname: textfield.password
+---
+- runFlow: _interact.yaml

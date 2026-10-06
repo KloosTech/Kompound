@@ -1,0 +1,276 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: Every demo opens in the harness
+tags:
+  - suite
+  - slow
+properties:
+  junitClassname: suites.all-demos-open
+---
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: border.dashed
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: button.fab
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: button.primary
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: button.toggle
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: chart.simple
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: chip.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: color.picker
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: date.range
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: divider.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.multi
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: form.signup
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: graph.engine
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: graph.links
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: graph.logic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: list.item
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: markdown.view
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: progress.indicators
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: radio.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: scaffold.screen
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: skeleton.loading
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: slider.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: state.empty
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: state.error
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: surface.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: switch.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: tab.row
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.area
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: theme.tokens
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+- runFlow:
+    file: ../_lib/open-demo.yaml
+    env:
+      DEMO: tree.view

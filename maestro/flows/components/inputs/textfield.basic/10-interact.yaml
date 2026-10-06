@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.basic interact
+tags:
+  - interact
+  - component:textfield.basic
+  - category:inputs
+properties:
+  junitClassname: textfield.basic
+---
+- runFlow: _interact.yaml

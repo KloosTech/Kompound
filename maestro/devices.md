@@ -28,3 +28,6 @@ Devices trusted for Maestro runs, their quirks and measured times. A device is a
 5. **Verify apps over USB**: off.
 6. **Install via USB**: on.
 7. Language: **English (United States)** and time zone fixed, so Kompound's own labels ("Close", "Clear search") match the flows.
+
+### Stop the battery manager from freezing the Maestro driver (one time, by hand)
+Oplus HANS freezes `dev.mobile.maestro` while it idles and thaws it only on the next binder call, so single steps stall for about 50 s. After the first `maestro.sh` run (it leaves the driver installed): Settings > Apps > App management > Maestro > Battery usage > Allow background activity, and enable Auto launch. Check with `adb logcat -d | grep "freeze uid.*maestro"`: it should print nothing during a run.

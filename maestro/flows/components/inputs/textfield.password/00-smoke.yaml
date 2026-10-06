@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.password smoke
+tags:
+  - smoke
+  - component:textfield.password
+  - category:inputs
+properties:
+  junitClassname: textfield.password
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.password
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Password" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "At least 8 characters" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Show password" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

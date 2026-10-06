@@ -1,0 +1,28 @@
+# Typing into KTextField: the placeholder invites, typed text replaces it, erasing brings it back.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "name@example.com" }
+- inputText: "hello"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "hello" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "name@example.com" }
+- eraseText: 5
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "name@example.com" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

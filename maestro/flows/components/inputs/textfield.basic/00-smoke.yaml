@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.basic smoke
+tags:
+  - smoke
+  - component:textfield.basic
+  - category:inputs
+properties:
+  junitClassname: textfield.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Email" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "name@example.com" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "We never share it" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

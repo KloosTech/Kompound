@@ -1,0 +1,5 @@
+# The harness is still on screen and showing a demo: nothing crashed, no system dialog took over (a crash or ANR dialog hides harness:ready).
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    id: "harness:ready"
