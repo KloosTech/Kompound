@@ -1,0 +1,36 @@
+appId: tech.kloos.kompound.catalog
+name: spike - slider precision
+---
+- launchApp:
+    appId: tech.kloos.kompound.catalog
+    stopApp: true
+- scrollUntilVisible:
+    element:
+      text: "KSlider"
+    direction: DOWN
+    speed: 40
+    timeout: 120000
+- tapOn: "KSlider"
+- scroll
+- assertVisible: "Value: 40"
+# track x from 195px (0) to 885px (100) of 1080, y 1217px of 2412
+- swipe:
+    start: 44%, 50%
+    end: 25%, 50%
+    duration: 400
+- copyTextFrom:
+    text: "Value: .*"
+- evalScript: ${console.log('SWIPE_TO_25pct_screen_x=' + maestro.copiedText)}
+- swipe:
+    start: 25%, 50%
+    end: 70%, 50%
+    duration: 400
+- copyTextFrom:
+    text: "Value: .*"
+- evalScript: ${console.log('SWIPE_TO_70pct_screen_x=' + maestro.copiedText)}
+- tapOn:
+    point: 56%, 50%
+- copyTextFrom:
+    text: "Value: .*"
+- evalScript: ${console.log('TAP_AT_56pct_screen_x=' + maestro.copiedText)}
+- takeScreenshot: slider-after

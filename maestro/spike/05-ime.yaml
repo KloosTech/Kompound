@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog
+name: spike - IME handling
+---
+- launchApp:
+    appId: tech.kloos.kompound.catalog
+    stopApp: true
+- tapOn: "Search components"
+- inputText: "slider"
+- assertVisible: "[0-9]+ components"
+- takeScreenshot: ime-open
+- hideKeyboard
+- takeScreenshot: after-hideKeyboard
+- tapOn: "Search components|slider"
+- pressKey: Back
+- takeScreenshot: after-back
+- eraseText: 6
+- assertVisible: "67 components"

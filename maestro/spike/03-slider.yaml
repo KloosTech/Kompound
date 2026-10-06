@@ -1,0 +1,16 @@
+appId: tech.kloos.kompound.catalog
+name: spike - slider swipe precision
+---
+- launchApp:
+    appId: tech.kloos.kompound.catalog
+    stopApp: true
+- scrollUntilVisible:
+    element:
+      text: "KSlider"
+    direction: DOWN
+    speed: 40
+    timeout: 90000
+- tapOn: "KSlider"
+- assertVisible: "Preview"
+- scroll
+- takeScreenshot: slider-open
