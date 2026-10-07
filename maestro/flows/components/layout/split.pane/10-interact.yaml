@@ -22,7 +22,7 @@ properties:
     file: ../../../_lib/preview-see.yaml
     env: { TEXT: "First pane .([5-7][0-9])%." }
 - swipe:
-    start: 70%, 31%
+    start: 68%, 31%
     end: 15%, 31%
 - runFlow:
     file: ../../../_lib/preview-see.yaml
