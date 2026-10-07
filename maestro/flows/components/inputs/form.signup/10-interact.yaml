@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: form.signup interact
+tags:
+  - interact
+  - component:form.signup
+  - category:inputs
+properties:
+  junitClassname: form.signup
+---
+- runFlow: _interact.yaml

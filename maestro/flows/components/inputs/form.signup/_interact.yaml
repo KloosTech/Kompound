@@ -1,0 +1,111 @@
+# KForm: an empty submit lists what is missing; invalid input is explained; the server can reject an address; a valid form submits and greets.
+# Reset between the scenarios clears fields and messages (editing a field twice is unreliable: the caret lands mid-text in RTL).
+# The keyboard pushes the controls card off screen and the page is longer than the screen, so selectors are not scoped above the card.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: form.signup
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Slow%20server%20(1.5%20s)::false"
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- assertVisible: "${output.s.required}"
+- tapOn:
+    below:
+      text: "Name"
+    above:
+      text: "E-mail"
+    retryTapIfNoChange: false
+- inputText: "Ada"
+- tapOn:
+    below:
+      text: "E-mail"
+    above:
+      text: "Age .optional."
+    retryTapIfNoChange: false
+- inputText: "not-an-email"
+- hideKeyboard
+- tapOn:
+    text: "I accept the terms"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- assertVisible: "${output.s.invalidEmail}"
+- scrollUntilVisible:
+    element: "Reset"
+    timeout: 15000
+- tapOn:
+    text: "Reset"
+    retryTapIfNoChange: false
+- tapOn:
+    below:
+      text: "Name"
+    above:
+      text: "E-mail"
+    retryTapIfNoChange: false
+- inputText: "Ada"
+- tapOn:
+    below:
+      text: "E-mail"
+    above:
+      text: "Age .optional."
+    retryTapIfNoChange: false
+- inputText: "taken@example.com"
+- hideKeyboard
+- tapOn:
+    text: "I accept the terms"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- scrollUntilVisible:
+    element: "This address is already registered"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Reset"
+    timeout: 15000
+- tapOn:
+    text: "Reset"
+    retryTapIfNoChange: false
+- tapOn:
+    below:
+      text: "Name"
+    above:
+      text: "E-mail"
+    retryTapIfNoChange: false
+- inputText: "Ada"
+- tapOn:
+    below:
+      text: "E-mail"
+    above:
+      text: "Age .optional."
+    retryTapIfNoChange: false
+- inputText: "ada@example.com"
+- hideKeyboard
+- tapOn:
+    text: "I accept the terms"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- scrollUntilVisible:
+    element: "Welcome, Ada!"
+    timeout: 15000
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
+- runFlow: ../../../_lib/assert-no-crash.yaml

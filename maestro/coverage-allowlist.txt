@@ -2,8 +2,6 @@
 animation.shake
 chart.simple
 code.view
-command.palette
-form.signup
 graph.engine
 graph.links
 graph.logic

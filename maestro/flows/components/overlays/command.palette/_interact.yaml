@@ -1,0 +1,57 @@
+# KCommandPalette: a tap runs a command, typing filters (fuzzy and by keyword), the keyboard's enter runs the top match.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- tapOn:
+    text: "Save file"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ran: Save file" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- inputText: "pref"
+- assertVisible: "Go to Settings"
+- assertNotVisible: "New file"
+- tapOn:
+    text: "Go to Settings"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ran: Go to Settings" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- inputText: "gth"
+- assertVisible: "Go to Home"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ran: Go to Home" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- inputText: "Share"
+- tapOn:
+    text: "Share .needs sign-in."
+    retryTapIfNoChange: false
+- assertVisible: "Share .needs sign-in."
+- tapOn:
+    point: "50%,8%"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ran: Go to Home" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

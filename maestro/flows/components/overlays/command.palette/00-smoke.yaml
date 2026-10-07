@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: command.palette smoke
+tags:
+  - smoke
+  - component:command.palette
+  - category:overlays
+properties:
+  junitClassname: command.palette
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+- runFlow: ../../../_lib/assert-no-crash.yaml
