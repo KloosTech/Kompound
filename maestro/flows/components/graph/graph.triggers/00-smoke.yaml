@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.triggers smoke
+tags:
+  - smoke
+  - component:graph.triggers
+  - category:graph
+properties:
+  junitClassname: graph.triggers
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+- runFlow: ../../../_lib/assert-no-crash.yaml

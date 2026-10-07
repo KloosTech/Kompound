@@ -1,0 +1,27 @@
+# The logic demo (clock stopped, wires still): Fit works, Undo and Redo start disabled.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.logic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Run%20the%20clock::false&control=Animated%20true%20wires::false"
+- assertVisible:
+    enabled: false
+    containsChild: "Undo"
+- assertVisible:
+    enabled: false
+    containsChild: "Redo"
+- assertVisible:
+    enabled: false
+    containsChild: "Delete"
+- tapOn:
+    text: "Fit"
+    retryTapIfNoChange: false
+- assertVisible: "1 true"
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.nodes interact
+tags:
+  - interact
+  - component:graph.nodes
+  - category:graph
+properties:
+  junitClassname: graph.nodes
+---
+- runFlow: _interact.yaml

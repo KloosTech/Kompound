@@ -1,0 +1,34 @@
+# The engine demo: the Executions tab lists runs and explains itself, Editor goes back; Undo and Redo start disabled.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.engine
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible:
+    enabled: false
+    containsChild: "Undo"
+- assertVisible:
+    enabled: false
+    containsChild: "Redo"
+- tapOn:
+    text: "Executions"
+    retryTapIfNoChange: false
+- assertVisible: "Showing the live state.*"
+- tapOn:
+    text: "Editor"
+    retryTapIfNoChange: false
+- assertVisible: "Change a number or a delay.*"
+- tapOn:
+    text: "Run again"
+    retryTapIfNoChange: false
+- assertVisible: "Run again"
+- tapOn:
+    text: "Fit"
+    retryTapIfNoChange: false
+- runFlow: ../../../_lib/assert-no-crash.yaml

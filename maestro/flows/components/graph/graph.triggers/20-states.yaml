@@ -1,0 +1,32 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.triggers states
+tags:
+  - states
+  - component:graph.triggers
+  - category:graph
+properties:
+  junitClassname: graph.triggers
+---
+# policies
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+      CONTROLS: "control=Clock%20armed::false&control=When%20events%20pile%20up::Drop"
+- assertVisible: "Send webhook"
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+      CONTROLS: "control=Clock%20armed::false&control=When%20events%20pile%20up::Latest"
+- assertVisible: "Send webhook"
+# clock disarmed: nothing listens, so the webhook buttons are disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+      CONTROLS: "control=Clock%20armed::false"
+- assertVisible:
+    enabled: false
+    containsChild: "Send webhook"
+- runFlow: ../../../_lib/assert-no-crash.yaml

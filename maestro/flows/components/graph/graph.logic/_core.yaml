@@ -1,0 +1,23 @@
+# The logic demo shows its legend and toolbar, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.logic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Run%20the%20clock::false&control=Animated%20true%20wires::false"
+- assertVisible: "1 true"
+- assertVisible: "0 false"
+- assertVisible: "Undo"
+- assertVisible: "Redo"
+- assertVisible: "Fit"
+- assertVisible: "Delete"
+- assertVisible: "Flip the switches.*"
+- runFlow: ../../../_lib/assert-no-crash.yaml

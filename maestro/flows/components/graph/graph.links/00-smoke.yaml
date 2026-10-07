@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.links smoke
+tags:
+  - smoke
+  - component:graph.links
+  - category:graph
+properties:
+  junitClassname: graph.links
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.links
+- runFlow: ../../../_lib/assert-no-crash.yaml
