@@ -7,6 +7,7 @@
 #   --tags a,b             run flows with any of these tags (smoke, category:inputs, slow, ...)
 #   --exclude-tags a,b     skip flows with these tags (default: quarantine,wip,todo)
 #   --component <demo-id>  all flows of one component (tag component:<id>)
+#   --visual               only the screenshot flows (tag visual, off by default); then run maestro/visual/analyze.py on the output
 #   --flow <path>          one flow file or folder instead of maestro/flows
 #   --env KEY=VALUE        pass a variable to the flows (repeatable)
 #   --repeat <n>           run the selection n times and report flows that fail only sometimes (flakes)
@@ -26,7 +27,7 @@ cd "$ROOT" || exit 2
 APP_ID="tech.kloos.kompound.catalog.maestro"
 APK="catalog/androidApp/build/outputs/apk/maestro/androidApp-maestro.apk"
 
-SERIAL=""; TAGS=""; EXCLUDE="quarantine,wip,todo"; COMPONENT=""; TARGET="maestro/flows"; REPEAT=1; CONTINUOUS=0; STRICT=0
+VISUAL=0; SERIAL=""; TAGS=""; EXCLUDE="quarantine,wip,todo,visual"; COMPONENT=""; TARGET="maestro/flows"; REPEAT=1; CONTINUOUS=0; STRICT=0
 BUILD=1; INSTALL=1; SETUP=1; OUT="build/maestro"; ENVS=(); EXTRA=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -34,6 +35,7 @@ while [ $# -gt 0 ]; do
     --tags) TAGS="$2"; shift 2 ;;
     --exclude-tags) EXCLUDE="$2"; shift 2 ;;
     --component) COMPONENT="$2"; shift 2 ;;
+    --visual) VISUAL=1; TAGS="visual"; EXCLUDE="quarantine,wip,todo"; shift ;;
     --flow) TARGET="$2"; shift 2 ;;
     --env) ENVS+=("$2"); shift 2 ;;
     --repeat) REPEAT="$2"; shift 2 ;;
@@ -43,12 +45,15 @@ while [ $# -gt 0 ]; do
     --no-install) INSTALL=0; shift ;;
     --no-setup) SETUP=0; shift ;;
     --out) OUT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     --) shift; EXTRA=("$@"); break ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
-[ -n "$COMPONENT" ] && TAGS="component:$COMPONENT"
+# tags with a comma mean "any of", so --visual --component narrows by folder instead
+if [ -n "$COMPONENT" ] && [ "$VISUAL" = 1 ]; then
+  TARGET=$(ls maestro/flows/components/*/"$COMPONENT"/40-visual.yaml 2>/dev/null | head -n 1); [ -n "$TARGET" ] || { echo "No flows for $COMPONENT" >&2; exit 2; }
+elif [ -n "$COMPONENT" ]; then TAGS="component:$COMPONENT"; fi
 
 # --- prerequisites ---------------------------------------------------------------------------------------------
 find_java() {

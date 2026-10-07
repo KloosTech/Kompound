@@ -3,6 +3,12 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-07, visual checks (layer 1)
+- **Added**: `flows/_lib/shot.yaml`, generated `40-visual.yaml` per demo (`scripts/gen-visual-flows.sh`: light, dark, RTL, font 2.0, compact), `maestro.sh --visual` (tag `visual`, off in normal runs; `--visual --component X` selects the flow file because comma-separated tags mean "any of"), and `maestro/visual/analyze.py` (numpy and Pillow only): clip, RTL mirror, contrast, alignment, baseline diff, HTML report with annotated shots. `test_analyze.py` plants a defect for every check. `expectations.json` lists exemptions with the reason.
+- **Measured**: 67 flows, 335 screenshots in 9m22s on the phone; analysis 35 s.
+- **Bugs found by the mirror check, all in RTL**: `KSwitch` thumb offset not mirrored (thumb out of the track), `KSegmentedControl` pill placed off screen, `KSplitPane` first pane on the wrong side and drag/keys reversed. Fixed, each confirmed by a before/after run.
+- **Learned**: flipping the page must happen on pixels before the block grid (a flip of the blocks shifted the grid by 24 px and flagged everything); comparing with a one-block tolerance removes glyph and anti-aliasing noise (38 false findings down to 15, of which 8 are by design).
+
 ## 2026-10-07, full run: the save-password dialog
 - **Found by the first full run**: after `form.signup` the system showed Google Password Manager's "Save password?" dialog (the form has an e-mail field and a field that looks like a password to autofill). It stayed on top and every later flow failed at `harness:ready` after 16 s (about 90 flows). adb cannot switch the autofill service off (`WRITE_SECURE_SETTINGS`), so the harness does it: in the `maestro` build the activity marks its window `IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS`. Lesson: a full run, not only per-component runs, finds cross-flow leaks.
 

@@ -1,0 +1,8 @@
+# One screenshot of the demo that is open, named for the visual analysis (maestro/visual/analyze.py reads the name).
+# env:  DEMO, THEME, DIR (ltr|rtl), FONT, DENSITY, LANG  (the same values the demo was opened with)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot:
+    path: "visual__${DEMO}__${THEME}_${DIR}_f${FONT}_${DENSITY}_${LANG}"
