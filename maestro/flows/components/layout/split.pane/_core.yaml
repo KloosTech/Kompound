@@ -1,0 +1,23 @@
+# KSplitPane shows both panes and the hint, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "First pane .35%." }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Second pane" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Drag the divider.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

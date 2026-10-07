@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: divider.basic smoke
+tags:
+  - smoke
+  - component:divider.basic
+  - category:layout
+properties:
+  junitClassname: divider.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: divider.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

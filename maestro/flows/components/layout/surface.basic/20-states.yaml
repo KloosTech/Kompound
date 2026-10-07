@@ -1,0 +1,28 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: surface.basic states
+tags:
+  - states
+  - component:surface.basic
+  - category:layout
+properties:
+  junitClassname: surface.basic
+---
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: surface.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Text and icon share the content colour" }
+# not clickable, other padding and colour
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: surface.basic
+      CONTROLS: "control=Clickable::false&control=Padding::40&control=Content%20colour::Error"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Text and icon share the content colour" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

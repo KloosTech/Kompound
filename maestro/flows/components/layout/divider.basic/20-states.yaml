@@ -1,0 +1,31 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: divider.basic states
+tags:
+  - states
+  - component:divider.basic
+  - category:layout
+properties:
+  junitClassname: divider.basic
+---
+# vertical
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: divider.basic
+      CONTROLS: "control=Vertical::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Left" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Right" }
+# thick
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: divider.basic
+      CONTROLS: "control=Thickness::8"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Above" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

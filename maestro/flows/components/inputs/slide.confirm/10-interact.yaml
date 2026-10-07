@@ -1,0 +1,32 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: slide.confirm interact
+tags:
+  - interact
+  - component:slide.confirm
+  - category:inputs
+properties:
+  junitClassname: slide.confirm
+---
+# The handle sits on the other side in RTL, so this flow runs in the default environment only.
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+# a short slide does not confirm
+- swipe:
+    start: 18%, 17%
+    end: 35%, 17%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirmed 0 times" }
+# a full slide confirms once
+- swipe:
+    start: 18%, 17%
+    end: 90%, 17%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirmed 1 times" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Deleting.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

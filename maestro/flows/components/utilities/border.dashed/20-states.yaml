@@ -1,0 +1,19 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: border.dashed states
+tags:
+  - states
+  - component:border.dashed
+  - category:utilities
+properties:
+  junitClassname: border.dashed
+---
+# thick, square caps, sharp corners
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: border.dashed
+      CONTROLS: "control=Width%20(dp)::6&control=Round%20caps::false&control=Corner%20radius%20(dp)::0"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Drop files here" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

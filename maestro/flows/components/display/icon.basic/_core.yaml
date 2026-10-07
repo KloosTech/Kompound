@@ -1,0 +1,20 @@
+# KIcon is announced by its description, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Star" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Check" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

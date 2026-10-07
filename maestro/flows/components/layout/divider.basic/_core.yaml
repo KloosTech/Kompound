@@ -1,0 +1,20 @@
+# KDivider sits between two texts, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: divider.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Above" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Below" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

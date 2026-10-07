@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: surface.basic smoke
+tags:
+  - smoke
+  - component:surface.basic
+  - category:layout
+properties:
+  junitClassname: surface.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: surface.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

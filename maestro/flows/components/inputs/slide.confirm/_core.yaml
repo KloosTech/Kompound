@@ -1,0 +1,20 @@
+# KSlideToConfirm shows its label and the count, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Slide to delete" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirmed 0 times" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

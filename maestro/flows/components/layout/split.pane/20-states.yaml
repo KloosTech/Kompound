@@ -1,0 +1,34 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: split.pane states
+tags:
+  - states
+  - component:split.pane
+  - category:layout
+properties:
+  junitClassname: split.pane
+---
+# vertical
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+      CONTROLS: "control=Vertical::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "First pane .35%." }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Second pane" }
+# three panes
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+      CONTROLS: "control=Three%20panes%20(nested)::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Second" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Third" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

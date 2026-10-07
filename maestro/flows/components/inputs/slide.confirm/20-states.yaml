@@ -1,0 +1,31 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: slide.confirm states
+tags:
+  - states
+  - component:slide.confirm
+  - category:inputs
+properties:
+  junitClassname: slide.confirm
+---
+# other labels
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+      CONTROLS: "control=Label::Slide%20to%20pay"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Slide to pay" }
+# disabled: sliding confirms nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+      CONTROLS: "control=Enabled::false"
+- swipe:
+    start: 18%, 17%
+    end: 90%, 17%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirmed 0 times" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

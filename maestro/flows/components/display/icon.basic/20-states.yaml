@@ -1,0 +1,55 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: icon.basic states
+tags:
+  - states
+  - component:icon.basic
+  - category:display
+properties:
+  junitClassname: icon.basic
+---
+# size 16
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      CONTROLS: "control=Size::16dp"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Star" }
+# size 48
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      CONTROLS: "control=Size::48dp"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Star" }
+# tint Primary
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      CONTROLS: "control=Tint::Primary"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Check" }
+# tint Error
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      CONTROLS: "control=Tint::Error"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Check" }
+# tint Success
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+      CONTROLS: "control=Tint::Success"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Check" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

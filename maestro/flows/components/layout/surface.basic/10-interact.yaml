@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: surface.basic interact
+tags:
+  - interact
+  - component:surface.basic
+  - category:layout
+properties:
+  junitClassname: surface.basic
+---
+- runFlow: _interact.yaml
