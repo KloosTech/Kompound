@@ -18,4 +18,23 @@ Matrix per demo (edit `scripts/gen-visual-flows.sh`, run it again): light, dark,
 | `align` | leading edges of stacked elements 1.3 to 4 dp apart (only with `--align`, noisy) | info |
 | `regress` | pixel diff against `--baseline <dir>` (`--update-baseline` stores the current shots) | error |
 
-Not done yet: token palette check (needs the theme colours as data), sibling spacing consistency, layer 2 (vision model on the 3090, see the ADR), baselines in a storage decided later.
+## Layer 2: vision model (Ollama on the 3090, `192.168.1.8:11434`)
+
+```
+python3 maestro/visual/calibrate.py build/maestro/artifacts            # real screenshots with one planted defect each, plus clean controls
+python3 maestro/visual/vlm.py score build/visual-cal --model qwen3.8:27b # how many it flags, locates, and invents
+python3 maestro/visual/vlm.py review build/maestro/artifacts --model qwen3.8:27b   # vlm-findings.json for real shots
+```
+
+Calibration on 56 images (42 planted defects, 14 clean), temperature 0, thinking off:
+
+| Model | flagged | located | clean images with a false alarm | per image |
+|---|---|---|---|---|
+| `qwen3.8:27b` | 33/42 | 16/42 | 6/14 | 3.6 s |
+| `gemma4:31b` | 32/42 | 6/42 | 6/14 | 27.8 s |
+| `qwen3.5:9b` | 28/42 | 6/42 | 7/14 (19 invented issues) | 2.0 s |
+| `gemma4:26b` | 19/42 | 6/42 | 0/14 | 14.1 s |
+
+"located" means the centre of the model's box lies near the planted defect. No model is good enough to gate on: use it to rank shots for a human, and re-run `score` after any prompt or model change.
+
+Not done yet: token palette check (needs the theme colours as data), sibling spacing consistency, a verification pass over each vlm finding, baselines in a storage decided later.
