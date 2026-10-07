@@ -23,7 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.theme.KompoundTheme
@@ -108,15 +110,16 @@ public object KSwitchDefaults {
     public fun haloStyle(): Style {
         val c = MaterialTheme.colorScheme
         val l = KompoundTheme.tokens.stateLayer
-        return remember(c, l) {
+        val dir = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f   // translation is absolute: mirror it in RTL
+        return remember(c, l, dir) {
             Style {
                 shape(CircleShape)
-                translation(-4.dp.toPx() - 2.dp.toPx(), 0f)       // thumb centre 16dp from the track start; minus the 2dp border
+                translation(dir * (-4.dp.toPx() - 2.dp.toPx()), 0f)       // thumb centre 16dp from the track start; minus the 2dp border
                 hovered { background(c.onSurface.copy(alpha = l.hovered)) }
                 focused { background(c.onSurface.copy(alpha = l.focused)) }
                 pressed { background(c.onSurface.copy(alpha = l.pressed)) }
                 checked {
-                    animate { translation(16.dp.toPx() - 2.dp.toPx(), 0f) }  // thumb centre 36dp from the track start; slides
+                    animate { translation(dir * (16.dp.toPx() - 2.dp.toPx()), 0f) }  // thumb centre 36dp from the track start; slides
                     hovered { background(c.primary.copy(alpha = l.hovered)) }
                     focused { background(c.primary.copy(alpha = l.focused)) }
                     pressed { background(c.primary.copy(alpha = l.pressed)) }

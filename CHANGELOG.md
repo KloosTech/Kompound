@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed (right-to-left, found by the new visual mirror check): the `KSwitch` thumb was moved with an absolute offset, so when on it sat at the wrong end and stuck out of the track; the `KSegmentedControl` selection pill was placed off screen; in `KSplitPane` the first pane stayed on the left, and drag and the arrow keys moved the divider the wrong way. All three now mirror.
 - Fixed: `KTooltip` never showed on a long press when its anchor was clickable (a `KButton`, `KIconButton`: the anchor consumed the press before the tooltip's detector saw it). The long press is now observed on the initial pointer pass without consuming it. The tooltip demo has a "Long-press stays (ms)" control.
 - Accessibility: a `KMenuItem` / `KActionMenu` entry that is `selected` (check mark) now exposes the selected state to screen readers also with the default button role (found by the Maestro flows; it was only a decorative check icon).
 - UI test harness for the Android catalog (ADR 0008, phase 1): a `maestro` build type with a deep link `kompound://demo/<id>?theme=…&font=…&rtl=…&density=…&lang=…&control=Name::value` that opens one demo bare with tagged controls (`harness:ready`, `control:<name>`); `DemoControls(presets)` in `:kompound-demo`; `maestro/` workspace with the first flows. Fixed: the form and template demos had their own vertical scroll and crashed in the real catalog.

@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -25,6 +28,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -129,5 +133,27 @@ class KSplitPaneTest {
         val scope = SaverScope { true }
         val saved = with(saver) { scope.save(KSplitPaneState(0.37f)) }
         assertEquals(0.37f, saver.restore(saved!!)!!.fraction)
+    }
+
+    @Test
+    fun inRightToLeftTheFirstPaneIsOnTheRightAndTheRightArrowShrinksIt() = runComposeUiTest {
+        val state = KSplitPaneState(0.5f)
+        setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                MaterialTheme(scheme) {
+                    Box(Modifier.size(508.dp, 308.dp)) {
+                        KSplitPane(first = { Box(Modifier.fillMaxSize().testTag("first")) }, second = { Box(Modifier.fillMaxSize().testTag("second")) }, state = state)
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val firstX = onNodeWithTag("first").fetchSemanticsNode().positionInRoot.x
+        val secondX = onNodeWithTag("second").fetchSemanticsNode().positionInRoot.x
+        assertTrue(firstX > secondX, "first pane starts on the right: $firstX vs $secondX")
+        onNodeWithContentDescription("Resize panes").requestFocus()
+        onNodeWithContentDescription("Resize panes").performKeyInput { pressKey(Key.DirectionRight) }
+        waitForIdle()
+        assertTrue(state.fraction < 0.5f, "the divider moved right, so the first pane (on the right) got smaller: ${state.fraction}")
     }
 }
