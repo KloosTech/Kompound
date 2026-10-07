@@ -4,6 +4,3 @@ graph.links
 graph.logic
 graph.nodes
 graph.triggers
-navigation.bar-rail-drawer
-scaffold.screen
-template.fields

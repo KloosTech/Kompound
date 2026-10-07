@@ -4,9 +4,7 @@ tags:
   - interact
   - component:template.fields
   - category:inputs
-  - todo
 properties:
   junitClassname: template.fields
 ---
-- runFlow: _core.yaml
-# TODO: the rest of the behaviour of the demo
+- runFlow: _interact.yaml

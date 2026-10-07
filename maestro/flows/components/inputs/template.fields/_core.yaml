@@ -1,5 +1,6 @@
-# What template.fields does, in whatever environment the caller opens it in.
-# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+# The template editors, the field picker and the mapper show their labels and the rendered results.
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
 appId: tech.kloos.kompound.catalog.maestro
 ---
 - runFlow:
@@ -11,5 +12,28 @@ appId: tech.kloos.kompound.catalog.maestro
       RTL: ${RTL}
       DENSITY: ${DENSITY}
       LANG: ${LANG}
-# TODO: the behaviour to check in every environment (taps, typing, selection), using the _lib helpers (preview-see, preview-tap, assert-disabled, ...)
+- assertVisible: "Data .what the previous node produced."
+- assertVisible: "URL"
+- assertVisible: "Type .. to pick a field"
+- assertVisible: ".*tracker.example/api/issues/2.*"
+- scrollUntilVisible:
+    element: "Body"
+    timeout: 15000
+- assertVisible: ".*Fix the login.*"
+- scrollUntilVisible:
+    element: "Sort by .one path."
+    timeout: 15000
+- assertVisible: "owner.email"
+- scrollUntilVisible:
+    element: "First number"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Second number"
+    timeout: 15000
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
 - runFlow: ../../../_lib/assert-no-crash.yaml

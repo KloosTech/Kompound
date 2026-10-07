@@ -4,15 +4,35 @@ tags:
   - states
   - component:template.fields
   - category:inputs
-  - todo
 properties:
   junitClassname: template.fields
 ---
-# TODO: disabled, error, empty, loading, long text. Preset controls with CONTROLS (url-encoded, Name::value):
-#   - runFlow: { file: ../../../_lib/open-demo.yaml, env: { DEMO: template.fields, CONTROLS: "control=Enabled::false" } }
-# Controls of this demo:
-#   boolControl("Fields known", true
+# fields unknown: the editors still render and nothing is offered
 - runFlow:
     file: ../../../_lib/open-demo.yaml
     env:
       DEMO: template.fields
+      CONTROLS: "control=Fields%20known::false"
+- assertVisible: "URL"
+- scrollUntilVisible:
+    element: "Sort by .one path."
+    timeout: 15000
+- assertVisible: "owner.email"
+# the data is invalid JSON: the text area says so
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+- tapOn:
+    text: ".*Fix the login.*Users cannot sign.*"
+    retryTapIfNoChange: false
+# a typed quote breaks the JSON wherever the caret sits
+- inputText: '"'
+- assertVisible: "Not valid JSON"
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
+- runFlow: ../../../_lib/assert-no-crash.yaml

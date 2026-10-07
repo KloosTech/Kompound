@@ -2,9 +2,9 @@ appId: tech.kloos.kompound.catalog.maestro
 name: template.fields environments
 tags:
   - env
+  - slow
   - component:template.fields
   - category:inputs
-  - todo
 properties:
   junitClassname: template.fields
 ---
@@ -23,3 +23,7 @@ properties:
 - runFlow:
     file: _core.yaml
     env: { LANG: de }
+# the editors are edited by tapping text whose position moves with direction and size: the interaction runs in the default environment only (10-interact)
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark, RTL: "true", FONT: "1.5", DENSITY: compact, LANG: de }
