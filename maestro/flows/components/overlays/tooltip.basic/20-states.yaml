@@ -1,0 +1,28 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tooltip.basic states
+tags:
+  - states
+  - component:tooltip.basic
+  - category:overlays
+properties:
+  junitClassname: tooltip.basic
+---
+# disabled: no tooltip
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+      CONTROLS: "control=Long-press%20stays%20(ms)::10000&control=Enabled::false"
+- longPressOn:
+    text: "Save"
+- assertNotVisible: "Saves your work"
+# preferred side below
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+      CONTROLS: "control=Long-press%20stays%20(ms)::10000&control=Placement::Bottom"
+- longPressOn:
+    text: "Save"
+- assertVisible: "Saves your work"
+- runFlow: ../../../_lib/assert-no-crash.yaml

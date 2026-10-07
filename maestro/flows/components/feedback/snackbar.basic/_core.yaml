@@ -1,0 +1,32 @@
+# KSnackbar shows its message and action, and the action reports back, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing shown yet" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Message sent" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Result: ActionPerformed" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

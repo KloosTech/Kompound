@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: snackbar.basic interact
+tags:
+  - interact
+  - component:snackbar.basic
+  - category:feedback
+properties:
+  junitClassname: snackbar.basic
+---
+- runFlow: _interact.yaml

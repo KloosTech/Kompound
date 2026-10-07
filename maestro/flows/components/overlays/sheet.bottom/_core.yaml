@@ -1,0 +1,35 @@
+# KBottomSheet opens with title, list, close button and footer, and closes again, in the caller's environment.
+# While a sheet is open the page behind it is hidden from the accessibility tree: selectors inside are plain text.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open" }
+- assertVisible: "Share with"
+- assertVisible: "Ada Lovelace"
+- assertVisible: "Grace Hopper"
+- assertVisible: "Done"
+- assertVisible: "${output.s.close}"
+- tapOn:
+    text: "Done"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

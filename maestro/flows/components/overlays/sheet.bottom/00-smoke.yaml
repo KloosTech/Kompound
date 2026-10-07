@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: sheet.bottom smoke
+tags:
+  - smoke
+  - component:sheet.bottom
+  - category:overlays
+properties:
+  junitClassname: sheet.bottom
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

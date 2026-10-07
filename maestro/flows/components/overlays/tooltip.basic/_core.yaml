@@ -1,0 +1,22 @@
+# KTooltip shows on a long press of its anchor, in the caller's environment.
+# Maestro's long press lasts about 3 s, so the demo's 'Long-press stays' control is set to 10 s.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Long-press%20stays%20(ms)::10000"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Save" }
+- longPressOn:
+    text: "Save"
+- assertVisible: "Saves your work"
+- runFlow: ../../../_lib/assert-no-crash.yaml

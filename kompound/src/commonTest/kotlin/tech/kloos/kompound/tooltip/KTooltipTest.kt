@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.buttons.ButtonTestScheme
+import tech.kloos.kompound.buttons.KButton
+import tech.kloos.kompound.text.KText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -76,6 +78,24 @@ class KTooltipTest {
         onNodeWithText("Save the file", useUnmergedTree = true).assertExists()
         mainClock.advanceTimeBy(1_000)
         onNodeWithText("Save the file", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun longPressOnAClickableAnchorShowsTheTooltipToo() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        setContent {
+            MaterialTheme(s) {
+                Box(Modifier.size(200.dp)) {
+                    KTooltip("Saves your work", Modifier.testTag("anchor")) {
+                        KButton(onClick = {}) { KText("Save") }
+                    }
+                }
+            }
+        }
+        mainClock.advanceTimeByFrame()
+        onNodeWithTag("anchor").performTouchInput { longClick() }
+        mainClock.advanceTimeBy(100)
+        onNodeWithText("Saves your work", useUnmergedTree = true).assertExists()
     }
 
     @Test

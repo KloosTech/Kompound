@@ -1,0 +1,22 @@
+# KTooltip: a long press shows the text of that anchor only; a plain tap does not.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Long-press%20stays%20(ms)::10000"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Save" }
+- assertNotVisible: "Saves your work"
+- longPressOn:
+    text: "Save"
+- assertVisible: "Saves your work"
+- runFlow: ../../../_lib/assert-no-crash.yaml

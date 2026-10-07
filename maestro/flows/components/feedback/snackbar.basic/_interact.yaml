@@ -1,0 +1,38 @@
+# KSnackbar: the action ends it, and left alone it dismisses itself (short duration: 4 s).
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Result: ActionPerformed" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Message sent" }
+- extendedWaitUntil:
+    visible: "Result: Dismissed"
+    timeout: 12000
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Undo" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

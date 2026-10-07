@@ -45,11 +45,12 @@ fun DemoScope.KTooltipDemo() {
     val placement = choiceControl("Placement", KTooltipPlacement.entries)
     val enabled = boolControl("Enabled", true)
     val delay = floatControl("Hover delay (ms)", 0f..1500f, 500f)
+    val stays = floatControl("Long-press stays (ms)", 500f..10000f, 1500f)
     Row(Modifier.padding(32.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        KTooltip(text, enabled = enabled, placement = placement, showDelayMillis = delay.toLong()) {
+        KTooltip(text, enabled = enabled, placement = placement, showDelayMillis = delay.toLong(), longPressDurationMillis = stays.toLong()) {
             KIconButton(onClick = {}, contentDescription = text) { KIcon(DemoIcons.Star, null) }
         }
-        KTooltip("Saves your work", enabled = enabled, placement = placement, showDelayMillis = delay.toLong()) {
+        KTooltip("Saves your work", enabled = enabled, placement = placement, showDelayMillis = delay.toLong(), longPressDurationMillis = stays.toLong()) {
             KButton(onClick = {}, variant = KButtonVariant.Tonal) { KText("Save") }
         }
     }

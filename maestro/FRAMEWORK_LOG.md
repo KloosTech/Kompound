@@ -3,6 +3,12 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-07, pilots 10 to 12: KBottomSheet, KSnackbar, KTooltip
+- **Learned**: a sheet is a window like a dialog (plain-text selectors, `back`, scrim tap at `50%,6%`). The snackbar lives inside the page, so the scoped `preview-*` helpers work; its auto dismissal is waited for with `extendedWaitUntil` (4 s). A tooltip is a popup shown for 1.5 s after a long press, but Maestro's long press holds for about 3 s, so the demo got a "Long-press stays (ms)" control that the flows set to 10 s.
+- **Found a component bug**: `KTooltip` never showed on touch when its anchor was clickable (every real use). Cause: the long-press detector waits for an unconsumed press, a button consumes it first. Fixed by observing the press on the initial pass (never consumed); test `longPressOnAClickableAnchorShowsTheTooltipToo`.
+- Probing a screen: a `takeScreenshot` step in a throwaway flow (run with `maestro test --no-reinstall-driver`), read from `~/.maestro/tests/<run>/<flow>/takeScreenshot/`. Never `maestro hierarchy` (reinstalls the driver).
+- Flows: sheet (list, close, back, scrim, always dialog / always sheet, no footer or title), snackbar (action, dismissal, indefinite, no action, tone), tooltip (long press, tap shows nothing, disabled, placement). 12 flows pass; 15 of 67 demos covered.
+
 ## 2026-10-06, pilots 7 to 9: KMenu, KActionMenu, KContextMenu
 - **Learned**: a popup menu is its own window like a dialog: plain-text selectors, `back` closes it, a point tap outside (`50%,6%`) dismisses. A group (`Sort by`, `Move to`) is a collapsible entry: tap it first, then its items. `longPressOn` opens the context menu. `KContextMenuArea` asks for its actions when it opens, so a toggle with `closeOnClick=false` shows its new checked state on the next opening, not while open.
 - **Found a component bug**: a selected action item (`Dark mode`, `Pinned`) was announced as a plain button; only a decorative check icon showed the state. Fixed in `KMenuItem` (`semantics { selected = true }`, test `selectedActionItemExposesSelectedStateAndPlainOnesDoNot`). Compose reports `selected` as `checked` in Maestro's hierarchy, so `assert-checked` style selectors apply.

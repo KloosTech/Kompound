@@ -37,7 +37,6 @@ progress.indicators
 scaffold.screen
 search.bar
 segmented.control
-sheet.bottom
 skeleton.loading
 slide.confirm
 snackbar.basic
