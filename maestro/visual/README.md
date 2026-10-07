@@ -35,6 +35,10 @@ Calibration on 56 images (42 planted defects, 14 clean), temperature 0, thinking
 | `qwen3.5:9b` | 28/42 | 6/42 | 7/14 (19 invented issues) | 2.0 s |
 | `gemma4:26b` | 19/42 | 6/42 | 0/14 | 14.1 s |
 
+With `--verify` (each issue is cropped and sent back for a yes/no) `qwen3.8:27b` invents half as many alarms (3 of 14 clean images) but flags 22 instead of 33 of the planted defects: it throws out the subtle ones (shifted, missing, recoloured), so it is off by default.
+
+On the 335 real screenshots `qwen3.8:27b` reported 347 issues (207 "missing", 123 "clipped"). Sampling them, almost all are wrong: content that continues below the screen edge read as "clipped", a sibling's feature read as "missing", deliberate ellipsis and horizontally scrolling code read as truncation. The one plausible hit was a truncated table cell at font 2.0 (by design). **Precision on real screens is far too low to be useful as it is.** Layer 1 is the check; ideas that may work better are a light-versus-dark and LTR-versus-RTL comparison asked as "what differs besides colour or direction", and close-ups of single components with the design intent in the prompt.
+
 "located" means the centre of the model's box lies near the planted defect. No model is good enough to gate on: use it to rank shots for a human, and re-run `score` after any prompt or model change.
 
 Not done yet: token palette check (needs the theme colours as data), sibling spacing consistency, a verification pass over each vlm finding, baselines in a storage decided later.

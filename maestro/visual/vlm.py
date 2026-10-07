@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Layer 2 of the visual checks: a vision model on a local Ollama server looks at screenshots and lists layout and colour defects.
 
-    vlm.py score <calibration folder> --model gemma4:26b [--host http://192.168.1.8:11434] [--limit N]
+    vlm.py score <calibration folder> --model gemma4:26b [--host http://192.168.1.8:11434] [--limit N] [--verify]
     vlm.py review <screenshots folder> --model gemma4:26b --out build/visual
 
 `score` runs the model on the planted-defect set from calibrate.py and prints, per defect kind, how often it flagged the image and how often it pointed at the
@@ -71,6 +71,39 @@ def ask(host, model, png, timeout=600):
     return issues, time.time() - t
 
 
+VERIFY_SCHEMA = {"type": "object", "properties": {"real": {"type": "boolean"}, "reason": {"type": "string"}}, "required": ["real", "reason"]}
+
+
+def verify(host, model, png, area, issue, timeout=600):
+    """Second look: the part of the screenshot around one reported issue, with a yes/no question. Returns (real, reason)."""
+    img = Image.open(io.BytesIO(png))
+    b = [max(0, min(1000, v)) for v in issue["box"]]
+    w, h = img.size
+    x0, y0, x1, y1 = b[0] * w / 1000, b[1] * h / 1000, b[2] * w / 1000, b[3] * h / 1000
+    padx, pady = max(60, (x1 - x0) * 0.5), max(60, (y1 - y0) * 0.5)
+    crop = img.crop((int(max(0, x0 - padx)), int(max(0, y0 - pady)), int(min(w, x1 + padx)), int(min(h, y1 + pady))))
+    if crop.width < 2 or crop.height < 2:
+        return False, "empty region"
+    if max(crop.size) < 400:
+        f = 400 / max(crop.size)
+        crop = crop.resize((int(crop.width * f), int(crop.height * f)), Image.LANCZOS)
+    buf = io.BytesIO()
+    crop.save(buf, "PNG")
+    question = (f"This is a close-up of part of a UI screenshot. Someone reported a possible visual defect here ({issue['kind']}: {issue['description']}). "
+                "Look at the close-up and decide whether a real visual defect is visible: something cut off, overlapping, missing, unreadable against its background, "
+                "off-colour or out of line with its neighbours. Normal design (rounded corners, outlines, disabled grey, spacing that looks deliberate) is not a defect. "
+                'Answer JSON only: {"real": true or false, "reason": "one short sentence"}')
+    body = {"model": model, "stream": False, "think": False, "format": VERIFY_SCHEMA, "options": {"temperature": 0, "num_ctx": 8192},
+            "messages": [{"role": "user", "content": question, "images": [base64.b64encode(buf.getvalue()).decode()]}]}
+    req = urllib.request.Request(f"{host}/api/chat", json.dumps(body).encode(), {"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        try:
+            d = json.loads(json.load(r)["message"]["content"])
+            return bool(d.get("real")), str(d.get("reason", ""))
+        except json.JSONDecodeError:
+            return True, "unparsable verdict"
+
+
 def to_pixels(box, area):
     x0, y0, x1, y1 = area
     w, h = x1 - x0, y1 - y0
@@ -94,6 +127,10 @@ def score(args):
     for i, m in enumerate(manifest):
         png, area = prepare(folder / m["file"])
         issues, secs = ask(args.host, args.model, png)
+        if args.verify:
+            t = time.time()
+            issues = [x for x in issues if len(x.get("box", [])) == 4 and verify(args.host, args.model, png, area, x)[0]]
+            secs += time.time() - t
         times.append(secs)
         s = stats[m["defect"]]
         s["n"] += 1
@@ -113,7 +150,7 @@ def score(args):
     c = stats["none"]
     print(f"  controls  {c['issues']} invented issues on {c['n']} clean images, {sum(1 for r in rows if r['defect'] == 'none' and r['issues'])} images with at least one")
     Path(args.out).mkdir(parents=True, exist_ok=True)
-    (Path(args.out) / f"score-{args.model.replace(':', '_').replace('/', '_')}.json").write_text(json.dumps(rows, indent=1))
+    (Path(args.out) / f"score-{args.model.replace(':', '_').replace('/', '_')}{'-verify' if args.verify else ''}.json").write_text(json.dumps(rows, indent=1))
 
 
 def review(args):
@@ -124,6 +161,13 @@ def review(args):
     for i, f in enumerate(shots):
         png, area = prepare(f)
         issues, secs = ask(args.host, args.model, png)
+        if args.verify:
+            kept = []
+            for x in issues:
+                real, why = verify(args.host, args.model, png, area, x) if len(x.get("box", [])) == 4 else (False, "no box")
+                if real:
+                    kept.append(x)
+            issues = kept
         for x in issues:
             findings.append(dict(demo=A.NAME.search(f.name)["demo"], shot=f.name, check="vlm", severity="warn", kind=x["kind"],
                                  box=[round(v) for v in to_pixels(x["box"], area)], msg=x["description"]))
@@ -139,6 +183,7 @@ def main():
     p.add_argument("--model", default="gemma4:26b")
     p.add_argument("--host", default="http://192.168.1.8:11434")
     p.add_argument("--limit", type=int)
+    p.add_argument("--verify", action="store_true", help="send the region of every issue back to the model for a yes/no second look")
     p.add_argument("--out", default="build/visual")
     args = p.parse_args()
     (score if args.command == "score" else review)(args)
