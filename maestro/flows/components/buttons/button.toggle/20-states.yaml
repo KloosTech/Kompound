@@ -1,0 +1,28 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.toggle states
+tags:
+  - states
+  - component:button.toggle
+  - category:buttons
+properties:
+  junitClassname: button.toggle
+---
+# disabled: taps change nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.toggle
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Off" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Off" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Off" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Off" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,55 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: accordion.basic states
+tags:
+  - states
+  - component:accordion.basic
+  - category:layout
+properties:
+  junitClassname: accordion.basic
+---
+# exclusive: opening one closes the other
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+      CONTROLS: "control=Exclusive::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Free for orders above 50 euros.*" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Returns" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Send items back within 30 days.*" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Free for orders above 50 euros.*" }
+# disabled: headers ignore taps
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Returns" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Returns" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Send items back within 30 days.*" }
+# no badge
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+      CONTROLS: "control=Badge%20in%20header::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Returns" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "New" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: search.bar smoke
+tags:
+  - smoke
+  - component:search.bar
+  - category:inputs
+properties:
+  junitClassname: search.bar
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+- runFlow: ../../../_lib/assert-no-crash.yaml

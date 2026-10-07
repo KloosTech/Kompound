@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.toggle smoke
+tags:
+  - smoke
+  - component:button.toggle
+  - category:buttons
+properties:
+  junitClassname: button.toggle
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.toggle
+- runFlow: ../../../_lib/assert-no-crash.yaml

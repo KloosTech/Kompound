@@ -2,11 +2,11 @@
 // Use: - runScript: { file: ../../../_lib/strings.js, env: { LANG: ${LANG} } }   then  ${output.s.showPassword}
 // Keep in sync with tech.kloos.kompound.i18n.KompoundStrings (add the words a flow needs, in all five languages).
 var S = {
-  en: { showPassword: 'Show password', hidePassword: 'Hide password', clearSearch: 'Clear search', close: 'Close', cancel: 'Cancel', ok: 'OK' },
-  de: { showPassword: 'Passwort anzeigen', hidePassword: 'Passwort verbergen', clearSearch: 'Suche löschen', close: 'Schließen', cancel: 'Abbrechen', ok: 'OK' },
-  fr: { showPassword: 'Afficher le mot de passe', hidePassword: 'Masquer le mot de passe', clearSearch: 'Effacer la recherche', close: 'Fermer', cancel: 'Annuler', ok: 'OK' },
-  es: { showPassword: 'Mostrar contraseña', hidePassword: 'Ocultar contraseña', clearSearch: 'Borrar búsqueda', close: 'Cerrar', cancel: 'Cancelar', ok: 'Aceptar' },
-  it: { showPassword: 'Mostra password', hidePassword: 'Nascondi password', clearSearch: 'Cancella ricerca', close: 'Chiudi', cancel: 'Annulla', ok: 'OK' }
+  en: { search: 'Search', showPassword: 'Show password', hidePassword: 'Hide password', clearSearch: 'Clear search', close: 'Close', cancel: 'Cancel', ok: 'OK' },
+  de: { search: 'Suchen', showPassword: 'Passwort anzeigen', hidePassword: 'Passwort verbergen', clearSearch: 'Suche löschen', close: 'Schließen', cancel: 'Abbrechen', ok: 'OK' },
+  fr: { search: 'Rechercher', showPassword: 'Afficher le mot de passe', hidePassword: 'Masquer le mot de passe', clearSearch: 'Effacer la recherche', close: 'Fermer', cancel: 'Annuler', ok: 'OK' },
+  es: { search: 'Buscar', showPassword: 'Mostrar contraseña', hidePassword: 'Ocultar contraseña', clearSearch: 'Borrar búsqueda', close: 'Cerrar', cancel: 'Cancelar', ok: 'Aceptar' },
+  it: { search: 'Cerca', showPassword: 'Mostra password', hidePassword: 'Nascondi password', clearSearch: 'Cancella ricerca', close: 'Chiudi', cancel: 'Annulla', ok: 'OK' }
 };
 var lang = (typeof LANG !== 'undefined' && LANG) ? LANG : 'en';
 output.s = S[lang] || S.en;

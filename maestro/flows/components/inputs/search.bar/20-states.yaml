@@ -1,0 +1,35 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: search.bar states
+tags:
+  - states
+  - component:search.bar
+  - category:inputs
+properties:
+  junitClassname: search.bar
+---
+# disabled: nothing can be typed
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+      CONTROLS: "control=Enabled::false"
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "en" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.search}" }
+- inputText: "typed"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "typed" }
+# filter slot
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+      CONTROLS: "control=Filter%20button%20slot::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Filter" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
