@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chip.basic interact
+tags:
+  - interact
+  - component:chip.basic
+  - category:inputs
+properties:
+  junitClassname: chip.basic
+---
+- runFlow: _interact.yaml

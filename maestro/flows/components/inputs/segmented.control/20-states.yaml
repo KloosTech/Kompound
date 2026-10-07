@@ -1,0 +1,56 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: segmented.control states
+tags:
+  - states
+  - component:segmented.control
+  - category:inputs
+properties:
+  junitClassname: segmented.control
+---
+# disabled: segments are disabled and a tap changes nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Day" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Week" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Week" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Day" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Week" }
+# five segments, the last ones reachable
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+      CONTROLS: "control=Segments::5"
+- assertVisible: "Year"
+- assertVisible: "All time"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "All time" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "All time" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Day" }
+# two segments
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+      CONTROLS: "control=Segments::2"
+- assertVisible: "Week"
+- assertNotVisible: "Month"
+- runFlow: ../../../_lib/assert-no-crash.yaml
