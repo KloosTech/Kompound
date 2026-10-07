@@ -1,0 +1,73 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: avatar.basic states
+tags:
+  - states
+  - component:avatar.basic
+  - category:display
+properties:
+  junitClassname: avatar.basic
+---
+# size Small
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Size::Small"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+# size Large
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Size::Large"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+# status Online
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Status::Online"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*online.*" }
+# status Away
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Status::Away"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*away.*" }
+# status Busy
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Status::Busy"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*busy.*" }
+# status Offline
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Status::Offline"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*offline.*" }
+# another name
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      CONTROLS: "control=Name::Zed%20Zoe"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Zed Zoe" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

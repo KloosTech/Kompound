@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: keyvalue.basic smoke
+tags:
+  - smoke
+  - component:keyvalue.basic
+  - category:display
+properties:
+  junitClassname: keyvalue.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

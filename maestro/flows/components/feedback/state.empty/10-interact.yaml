@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: state.empty interact
+tags:
+  - interact
+  - component:state.empty
+  - category:feedback
+properties:
+  junitClassname: state.empty
+---
+- runFlow: _interact.yaml

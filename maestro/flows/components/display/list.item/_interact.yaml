@@ -1,0 +1,35 @@
+# KListItem (selectable): tapping a row selects it and only it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: list.item
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Selectable%20rows::true"
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Ada Lovelace" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Grace Hopper" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Grace Hopper" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Ada Lovelace" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Alan Turing" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Alan Turing" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Grace Hopper" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

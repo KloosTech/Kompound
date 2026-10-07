@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: list.item interact
+tags:
+  - interact
+  - component:list.item
+  - category:display
+properties:
+  junitClassname: list.item
+---
+- runFlow: _interact.yaml

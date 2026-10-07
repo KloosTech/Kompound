@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: avatar.basic smoke
+tags:
+  - smoke
+  - component:avatar.basic
+  - category:display
+properties:
+  junitClassname: avatar.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

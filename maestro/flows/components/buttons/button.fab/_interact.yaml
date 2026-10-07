@@ -1,0 +1,19 @@
+# KFab: a tap is accepted and the button stays.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.fab
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Create" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Create" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

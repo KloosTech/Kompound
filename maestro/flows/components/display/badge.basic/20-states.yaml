@@ -1,0 +1,52 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: badge.basic states
+tags:
+  - states
+  - component:badge.basic
+  - category:display
+properties:
+  junitClassname: badge.basic
+---
+# tone Error
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+      CONTROLS: "control=Tone::Error"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Info" }
+# tone Success
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+      CONTROLS: "control=Tone::Success"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Info" }
+# subtle square
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+      CONTROLS: "control=Emphasis::Subtle&control=Shape::Square"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12" }
+# other text
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+      CONTROLS: "control=Text::New"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "New" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

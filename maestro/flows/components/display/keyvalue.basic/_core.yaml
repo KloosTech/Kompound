@@ -1,0 +1,38 @@
+# KKeyValue and KMetric show their text, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Voltage" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12.4 V" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Firmware" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "2.4.1" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Health" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Good" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "87.*" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "87.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,10 +1,6 @@
 # Demos that do not have a maestro smoke flow yet (ADR 0008). This list may only shrink: add a flow (maestro/scripts/scaffold.sh <demo-id>) and delete the line.
 animation.shake
-avatar.basic
-badge.basic
 border.dashed
-button.fab
-button.progress
 chart.simple
 code.view
 color.picker
@@ -19,8 +15,6 @@ graph.logic
 graph.nodes
 graph.triggers
 icon.basic
-keyvalue.basic
-list.item
 markdown.view
 navigation.bar-rail-drawer
 progress.indicators
@@ -28,9 +22,6 @@ scaffold.screen
 skeleton.loading
 slide.confirm
 split.pane
-state.empty
-state.error
-steps.list
 surface.basic
 table.data
 template.fields

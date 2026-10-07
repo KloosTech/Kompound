@@ -1,0 +1,26 @@
+# KAvatar shows initials and an accessible name, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: avatar.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Names get stable colours" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Grace Hopper" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Dennis Ritchie" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

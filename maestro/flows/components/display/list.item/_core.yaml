@@ -1,0 +1,38 @@
+# KListItem shows headline, supporting text, overline, badge and the bottom slot, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: list.item
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Mathematician" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pioneers" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Grace Hopper" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "3" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Alan Turing" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "With a bottom slot" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Tag" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

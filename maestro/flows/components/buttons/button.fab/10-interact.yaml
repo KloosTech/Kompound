@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.fab interact
+tags:
+  - interact
+  - component:button.fab
+  - category:buttons
+properties:
+  junitClassname: button.fab
+---
+- runFlow: _interact.yaml

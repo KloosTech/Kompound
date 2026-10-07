@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: state.error smoke
+tags:
+  - smoke
+  - component:state.error
+  - category:feedback
+properties:
+  junitClassname: state.error
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.error
+- runFlow: ../../../_lib/assert-no-crash.yaml

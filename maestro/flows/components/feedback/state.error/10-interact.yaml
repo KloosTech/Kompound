@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: state.error interact
+tags:
+  - interact
+  - component:state.error
+  - category:feedback
+properties:
+  junitClassname: state.error
+---
+- runFlow: _interact.yaml
