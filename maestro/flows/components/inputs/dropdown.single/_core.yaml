@@ -1,0 +1,45 @@
+# KDropdown shows label and placeholder, opens a list of options and takes a choice, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Fruit" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a fruit" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Choose a fruit" }
+- assertVisible: "Apple"
+- assertVisible: "Banana"
+- assertVisible: "Cherry"
+- assertVisible: "Dragon fruit"
+- assertVisible: "Elderberry"
+- assertVisible: "Fig"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a fruit" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Choose a fruit" }
+- tapOn:
+    text: "Banana"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Banana" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Choose a fruit" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

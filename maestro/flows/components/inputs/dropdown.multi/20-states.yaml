@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dropdown.multi states
+tags:
+  - states
+  - component:dropdown.multi
+  - category:inputs
+properties:
+  junitClassname: dropdown.multi
+---
+# disabled: the list does not open
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.multi
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Apple, Cherry" }
+- assertNotVisible: "Banana"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Apple, Cherry" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

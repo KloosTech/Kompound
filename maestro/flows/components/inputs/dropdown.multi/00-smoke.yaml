@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dropdown.multi smoke
+tags:
+  - smoke
+  - component:dropdown.multi
+  - category:inputs
+properties:
+  junitClassname: dropdown.multi
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.multi
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Apple, Cherry" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
