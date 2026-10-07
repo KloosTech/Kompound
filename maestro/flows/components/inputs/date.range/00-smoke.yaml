@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: date.range smoke
+tags:
+  - smoke
+  - component:date.range
+  - category:inputs
+properties:
+  junitClassname: date.range
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.range
+- runFlow: ../../../_lib/assert-no-crash.yaml

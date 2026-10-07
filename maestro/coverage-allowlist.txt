@@ -4,8 +4,6 @@ chart.simple
 code.view
 color.picker
 command.palette
-date.field
-date.range
 form.signup
 graph.engine
 graph.links

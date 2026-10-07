@@ -1,0 +1,32 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: date.field states
+tags:
+  - states
+  - component:date.field
+  - category:inputs
+properties:
+  junitClassname: date.field
+---
+# error: the supporting text shows
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+      CONTROLS: "control=Error::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Date is required" }
+# disabled: the calendar does not open
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick a date" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pick a date" }
+- assertNotVisible: "(.*[^0-9])?15([^0-9].*)?"
+- runFlow: ../../../_lib/assert-no-crash.yaml

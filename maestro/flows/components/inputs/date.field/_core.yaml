@@ -1,0 +1,20 @@
+# KDateField shows label and placeholder, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Date of birth" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pick a date" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

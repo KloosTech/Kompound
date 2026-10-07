@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: date.range states
+tags:
+  - states
+  - component:date.range
+  - category:inputs
+properties:
+  junitClassname: date.range
+---
+# disabled: the calendar does not open
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.range
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick dates" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pick dates" }
+- assertNotVisible: "(.*[^0-9])?14([^0-9].*)?"
+- runFlow: ../../../_lib/assert-no-crash.yaml
