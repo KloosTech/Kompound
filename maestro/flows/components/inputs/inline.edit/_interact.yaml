@@ -1,0 +1,22 @@
+# KInlineEdit: tapping the text edits it, the keyboard's enter commits.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quarterly report" }
+- inputText: "v2"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*v2.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tag.input smoke
+tags:
+  - smoke
+  - component:tag.input
+  - category:inputs
+properties:
+  junitClassname: tag.input
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+- runFlow: ../../../_lib/assert-no-crash.yaml

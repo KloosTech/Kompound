@@ -1,0 +1,34 @@
+# KTextArea: typed text replaces the placeholder and counts; erasing brings the placeholder back.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.area
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Write something" }
+- inputText: "first line"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "first line" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "10/200" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Write something" }
+- eraseText: 10
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Write something" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "0/200" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

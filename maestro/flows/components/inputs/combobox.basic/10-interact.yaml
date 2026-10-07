@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: combobox.basic interact
+tags:
+  - interact
+  - component:combobox.basic
+  - category:inputs
+properties:
+  junitClassname: combobox.basic
+---
+- runFlow: _interact.yaml

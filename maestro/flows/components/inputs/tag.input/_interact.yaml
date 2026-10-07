@@ -1,0 +1,24 @@
+# KTagInput: typing a word and pressing enter adds a tag; matching suggestions are listed. (Tapping a suggestion is not part of this flow: about one run in three the tap only closed the list; see FRAMEWORK_LOG.)
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- tapOn:
+    point: "75%,18%"
+    retryTapIfNoChange: false
+- inputText: "compose"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "2 tag.s.: kotlin, compose" }
+- inputText: "desi"
+- assertVisible: "design"
+- runFlow: ../../../_lib/assert-no-crash.yaml

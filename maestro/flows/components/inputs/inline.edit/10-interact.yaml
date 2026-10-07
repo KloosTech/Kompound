@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: inline.edit interact
+tags:
+  - interact
+  - component:inline.edit
+  - category:inputs
+properties:
+  junitClassname: inline.edit
+---
+- runFlow: _interact.yaml

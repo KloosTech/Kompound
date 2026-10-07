@@ -1,0 +1,29 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tag.input environments
+tags:
+  - env
+  - slow
+  - component:tag.input
+  - category:inputs
+properties:
+  junitClassname: tag.input
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
+# the interaction once, in a combination of them (not RTL: the field is focused by a tap on the free space after the chips, which sits on the other side in RTL)
+- runFlow:
+    file: _interact.yaml
+    env: { THEME: dark, FONT: "1.5", DENSITY: compact, LANG: de }

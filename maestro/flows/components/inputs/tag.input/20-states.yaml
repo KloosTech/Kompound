@@ -1,0 +1,63 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tag.input states
+tags:
+  - states
+  - component:tag.input
+  - category:inputs
+properties:
+  junitClassname: tag.input
+---
+# duplicates are dropped by default
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+- tapOn:
+    point: "75%,18%"
+    retryTapIfNoChange: false
+- inputText: "kotlin"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1 tag.s.: kotlin" }
+# max tags 1: no second tag
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+      CONTROLS: "control=Max%20tags::1"
+- tapOn:
+    point: "75%,18%"
+    retryTapIfNoChange: false
+- inputText: "extra"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1 tag.s.: kotlin" }
+# too long a tag shows the validation message
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+- tapOn:
+    point: "75%,18%"
+    retryTapIfNoChange: false
+- inputText: "abcdefghijklmnopqrstuvwxyz"
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "At most 20 characters" }
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+      CONTROLS: "control=Enabled::false"
+- tapOn:
+    point: "75%,18%"
+    retryTapIfNoChange: false
+- inputText: "nope"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1 tag.s.: kotlin" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

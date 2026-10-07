@@ -8,7 +8,6 @@ button.progress
 chart.simple
 code.view
 color.picker
-combobox.basic
 command.palette
 date.field
 date.range
@@ -20,7 +19,6 @@ graph.logic
 graph.nodes
 graph.triggers
 icon.basic
-inline.edit
 keyvalue.basic
 list.item
 markdown.view
@@ -35,10 +33,7 @@ state.error
 steps.list
 surface.basic
 table.data
-tag.input
 template.fields
-textfield.area
-textfield.number
 theme.presets
 theme.tokens
 time.picker

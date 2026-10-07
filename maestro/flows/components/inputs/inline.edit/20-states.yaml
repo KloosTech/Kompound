@@ -1,0 +1,56 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: inline.edit states
+tags:
+  - states
+  - component:inline.edit
+  - category:inputs
+properties:
+  junitClassname: inline.edit
+---
+# a blank title is rejected with the validation message
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quarterly report" }
+- tapOn:
+    point: "55%,18%"
+    retryTapIfNoChange: false
+- eraseText: 30
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "A title is required" }
+# validation off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+      CONTROLS: "control=Required%20(validation)::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quarterly report" }
+- tapOn:
+    point: "55%,18%"
+    retryTapIfNoChange: false
+- eraseText: 30
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "A title is required" }
+# disabled: no editing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quarterly report" }
+- inputText: "x"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Quarterly reportx" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,23 @@
+# KCombobox shows label, placeholder and the empty result line, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Country" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Type to search" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing chosen yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

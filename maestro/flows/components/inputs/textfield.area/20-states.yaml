@@ -1,0 +1,23 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.area states
+tags:
+  - states
+  - component:textfield.area
+  - category:inputs
+properties:
+  junitClassname: textfield.area
+---
+# disabled: typing does nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.area
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Write something" }
+- inputText: "typed"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "typed" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,23 @@
+# KTextArea shows label, placeholder and the character counter, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.area
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Notes" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Write something" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "0/200" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
