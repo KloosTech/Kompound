@@ -3,6 +3,9 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-07, full run: the save-password dialog
+- **Found by the first full run**: after `form.signup` the system showed Google Password Manager's "Save password?" dialog (the form has an e-mail field and a field that looks like a password to autofill). It stayed on top and every later flow failed at `harness:ready` after 16 s (about 90 flows). adb cannot switch the autofill service off (`WRITE_SECURE_SETTINGS`), so the harness does it: in the `maestro` build the activity marks its window `IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS`. Lesson: a full run, not only per-component runs, finds cross-flow leaks.
+
 ## 2026-10-07, pilots 46 to 51: date fields, time and colour pickers, command palette, form
 - **Components**: KDateField, KDateRangeField, KTimePicker (and field), KColorPicker (and field), KCommandPalette, KForm (sign-up). 51 of 67 demos covered at the time, 53 after the form and palette.
 - **Learned**: the calendar's day cells are announced as whole dates in the device language ("15. Oktober 2026"), so a day is `(.*[^0-9])?15([^0-9].*)?`; the calendar's own titles follow the device locale while Kompound's OK / Cancel follow the harness language. Stepper buttons are named "Hour +" and need `\+` in a selector (a bare `+` is a regex quantifier). A field that has no text of its own is focused by a relational tap: `tapOn: { below: { text: "Name" }, above: { text: "E-mail" } }`, which is robust on long forms.
