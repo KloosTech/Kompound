@@ -1,0 +1,38 @@
+# Navigation bar: a tap selects a destination, the disabled one ignores taps.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Component::Bar"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: inbox" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "People" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: inbox" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Settings" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: settings" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: home" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,126 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: navigation.bar-rail-drawer states
+tags:
+  - states
+  - component:navigation.bar-rail-drawer
+  - category:navigation
+properties:
+  junitClassname: navigation.bar-rail-drawer
+---
+# rail: destinations select
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      CONTROLS: "control=Component::Rail"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "People" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Settings" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: inbox" }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: "Inbox" }
+# drawer: header and section text; the selection is marked (the drawer takes the whole width, so there is no screen text)
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      CONTROLS: "control=Component::Drawer"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "My app" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Manage" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "People" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Settings" }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: "Home" }
+- runFlow:
+    file: ../../../_lib/assert-unselected.yaml
+    env: { LABEL: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/assert-selected.yaml
+    env: { LABEL: "Inbox" }
+- runFlow:
+    file: ../../../_lib/assert-unselected.yaml
+    env: { LABEL: "Home" }
+# modal drawer: closed at first, opened by the menu button, closes on a pick
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      CONTROLS: "control=Component::Modal%20drawer"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: home" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open navigation menu" }
+- assertVisible: "Inbox"
+- assertVisible: "My app"
+- tapOn:
+    text: "Settings"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: settings" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "My app" }
+# no badge, labels only on the selected one
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      CONTROLS: "control=Component::Bar&control=Badge::false&control=Always%20show%20labels::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: home" }
+# nothing disabled: People can be selected
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      CONTROLS: "control=Component::Bar&control=Disable%20one%20item::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "People" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: people" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

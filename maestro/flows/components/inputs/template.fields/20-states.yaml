@@ -1,0 +1,18 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: template.fields states
+tags:
+  - states
+  - component:template.fields
+  - category:inputs
+  - todo
+properties:
+  junitClassname: template.fields
+---
+# TODO: disabled, error, empty, loading, long text. Preset controls with CONTROLS (url-encoded, Name::value):
+#   - runFlow: { file: ../../../_lib/open-demo.yaml, env: { DEMO: template.fields, CONTROLS: "control=Enabled::false" } }
+# Controls of this demo:
+#   boolControl("Fields known", true
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields

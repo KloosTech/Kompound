@@ -1,0 +1,15 @@
+# What template.fields does, in whatever environment the caller opens it in.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+# TODO: the behaviour to check in every environment (taps, typing, selection), using the _lib helpers (preview-see, preview-tap, assert-disabled, ...)
+- runFlow: ../../../_lib/assert-no-crash.yaml

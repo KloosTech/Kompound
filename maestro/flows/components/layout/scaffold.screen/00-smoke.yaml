@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: scaffold.screen smoke
+tags:
+  - smoke
+  - component:scaffold.screen
+  - category:layout
+properties:
+  junitClassname: scaffold.screen
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: scaffold.screen
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,25 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: template.fields environments
+tags:
+  - env
+  - component:template.fields
+  - category:inputs
+  - todo
+properties:
+  junitClassname: template.fields
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
