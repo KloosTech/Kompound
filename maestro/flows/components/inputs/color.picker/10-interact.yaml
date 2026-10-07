@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: color.picker interact
+tags:
+  - interact
+  - component:color.picker
+  - category:inputs
+properties:
+  junitClassname: color.picker
+---
+- runFlow: _interact.yaml

@@ -1,0 +1,49 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: time.picker states
+tags:
+  - states
+  - component:time.picker
+  - category:inputs
+properties:
+  junitClassname: time.picker
+---
+# minute step 15
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: en }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+      CONTROLS: "control=Minute%20step::15"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Minute \\+" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: 09:45" }
+# 12 hour clock
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+      CONTROLS: "control=24%20hour%20clock::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: 0?9:30.*" }
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Hour \\+" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Hour \\+" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: 09:30" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

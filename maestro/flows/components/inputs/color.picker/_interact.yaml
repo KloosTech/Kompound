@@ -1,0 +1,41 @@
+# KColorPicker: a swatch picks its colour; typing a hex value picks that one.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: color.picker
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "#E53935" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: #E53935" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "#1E88E5" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: #1E88E5" }
+# the field has no text of its own besides its value, which repeats (colour preview, swatches): below its label come the preview (0), the field (1), then the swatches
+- tapOn:
+    text: "#.*"
+    below: "${output.s.hexColor}"
+    index: 1
+    retryTapIfNoChange: false
+- eraseText: 10
+- inputText: "00FF00"
+# the keyboard pushes the controls card off screen, and the preview helpers are scoped above it
+- hideKeyboard
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: #00FF00" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

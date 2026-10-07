@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: color.picker smoke
+tags:
+  - smoke
+  - component:color.picker
+  - category:inputs
+properties:
+  junitClassname: color.picker
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: color.picker
+- runFlow: ../../../_lib/assert-no-crash.yaml

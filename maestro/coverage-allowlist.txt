@@ -2,7 +2,6 @@
 animation.shake
 chart.simple
 code.view
-color.picker
 command.palette
 form.signup
 graph.engine
@@ -16,4 +15,3 @@ scaffold.screen
 template.fields
 theme.presets
 theme.tokens
-time.picker

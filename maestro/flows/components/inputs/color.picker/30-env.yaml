@@ -1,0 +1,29 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: color.picker environments
+tags:
+  - env
+  - slow
+  - component:color.picker
+  - category:inputs
+properties:
+  junitClassname: color.picker
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
+# the interaction once, in a combination of them (not RTL: the hex field is found by its position after the colour preview, which flips in RTL)
+- runFlow:
+    file: _interact.yaml
+    env: { THEME: dark, FONT: "1.5", DENSITY: compact, LANG: de }

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: time.picker smoke
+tags:
+  - smoke
+  - component:time.picker
+  - category:inputs
+properties:
+  junitClassname: time.picker
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+- runFlow: ../../../_lib/assert-no-crash.yaml
