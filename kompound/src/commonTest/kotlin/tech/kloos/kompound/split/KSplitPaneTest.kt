@@ -70,8 +70,11 @@ class KSplitPaneTest {
         assertTrue(state.fraction > 0.6f, "dragged right: ${state.fraction}")
         onNodeWithContentDescription("Resize panes").performTouchInput { swipe(center, center + Offset(-2000f, 0f), durationMillis = 200) }
         waitForIdle()
-        assertEquals(0f, state.fraction, "the fraction itself is clamped to 0..1")
-        assertTrue(size("first").width >= 120, "but the pane keeps its minimum: ${size("first").width}")
+        assertEquals(0.24f, state.fraction, 0.01f, "the fraction stops at what the first pane can take (120 of 500)")
+        assertTrue(size("first").width >= 120, "the pane keeps its minimum: ${size("first").width}")
+        onNodeWithContentDescription("Resize panes").performTouchInput { swipe(center, center + Offset(50f, 0f), durationMillis = 200) }
+        waitForIdle()
+        assertTrue(state.fraction > 0.27f, "dragging back moves the divider at once (50 px less the touch slop), there is no dead distance to win back: ${state.fraction}")
         state.fraction = 1f
         waitForIdle()
         assertTrue(size("second").width >= 100, "second keeps its minimum: ${size("second").width}")
@@ -92,12 +95,12 @@ class KSplitPaneTest {
         assertEquals(0.46f, state.fraction, 0.001f)
         divider.performKeyInput { pressKey(Key.MoveEnd) }
         waitForIdle()
-        assertEquals(1f, state.fraction)
+        assertEquals(0.84f, state.fraction, 0.001f, "End: the second pane keeps its 80dp")
         divider.performKeyInput { pressKey(Key.MoveHome) }
         waitForIdle()
-        assertEquals(0f, state.fraction)
+        assertEquals(0.16f, state.fraction, 0.001f, "Home: the first pane keeps its 80dp")
         val config = divider.fetchSemanticsNode().config
-        assertEquals("0%", config.getOrNull(SemanticsProperties.StateDescription))
+        assertEquals("16%", config.getOrNull(SemanticsProperties.StateDescription))
         divider.performSemanticsAction(SemanticsActions.SetProgress) { it(0.3f) }
         waitForIdle()
         assertEquals(0.3f, state.fraction, 0.001f)

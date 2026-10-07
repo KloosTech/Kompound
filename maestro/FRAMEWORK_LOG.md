@@ -3,6 +3,12 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-07, pilots 26 to 43: display components, slide to confirm, split pane
+- **Components**: KFab, KProgressButton, KAvatar, KBadge, KEmptyState, KErrorState, KStepList, KKeyValue, KListItem, KDivider, KIcon, progress indicators, KSkeleton, KSurface, dashed border, KSlideToConfirm, KSplitPane. 45 of 67 demos have flows. Display-only components have no `10-interact`; their `30-env` asserts the stress combination instead (`build_static`).
+- **Learned**: a progress button replaces its label with the percentage while running; a key-value metric merges value and unit, so use a regex (`87.*`). A gesture on a component without text is a `swipe` between percentage points; the handle or divider position depends on direction and size, so those interaction flows run in the default environment only. `copyTextFrom` plus `evalScript console.log` prints a value into `maestro.log` for probing.
+- **Found a component bug**: `KSplitPane` kept the raw fraction when a drag passed the minimum pane size: the divider ran ahead of the finger and the accessibility state read 8% for a pane that showed 30%. The probe printed `First pane (8%)` after a drag back that should have stopped near 30%. Fixed (the fraction stays inside the layout's range) with updated and new tests.
+- Transient `device not found` (adb dropped for a second) fails a whole batch of flows in milliseconds; rerun, nothing to fix.
+
 ## 2026-10-07, pilots 13 to 25: dropdowns, selection, text entry
 - **Components covered**: KDropdown, KMultiDropdown, KSegmentedControl, KChip, KAccordion, KToggleButton, KIconButton, KSearchBar, KTextArea, KNumberField, KInlineEdit, KTagInput, KCombobox (all four flows each). 28 of 67 demos have flows.
 - **Learned**: segmented control and chips report their selection as `checked` on the container (tabs use `selected`), so `assert-checked` / `assert-unchecked` serve them. An accordion's closed panel is not in the tree, so content text visibility is the assertion. `strings.js` gained `search`. A free area of a field (the tag input) is focused by a point tap; in RTL it sits on the other side, so that flow's stress environment leaves RTL out. `scripts/prune-allowlist.sh` drops every covered demo from the coverage allowlist.
