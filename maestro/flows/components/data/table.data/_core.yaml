@@ -1,0 +1,41 @@
+# KDataTable shows header, rows and the select-all box, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Name" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "City" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Age" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 1" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Berlin" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 2" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Lisbon" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.selectAll}" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

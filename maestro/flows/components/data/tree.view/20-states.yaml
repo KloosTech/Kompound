@@ -1,0 +1,40 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tree.view states
+tags:
+  - states
+  - component:tree.view
+  - category:data
+properties:
+  junitClassname: tree.view
+---
+# fewer folders, a deeper tree
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tree.view
+      CONTROLS: "control=Children%20per%20node::2"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "src" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir0" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir1" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "dir2" }
+# depth 1: folders hold files, closed until opened
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tree.view
+      CONTROLS: "control=Depth::1"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir3" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "File0.kt" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -15,9 +15,7 @@ graph.triggers
 markdown.view
 navigation.bar-rail-drawer
 scaffold.screen
-table.data
 template.fields
 theme.presets
 theme.tokens
 time.picker
-tree.view

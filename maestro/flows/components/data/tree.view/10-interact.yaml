@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tree.view interact
+tags:
+  - interact
+  - component:tree.view
+  - category:data
+properties:
+  junitClassname: tree.view
+---
+- runFlow: _interact.yaml

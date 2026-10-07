@@ -3,6 +3,11 @@
 Every change to the Maestro framework (scripts, `_lib`, conventions, the harness) is one entry: what was missing, what changed, which earlier flows were touched.
 Newest first. Component pull requests add entries here when they need something new (ADR 0008, section 5).
 
+## 2026-10-07, pilots 44 and 45: KTreeView, KDataTable
+- **Added**: `_lib/assert-row-checked` / `assert-row-unchecked` (a row checkbox has no text: it is the checked node whose parent contains the row text, `childOf: { containsChild: LABEL }`; adding `above: harness:controls` to that selector made it never match). `scripts/gen-strings.py` now generates `_lib/strings.js` from `KompoundStrings.kt` (63 labels, five languages) so the flows cannot drift from the library; flows use e.g. `${output.s.expand}`.
+- **Learned**: a tree row's tap only selects; its chevron is a separate node named "Expand" / "Collapse" (localised), `tapOn` with `index: 0` picks the first. With `Depth::1` the folders hold files, which makes assertions unambiguous (folder names repeat at every level).
+- **Found a component bug**: after a descending sort `KDataTable` showed the bottom of the table: the lazy list follows the first visible row's key to its new position. Fixed with `LaunchedEffect(sort) { scrollToItem(0) }`; no desktop unit test reproduces it (the list does not follow there), so the Maestro flow (sort twice, expect the new first rows) is the regression test: it failed before the fix and passes after.
+
 ## 2026-10-07, pilots 26 to 43: display components, slide to confirm, split pane
 - **Components**: KFab, KProgressButton, KAvatar, KBadge, KEmptyState, KErrorState, KStepList, KKeyValue, KListItem, KDivider, KIcon, progress indicators, KSkeleton, KSurface, dashed border, KSlideToConfirm, KSplitPane. 45 of 67 demos have flows. Display-only components have no `10-interact`; their `30-env` asserts the stress combination instead (`build_static`).
 - **Learned**: a progress button replaces its label with the percentage while running; a key-value metric merges value and unit, so use a regex (`87.*`). A gesture on a component without text is a `swipe` between percentage points; the handle or divider position depends on direction and size, so those interaction flows run in the default environment only. `copyTextFrom` plus `evalScript console.log` prints a value into `maestro.log` for probing.

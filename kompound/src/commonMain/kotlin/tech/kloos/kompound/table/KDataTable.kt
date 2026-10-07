@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -228,6 +229,8 @@ public fun <T> KDataTable(
                 shown.isEmpty() -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { emptyContent() }
                 else -> {
                     val listState = rememberLazyListState()
+                    // rows keep their identity across a sort, so the list would follow the old first row to its new place: start at the top
+                    LaunchedEffect(sort) { listState.scrollToItem(0) }
                     val focusManager = LocalFocusManager.current
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState) {
                         itemsIndexed(shown, key = { _, row -> rowKey(row) }) { index, row ->

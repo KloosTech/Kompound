@@ -1,0 +1,52 @@
+# KTreeView: a tap selects a row; the chevron (named Expand / Collapse) opens and closes a folder.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tree.view
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Depth::1"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "dir1" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Selected: src/dir1" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "docs" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Selected: docs" }
+- tapOn:
+    text: "${output.s.expand}"
+    index: 0
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "File0.kt" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "File3.kt" }
+- tapOn:
+    text: "${output.s.collapse}"
+    index: 0
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "dir0" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "src" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "docs" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
