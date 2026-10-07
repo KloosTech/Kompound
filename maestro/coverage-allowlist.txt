@@ -17,8 +17,6 @@ command.palette
 date.field
 date.range
 divider.basic
-dropdown.multi
-dropdown.single
 form.signup
 graph.engine
 graph.links
@@ -30,8 +28,6 @@ inline.edit
 keyvalue.basic
 list.item
 markdown.view
-menu.actions
-menu.context
 navigation.bar-rail-drawer
 progress.indicators
 scaffold.screen
@@ -39,7 +35,6 @@ search.bar
 segmented.control
 skeleton.loading
 slide.confirm
-snackbar.basic
 split.pane
 state.empty
 state.error
@@ -53,5 +48,4 @@ textfield.number
 theme.presets
 theme.tokens
 time.picker
-tooltip.basic
 tree.view
