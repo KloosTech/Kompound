@@ -1,0 +1,37 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: code.view states
+tags:
+  - states
+  - component:code.view
+  - category:display
+properties:
+  junitClassname: code.view
+---
+# no line numbers (the numbers are drawn with the code, not separate text nodes: only the code is asserted)
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+      CONTROLS: "control=Line%20numbers::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*@Composable.*" }
+# other language and palette
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+      CONTROLS: "control=Language::JSON&control=Palette::One%20Dark"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: ".*@Composable.*" }
+# plain: only the highlighting changes, the Kotlin sample stays
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+      CONTROLS: "control=Language::Plain"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*@Composable.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

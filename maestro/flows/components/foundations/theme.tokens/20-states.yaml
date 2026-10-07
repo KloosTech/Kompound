@@ -1,0 +1,22 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: theme.tokens states
+tags:
+  - states
+  - component:theme.tokens
+  - category:foundations
+properties:
+  junitClassname: theme.tokens
+---
+# dark scheme
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.tokens
+      CONTROLS: "control=Dark%20theme::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Success" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Info container" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,46 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: animation.shake states
+tags:
+  - states
+  - component:animation.shake
+  - category:animation
+properties:
+  junitClassname: animation.shake
+---
+# preset Nod
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+      CONTROLS: "control=Preset::Nod"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Shake" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1234" }
+# preset Wobble
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+      CONTROLS: "control=Preset::Wobble"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Shake" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1234" }
+# preset Custom
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+      CONTROLS: "control=Preset::Custom"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Shake" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1234" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

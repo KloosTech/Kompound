@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: markdown.view smoke
+tags:
+  - smoke
+  - component:markdown.view
+  - category:display
+properties:
+  junitClassname: markdown.view
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: markdown.view
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,20 @@
+# KMarkdown renders headings, lists and the link text, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: markdown.view
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible: "Kompound Markdown"
+- assertVisible: "Lists"
+- assertVisible: "Buttons"
+- assertVisible: "Filled and tonal"
+- assertVisible: "Install"
+- runFlow: ../../../_lib/assert-no-crash.yaml

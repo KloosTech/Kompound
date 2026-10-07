@@ -1,0 +1,29 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: markdown.view environments
+tags:
+  - env
+  - slow
+  - component:markdown.view
+  - category:display
+properties:
+  junitClassname: markdown.view
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }
+# a display component: no interaction flow, so the stress combination is asserted instead
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark, RTL: "true", FONT: "1.5", DENSITY: compact, LANG: de }

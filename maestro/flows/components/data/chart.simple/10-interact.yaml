@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chart.simple interact
+tags:
+  - interact
+  - component:chart.simple
+  - category:data
+properties:
+  junitClassname: chart.simple
+---
+- runFlow: _interact.yaml

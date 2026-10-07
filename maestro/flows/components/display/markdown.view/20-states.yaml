@@ -1,0 +1,25 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: markdown.view states
+tags:
+  - states
+  - component:markdown.view
+  - category:display
+properties:
+  junitClassname: markdown.view
+---
+# edit source: the source field shows next to the rendering
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: markdown.view
+      CONTROLS: "control=Edit%20source::true"
+- assertVisible: "Markdown source"
+- assertVisible: "Kompound Markdown"
+# not selectable
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: markdown.view
+      CONTROLS: "control=Selectable::false"
+- assertVisible: "Kompound Markdown"
+- runFlow: ../../../_lib/assert-no-crash.yaml

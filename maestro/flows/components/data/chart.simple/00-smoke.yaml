@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chart.simple smoke
+tags:
+  - smoke
+  - component:chart.simple
+  - category:data
+properties:
+  junitClassname: chart.simple
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chart.simple
+- runFlow: ../../../_lib/assert-no-crash.yaml

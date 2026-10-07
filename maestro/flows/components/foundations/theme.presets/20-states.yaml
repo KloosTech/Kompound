@@ -1,0 +1,56 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: theme.presets states
+tags:
+  - states
+  - component:theme.presets
+  - category:foundations
+properties:
+  junitClassname: theme.presets
+---
+# another preset, dark
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Preset::Ocean&control=Dark::true"
+- assertVisible: "Ocean, comfortable, English"
+# compact density
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Density::Compact"
+- assertVisible: "Default, compact, English"
+# language Deutsch
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Language::Deutsch"
+- assertVisible: "Default, comfortable, Deutsch"
+- assertVisible: "Suchen"
+# language Français
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Language::Français"
+- assertVisible: "Default, comfortable, Français"
+- assertVisible: "Rechercher"
+# language Español
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Language::Español"
+- assertVisible: "Default, comfortable, Español"
+- assertVisible: "Buscar"
+# language Italiano
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      CONTROLS: "control=Language::Italiano"
+- assertVisible: "Default, comfortable, Italiano"
+- assertVisible: "Cerca"
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,23 @@
+# The sparkline and both charts are shown, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chart.simple
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Visits" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*Visits.*" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*Sign-ups.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: animation.shake interact
+tags:
+  - interact
+  - component:animation.shake
+  - category:animation
+properties:
+  junitClassname: animation.shake
+---
+- runFlow: _interact.yaml
