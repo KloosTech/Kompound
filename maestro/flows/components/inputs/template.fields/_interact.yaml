@@ -1,0 +1,33 @@
+# KFieldPicker: the dropdown lists the fields of the data and a pick replaces the path.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- scrollUntilVisible:
+    element: "Sort by .one path."
+    timeout: 15000
+- tapOn:
+    text: "owner.email"
+    retryTapIfNoChange: false
+# the picker filters by what is typed: replace the path and a matching field is offered with its type and sample
+- eraseText: 20
+- inputText: "prio"
+- assertVisible: "priority"
+- tapOn:
+    text: "priority"
+    retryTapIfNoChange: false
+- assertNotVisible: "owner.email"
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
+- runFlow: ../../../_lib/assert-no-crash.yaml

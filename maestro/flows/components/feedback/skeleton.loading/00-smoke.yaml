@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: skeleton.loading smoke
+tags:
+  - smoke
+  - component:skeleton.loading
+  - category:feedback
+properties:
+  junitClassname: skeleton.loading
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: skeleton.loading
+- runFlow: ../../../_lib/assert-no-crash.yaml

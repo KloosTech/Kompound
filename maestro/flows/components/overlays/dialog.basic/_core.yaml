@@ -1,0 +1,54 @@
+# KDialog and KAlertDialog open and close in the caller's environment.
+# While a dialog is open the page behind it is hidden from the accessibility tree, so selectors inside are plain text.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dialog.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open alert dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open dialog" }
+- assertVisible: "Rename project"
+- assertVisible: "Dialogs ask for a decision or a small amount of input and block the screen behind them."
+- assertVisible: "Cancel"
+- assertVisible: "Save"
+- tapOn:
+    text: "Cancel"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open dialog" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open alert dialog" }
+- assertVisible: "Delete project?"
+- assertVisible: "This removes the project and all its files. It cannot be undone."
+- assertVisible: "Keep"
+- assertVisible: "Delete"
+- tapOn:
+    text: "Keep"
+    retryTapIfNoChange: false
+- assertNotVisible: "Delete project?"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open alert dialog" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

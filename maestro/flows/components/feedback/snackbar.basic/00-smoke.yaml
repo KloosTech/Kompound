@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: snackbar.basic smoke
+tags:
+  - smoke
+  - component:snackbar.basic
+  - category:feedback
+properties:
+  junitClassname: snackbar.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing shown yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

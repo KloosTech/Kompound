@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.context smoke
+tags:
+  - smoke
+  - component:menu.context
+  - category:overlays
+properties:
+  junitClassname: menu.context
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Last action: Right-click (or long-press) the box" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

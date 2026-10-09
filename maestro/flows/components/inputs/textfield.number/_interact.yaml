@@ -1,0 +1,24 @@
+# KNumberField: letters are rejected, digits stay and are parsed.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quantity" }
+- inputText: "12ab3"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "123" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Parsed: 123.0" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

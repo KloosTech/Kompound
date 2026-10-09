@@ -15,6 +15,8 @@ import tech.kloos.kompound.demo.DemoEntry
  * | `rtl` | `true` mirrors the layout | `false` |
  * | `density` | `compact`, `comfortable` or `spacious` | `comfortable` |
  * | `lang` | language of Kompound's own labels (`en`, `de`, `fr`, `es`, `it`) | `en` |
+ * | `hue`, `saturation`, `roundness` | the catalog theme's seed colour (0..360, 0..1) and corner radius multiplier (0..2), see `ThemeSettings` | `262`, `0.55`, `1` |
+ * | `chaos` | a seed: every colour role gets a random colour (no contrast guarantee) and the corner radii are random; for style fuzzing, see [ChaosTheme] | off |
  * | `bare` | only the demo and its controls, no catalog chrome | `true` |
  * | `control` (repeatable) | `Name::value` presets a control (see `DemoControls`); `::` separates because names may contain `=` | the demo's defaults |
  */
@@ -26,6 +28,10 @@ data class HarnessLaunch(
     val density: String = "comfortable",
     val lang: String = "en",
     val bare: Boolean = true,
+    val hue: Float = 262f,
+    val saturation: Float = 0.55f,
+    val roundness: Float = 1f,
+    val chaos: Long? = null,
     val controls: Map<String, String> = emptyMap(),
     /** Not part of the link: the launcher counts every received link, so opening the same link twice still starts the demo afresh (typed text and toggled controls do not leak between flows). */
     val nonce: Int = 0,
@@ -63,6 +69,10 @@ data class HarnessLaunch(
                 density = single["density"]?.takeIf { it in setOf("compact", "comfortable", "spacious") } ?: "comfortable",
                 lang = single["lang"]?.takeIf { it.isNotBlank() } ?: "en",
                 bare = single["bare"] != "false",
+                hue = single["hue"]?.toFloatOrNull()?.coerceIn(0f, 360f) ?: 262f,
+                saturation = single["saturation"]?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0.55f,
+                roundness = single["roundness"]?.toFloatOrNull()?.coerceIn(0f, 2f) ?: 1f,
+                chaos = single["chaos"]?.toLongOrNull(),
                 controls = controls,
             )
         }

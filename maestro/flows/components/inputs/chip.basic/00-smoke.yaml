@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chip.basic smoke
+tags:
+  - smoke
+  - component:chip.basic
+  - category:inputs
+properties:
+  junitClassname: chip.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chip.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Chip" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

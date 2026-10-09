@@ -1,0 +1,24 @@
+# The trigger demo (clock armed): the webhook buttons are available and accept taps.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible: "Send webhook"
+- assertNotVisible:
+    enabled: false
+    containsChild: "Send webhook"
+- tapOn:
+    text: "Send webhook"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "Send 5 at once"
+    retryTapIfNoChange: false
+- assertVisible: "Send webhook"
+- runFlow: ../../../_lib/assert-no-crash.yaml

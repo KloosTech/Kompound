@@ -1,0 +1,12 @@
+# The row whose text is LABEL is shown and not selected (negative form, see assert-unchecked).
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    text: "${LABEL}"
+    above:
+      id: "harness:controls"
+- assertNotVisible:
+    checked: true
+    childOf:
+      containsChild: "${LABEL}"

@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: search.bar interact
+tags:
+  - interact
+  - component:search.bar
+  - category:inputs
+properties:
+  junitClassname: search.bar
+---
+- runFlow: _interact.yaml

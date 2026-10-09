@@ -7,6 +7,8 @@
 #   --tags a,b             run flows with any of these tags (smoke, category:inputs, slow, ...)
 #   --exclude-tags a,b     skip flows with these tags (default: quarantine,wip,todo)
 #   --component <demo-id>  all flows of one component (tag component:<id>)
+#   --visual               only the screenshot flows (tag visual, off by default); then run maestro/visual/analyze.py on the output
+#   --fuzz                 only the style fuzz flows (tag fuzz, off by default): random themes, radii, fonts, densities; same analysis
 #   --flow <path>          one flow file or folder instead of maestro/flows
 #   --env KEY=VALUE        pass a variable to the flows (repeatable)
 #   --repeat <n>           run the selection n times and report flows that fail only sometimes (flakes)
@@ -26,7 +28,7 @@ cd "$ROOT" || exit 2
 APP_ID="tech.kloos.kompound.catalog.maestro"
 APK="catalog/androidApp/build/outputs/apk/maestro/androidApp-maestro.apk"
 
-SERIAL=""; TAGS=""; EXCLUDE="quarantine,wip,todo"; COMPONENT=""; TARGET="maestro/flows"; REPEAT=1; CONTINUOUS=0; STRICT=0
+VISUAL=0; ONLY_FILE=""; SERIAL=""; TAGS=""; EXCLUDE="quarantine,wip,todo,visual,fuzz"; COMPONENT=""; TARGET="maestro/flows"; REPEAT=1; CONTINUOUS=0; STRICT=0
 BUILD=1; INSTALL=1; SETUP=1; OUT="build/maestro"; ENVS=(); EXTRA=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -34,6 +36,8 @@ while [ $# -gt 0 ]; do
     --tags) TAGS="$2"; shift 2 ;;
     --exclude-tags) EXCLUDE="$2"; shift 2 ;;
     --component) COMPONENT="$2"; shift 2 ;;
+    --visual) VISUAL=1; ONLY_FILE=40-visual.yaml; TAGS="visual"; EXCLUDE="quarantine,wip,todo"; shift ;;
+    --fuzz) VISUAL=1; ONLY_FILE=50-fuzz.yaml; TAGS="fuzz"; EXCLUDE="quarantine,wip,todo"; shift ;;
     --flow) TARGET="$2"; shift 2 ;;
     --env) ENVS+=("$2"); shift 2 ;;
     --repeat) REPEAT="$2"; shift 2 ;;
@@ -43,12 +47,15 @@ while [ $# -gt 0 ]; do
     --no-install) INSTALL=0; shift ;;
     --no-setup) SETUP=0; shift ;;
     --out) OUT="$2"; shift 2 ;;
-    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
     --) shift; EXTRA=("$@"); break ;;
     *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
-[ -n "$COMPONENT" ] && TAGS="component:$COMPONENT"
+# tags with a comma mean "any of", so --visual --component narrows by folder instead
+if [ -n "$COMPONENT" ] && [ "$VISUAL" = 1 ]; then
+  TARGET=$(ls maestro/flows/components/*/"$COMPONENT"/"$ONLY_FILE" 2>/dev/null | head -n 1); [ -n "$TARGET" ] || { echo "No flows for $COMPONENT" >&2; exit 2; }
+elif [ -n "$COMPONENT" ]; then TAGS="component:$COMPONENT"; fi
 
 # --- prerequisites ---------------------------------------------------------------------------------------------
 find_java() {
@@ -110,17 +117,17 @@ whitelist_driver() {
   done
   return 0
 }
-DRIVER_ARG=()
-if adb -s "$SERIAL" shell pm path dev.mobile.maestro 2>/dev/null | grep -q package; then
-  DRIVER_ARG=(--no-reinstall-driver)
-fi
+# with --no-reinstall-driver Maestro installs the driver when it is missing and then leaves it on the phone; without it the
+# driver is removed after every run and the battery setting below is lost with it
+DRIVER_ARG=(--no-reinstall-driver)
+adb -s "$SERIAL" logcat -c 2>/dev/null || true
 whitelist_driver
 EXEMPT_PID=""
 ( while true; do whitelist_driver; sleep 2; done ) & EXEMPT_PID=$!
 trap '[ -n "$KEEP_PID" ] && kill "$KEEP_PID" 2>/dev/null; kill "$EXEMPT_PID" 2>/dev/null' EXIT
 
 # --- run -------------------------------------------------------------------------------------------------------
-ARGS=(--device "$SERIAL" test "${DRIVER_ARG[@]}" "$TARGET" --config maestro/config.yaml)
+ARGS=(--device "$SERIAL" test ${DRIVER_ARG[@]+"${DRIVER_ARG[@]}"} "$TARGET" --config maestro/config.yaml)
 [ -n "$TAGS" ] && ARGS+=(--include-tags "$TAGS")
 [ -n "$EXCLUDE" ] && ARGS+=(--exclude-tags "$EXCLUDE")
 for e in ${ENVS[@]+"${ENVS[@]}"}; do ARGS+=(--env "$e"); done
@@ -140,12 +147,14 @@ for i in $(seq 1 "$REPEAT"); do
   fi
 done
 SECS=$(( $(date +%s) - START ))
+FROZEN=$(adb -s "$SERIAL" logcat -d 2>/dev/null | grep -c "freeze uid.*dev.mobile.maestro" || true)
 
 # --- summary ---------------------------------------------------------------------------------------------------
 TOTAL=$(awk -F'\t' '{print $3}' "$OUT/flow-results.tsv" | sort -u | wc -l | tr -d ' ')
 FAILED=$(awk -F'\t' '$2=="FAIL"{print $3}' "$OUT/flow-results.tsv" | sort -u | wc -l | tr -d ' ')
 {
   echo "Maestro $HAVE | $(adb -s "$SERIAL" shell getprop ro.product.model | tr -d '\r') $SERIAL | apk $APK_SHA | ${SECS}s | flows $TOTAL, failing $FAILED, runs $REPEAT"
+  [ "${FROZEN:-0}" -gt 0 ] && echo "WARNING the battery manager froze the Maestro driver ${FROZEN} times (steps stall); see maestro/devices.md, 'Stop the battery manager...'"
   if [ "$REPEAT" -gt 1 ]; then
     awk -F'\t' '{runs[$3]++; if($2=="FAIL") f[$3]++} END{ for(n in runs) if(f[n]>0 && f[n]<runs[n]) printf "FLAKY  %s failed %d of %d runs\n", n, f[n], runs[n]; else if(f[n]==runs[n]) printf "BROKEN %s failed all %d runs\n", n, runs[n] }' "$OUT/flow-results.tsv"
   else

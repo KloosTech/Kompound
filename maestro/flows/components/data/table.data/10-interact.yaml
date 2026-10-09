@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: table.data interact
+tags:
+  - interact
+  - component:table.data
+  - category:data
+properties:
+  junitClassname: table.data
+---
+- runFlow: _interact.yaml

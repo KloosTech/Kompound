@@ -1,0 +1,37 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: command.palette states
+tags:
+  - states
+  - component:command.palette
+  - category:overlays
+properties:
+  junitClassname: command.palette
+---
+# without sections
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+      CONTROLS: "control=Sections::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- assertVisible: "New file"
+- assertNotVisible: "Navigate"
+- tapOn:
+    point: "50%,8%"
+    retryTapIfNoChange: false
+# no matches
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- inputText: "zzzzqq"
+- assertNotVisible: "New file"
+- tapOn:
+    point: "50%,8%"
+    retryTapIfNoChange: false
+- runFlow: ../../../_lib/assert-no-crash.yaml

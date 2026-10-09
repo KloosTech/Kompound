@@ -1,0 +1,19 @@
+# The preview card shows the first preset in English, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible: "Default, comfortable, English"
+- assertVisible: "List item"
+- assertVisible: "Download"
+- assertVisible: "Install"
+- runFlow: ../../../_lib/assert-no-crash.yaml

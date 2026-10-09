@@ -1,0 +1,47 @@
+# KSegmentedControl: tapping a segment selects it and only it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Week" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Week" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Day" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Month" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Month" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Week" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Month" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Month" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Day" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Day" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Month" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

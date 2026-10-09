@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: navigation.bar-rail-drawer interact
+tags:
+  - interact
+  - component:navigation.bar-rail-drawer
+  - category:navigation
+properties:
+  junitClassname: navigation.bar-rail-drawer
+---
+- runFlow: _interact.yaml

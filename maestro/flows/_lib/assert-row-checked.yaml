@@ -1,0 +1,9 @@
+# In a table or list whose rows carry their own checkbox: the row whose text is LABEL is selected. The checkbox is a node without
+# text, so it is found as the checked node whose parent contains the row text.
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    checked: true
+    childOf:
+      containsChild: "${LABEL}"

@@ -1,0 +1,38 @@
+# KCheckbox: taps change the checked state, as seen through the accessibility tree.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Select all (tri-state)" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

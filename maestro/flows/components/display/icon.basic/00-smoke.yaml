@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: icon.basic smoke
+tags:
+  - smoke
+  - component:icon.basic
+  - category:display
+properties:
+  junitClassname: icon.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: icon.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

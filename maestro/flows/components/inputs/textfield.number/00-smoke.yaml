@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.number smoke
+tags:
+  - smoke
+  - component:textfield.number
+  - category:inputs
+properties:
+  junitClassname: textfield.number
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+- runFlow: ../../../_lib/assert-no-crash.yaml

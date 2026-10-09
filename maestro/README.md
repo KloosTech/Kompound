@@ -44,14 +44,16 @@ maestro/
   .maestro-version            the CLI version tests were written against
   devices.md                  device registry and one-time device setup
   flows/
-    _lib/                     shared subflows, never run as tests: open-demo, preview-see, preview-not-see, preview-tap,
-                              assert-enabled, assert-disabled, assert-no-crash
+    _lib/                     shared subflows, never run as tests: open-demo, preview-see / -not-see / -tap, assert-enabled / -disabled,
+                              assert-checked / -unchecked, assert-selected / -unselected, assert-row-checked / -unchecked,
+                              assert-no-crash, strings.js (every Kompound label in five languages, generated)
     components/<category>/<demo-id>/
       00-smoke.yaml  10-interact.yaml  20-states.yaml  30-env.yaml   (tags: smoke, interact, states, env)
-      _core.yaml              the behaviour shared by 10 and 30 (never run alone)
+      _core.yaml              assertions in the caller's environment (run by 30 for each environment, never alone)
+      _interact.yaml          taps and typing (run by 10 once, and by 30 once in a stress environment)
     suites/all-demos-open.yaml   every demo opens (tags: suite, slow)
-  scripts/                    maestro.sh, device-setup.sh, scaffold.sh, coverage.sh, demo-ids.sh
-  coverage-allowlist.txt      demos without a smoke flow yet (only shrinks)
+  scripts/                    maestro.sh, device-setup.sh, scaffold.sh, coverage.sh, prune-allowlist.sh, demo-ids.sh, timings.sh, gen-strings.py
+  coverage-allowlist.txt      demos without a smoke flow (empty: all demos are covered; a new demo must come with its flows)
   FRAMEWORK_LOG.md            what changed in the framework and why
   spike/                      phase 0 experiments (not tests)
 ```
@@ -69,6 +71,8 @@ maestro/scripts/maestro.sh --flow maestro/flows/components/buttons/button.primar
 maestro/scripts/device-setup.sh --check                    # what is wrong with the phone, changing nothing
 maestro/scripts/scaffold.sh <demo-id> --text "Headline"    # skeleton flows for a demo
 maestro/scripts/coverage.sh                                # every demo has a smoke flow (no device needed; CI runs it)
+maestro/scripts/timings.sh                                 # time per command type and the ten slowest steps of the last run
+python3 maestro/scripts/gen-strings.py                     # regenerate _lib/strings.js after KompoundStrings changed
 ```
 
 `maestro.sh` builds the `maestro` build type, installs it when the APK changed, checks the device, runs the selection (default excludes `quarantine`, `wip`, `todo`),
@@ -79,3 +83,10 @@ CLI's code. `--help` lists every option. `--tags suite` runs the "every demo ope
 Selectors: `id` for harness and controls, then visible text, then description. Assert and tap **in the preview** through `_lib/preview-*` (the controls card repeats many
 words). No sleeps: assert, or `extendedWaitUntil`. Every flow opens its demo through `_lib/open-demo.yaml`. Tags: `smoke`, `interact`, `states`, `env`, `component:<id>`,
 `category:<name>`, `suite`, `slow`, `quarantine`, `wip`, `todo` (skeleton, not run). The JUnit class name is the demo id. A new component = `scaffold.sh`, then fill in `_core`, `10`, `20`, `30`.
+
+## Traps (each cost a run; details in FRAMEWORK_LOG.md)
+- **Never reinstall the Maestro driver** (`maestro hierarchy`, or `maestro test` without `--no-reinstall-driver`): the phone's battery exemption for it is lost and steps stall for 50 s (see `devices.md`). `maestro.sh` handles it; probe a screen with a throwaway flow (`takeScreenshot`, or `copyTextFrom` plus `evalScript console.log`).
+- `hideKeyboard` presses Back when no keyboard is up and then leaves the app. Close overlays by tapping the scrim.
+- The preview helpers are scoped above the controls card: on a page longer than the screen, or with the keyboard up, the card is off screen and every scoped assertion fails. Hide the keyboard first, or use plain selectors on long pages.
+- `enabled: true` or `checked: false` together with `containsChild` never match in Maestro 2.11: use the negative helpers (`assert-enabled`, `assert-unchecked`, ...).
+- `eraseText` deletes backwards from the caret, which lands mid-text in RTL: reset between scenarios instead of editing a field twice. Flows that tap by position (sliders, split pane, tag input, colour hex field, slide to confirm) run their interaction in the default environment or without RTL.

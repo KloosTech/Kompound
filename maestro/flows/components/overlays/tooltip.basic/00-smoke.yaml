@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tooltip.basic smoke
+tags:
+  - smoke
+  - component:tooltip.basic
+  - category:overlays
+properties:
+  junitClassname: tooltip.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tooltip.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Save" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

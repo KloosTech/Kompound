@@ -1,0 +1,19 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.links states
+tags:
+  - states
+  - component:graph.links
+  - category:graph
+properties:
+  junitClassname: graph.links
+---
+# other start value
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.links
+      CONTROLS: "control=Start%20value::9"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Result of the second link: .*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

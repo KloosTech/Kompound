@@ -1,0 +1,39 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.actions states
+tags:
+  - states
+  - component:menu.actions
+  - category:overlays
+properties:
+  junitClassname: menu.actions
+---
+# group, supporting text and icons off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+      CONTROLS: "control=Group::false&control=Supporting%20text::false&control=Icons::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- assertVisible: "Sync now"
+- assertNotVisible: "Sort by"
+- assertNotVisible: "Last sync 5 min ago"
+- assertVisible: "Delete all"
+- back
+# badge on the trigger is announced, and gone when off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+- assertVisible: "Needs attention"
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+      CONTROLS: "control=Badge%20on%20trigger::false"
+- assertNotVisible: "Needs attention"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "More actions" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

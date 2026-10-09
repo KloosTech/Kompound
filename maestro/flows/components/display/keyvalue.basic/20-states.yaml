@@ -1,0 +1,46 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: keyvalue.basic states
+tags:
+  - states
+  - component:keyvalue.basic
+  - category:display
+properties:
+  junitClassname: keyvalue.basic
+---
+# vertical
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+      CONTROLS: "control=Vertical::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Voltage" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12.4 V" }
+# flipped
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+      CONTROLS: "control=Flipped%20(value%20first)::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Voltage" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12.4 V" }
+# other texts
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: keyvalue.basic
+      CONTROLS: "control=Label::Current&control=Value::3.3%20A"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Current" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "3.3 A" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

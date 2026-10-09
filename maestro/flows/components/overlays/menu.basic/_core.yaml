@@ -1,0 +1,28 @@
+# KMenu opens below its anchor and closes again, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Nothing picked yet" }
+- assertVisible: "Edit"
+- assertVisible: "Duplicate"
+- assertVisible: "Delete"
+- back
+- assertNotVisible: "Duplicate"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: progress.indicators smoke
+tags:
+  - smoke
+  - component:progress.indicators
+  - category:feedback
+properties:
+  junitClassname: progress.indicators
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: progress.indicators
+- runFlow: ../../../_lib/assert-no-crash.yaml

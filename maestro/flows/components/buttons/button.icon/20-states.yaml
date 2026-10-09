@@ -1,0 +1,70 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.icon states
+tags:
+  - states
+  - component:button.icon
+  - category:buttons
+properties:
+  junitClassname: button.icon
+---
+# variant Filled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+      CONTROLS: "control=Variant::Filled"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Favourite" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirm" }
+# variant Tonal
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+      CONTROLS: "control=Variant::Tonal"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Favourite" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirm" }
+# variant Outlined
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+      CONTROLS: "control=Variant::Outlined"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Favourite" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirm" }
+# variant Text
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+      CONTROLS: "control=Variant::Text"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Favourite" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Confirm" }
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Favourite" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Confirm" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

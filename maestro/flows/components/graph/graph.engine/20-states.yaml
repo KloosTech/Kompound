@@ -1,0 +1,21 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.engine states
+tags:
+  - states
+  - component:graph.engine
+  - category:graph
+properties:
+  junitClassname: graph.engine
+---
+# automatic running off: Run is available
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.engine
+      CONTROLS: "control=Run%20automatically::false"
+- assertVisible: "Run"
+- assertVisible: "Run"
+- assertNotVisible:
+    enabled: false
+    containsChild: "Run"
+- runFlow: ../../../_lib/assert-no-crash.yaml

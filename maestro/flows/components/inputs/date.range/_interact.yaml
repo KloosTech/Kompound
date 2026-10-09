@@ -1,0 +1,45 @@
+# KDateRangeField: two days and OK fill the field with both.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.range
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick dates" }
+- assertVisible: "${output.s.cancel}"
+- assertVisible: "${output.s.ok}"
+- tapOn:
+    text: "${output.s.cancel}"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pick dates" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick dates" }
+- tapOn:
+    text: "(.*[^0-9])?10([^0-9].*)?"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "(.*[^0-9])?14([^0-9].*)?"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.ok}"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*10.*14.*" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Pick dates" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

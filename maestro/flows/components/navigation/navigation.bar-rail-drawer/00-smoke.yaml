@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: navigation.bar-rail-drawer smoke
+tags:
+  - smoke
+  - component:navigation.bar-rail-drawer
+  - category:navigation
+properties:
+  junitClassname: navigation.bar-rail-drawer
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+- runFlow: ../../../_lib/assert-no-crash.yaml

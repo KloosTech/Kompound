@@ -1,0 +1,66 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: form.signup states
+tags:
+  - states
+  - component:form.signup
+  - category:inputs
+properties:
+  junitClassname: form.signup
+---
+# the server fails: the form says so
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: en }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: form.signup
+      CONTROLS: "control=Slow%20server%20(1.5%20s)::false&control=Server%20fails::true"
+- tapOn:
+    below:
+      text: "Name"
+    above:
+      text: "E-mail"
+    retryTapIfNoChange: false
+- inputText: "Ada"
+- tapOn:
+    below:
+      text: "E-mail"
+    above:
+      text: "Age .optional."
+    retryTapIfNoChange: false
+- inputText: "ada@example.com"
+- hideKeyboard
+- tapOn:
+    text: "I accept the terms"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- scrollUntilVisible:
+    element: ".*The server is unreachable"
+    timeout: 15000
+# reset clears the fields and the messages
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: form.signup
+      CONTROLS: "control=Slow%20server%20(1.5%20s)::false"
+- tapOn:
+    text: "${output.s.submit}"
+    retryTapIfNoChange: false
+- assertVisible: "Required"
+- scrollUntilVisible:
+    element: "Reset"
+    timeout: 15000
+- tapOn:
+    text: "Reset"
+    retryTapIfNoChange: false
+- assertNotVisible: "Required"
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
+- runFlow: ../../../_lib/assert-no-crash.yaml

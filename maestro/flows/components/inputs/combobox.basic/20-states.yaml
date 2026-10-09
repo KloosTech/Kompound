@@ -1,0 +1,47 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: combobox.basic states
+tags:
+  - states
+  - component:combobox.basic
+  - category:inputs
+properties:
+  junitClassname: combobox.basic
+---
+# filtering off: typing keeps every option
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+      CONTROLS: "control=Filter%20options::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Type to search" }
+- inputText: "Ger"
+- assertVisible: "Austria"
+- assertVisible: "Belgium"
+- hideKeyboard
+# no region text
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+      CONTROLS: "control=Show%20region::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Type to search" }
+- inputText: "Ger"
+- assertVisible: "Germany"
+- assertNotVisible: "Europe"
+- hideKeyboard
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Type to search" }
+- inputText: "Ger"
+- assertNotVisible: "Germany"
+- runFlow: ../../../_lib/assert-no-crash.yaml

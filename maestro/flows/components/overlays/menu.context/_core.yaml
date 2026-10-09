@@ -1,0 +1,34 @@
+# KContextMenuArea: a long press opens the menu in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Right-click, long-press, or focus this box and press the Menu key" }
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- assertVisible: "Copy"
+- assertVisible: "Rename"
+- assertVisible: "F2"
+- assertVisible: "Move to"
+- assertVisible: "Delete"
+- tapOn:
+    text: "Move to"
+    retryTapIfNoChange: false
+- assertVisible: "Archive"
+- assertVisible: "Trash"
+- back
+- assertNotVisible: "Rename"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Right-click, long-press, or focus this box and press the Menu key" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

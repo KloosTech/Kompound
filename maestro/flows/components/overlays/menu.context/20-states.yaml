@@ -1,0 +1,33 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.context states
+tags:
+  - states
+  - component:menu.context
+  - category:overlays
+properties:
+  junitClassname: menu.context
+---
+# disabled: a long press opens nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+      CONTROLS: "control=Enabled::false"
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- assertNotVisible: "Rename"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Right-click, long-press, or focus this box and press the Menu key" }
+# group off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.context
+      CONTROLS: "control=Group::false"
+- longPressOn:
+    text: "Right-click, long-press, or focus this box and press the Menu key"
+- assertVisible: "Rename"
+- assertNotVisible: "Move to"
+- back
+- runFlow: ../../../_lib/assert-no-crash.yaml

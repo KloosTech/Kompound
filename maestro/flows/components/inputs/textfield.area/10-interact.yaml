@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.area interact
+tags:
+  - interact
+  - component:textfield.area
+  - category:inputs
+properties:
+  junitClassname: textfield.area
+---
+- runFlow: _interact.yaml

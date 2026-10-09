@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tab.row interact
+tags:
+  - interact
+  - component:tab.row
+  - category:navigation
+properties:
+  junitClassname: tab.row
+---
+- runFlow: _interact.yaml

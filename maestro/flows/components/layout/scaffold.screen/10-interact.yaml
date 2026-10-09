@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: scaffold.screen interact
+tags:
+  - interact
+  - component:scaffold.screen
+  - category:layout
+properties:
+  junitClassname: scaffold.screen
+---
+- runFlow: _interact.yaml

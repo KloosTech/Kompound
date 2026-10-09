@@ -1,0 +1,55 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: table.data states
+tags:
+  - states
+  - component:table.data
+  - category:data
+properties:
+  junitClassname: table.data
+---
+# three rows only
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      CONTROLS: "control=Rows::3"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 3" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Person 4" }
+# not selectable: no select-all box
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: en }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      CONTROLS: "control=Selectable::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 1" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Select all" }
+# loading
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      CONTROLS: "control=Loading::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Name" }
+# not striped
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      CONTROLS: "control=Striped::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 1" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

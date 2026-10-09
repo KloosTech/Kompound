@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: steps.list smoke
+tags:
+  - smoke
+  - component:steps.list
+  - category:feedback
+properties:
+  junitClassname: steps.list
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+- runFlow: ../../../_lib/assert-no-crash.yaml

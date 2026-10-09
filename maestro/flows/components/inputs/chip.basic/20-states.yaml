@@ -1,0 +1,43 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chip.basic states
+tags:
+  - states
+  - component:chip.basic
+  - category:inputs
+properties:
+  junitClassname: chip.basic
+---
+# disabled: all chips are disabled and taps change nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chip.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Chip" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Selected" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Not selected" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Not selected" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Not selected" }
+# icons and another label
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chip.basic
+      CONTROLS: "control=Leading%20icon::true&control=Trailing%20icon::true&control=Label::Filter"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Filter" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Selected" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

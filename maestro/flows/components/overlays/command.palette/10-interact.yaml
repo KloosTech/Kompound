@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: command.palette interact
+tags:
+  - interact
+  - component:command.palette
+  - category:overlays
+properties:
+  junitClassname: command.palette
+---
+- runFlow: _interact.yaml

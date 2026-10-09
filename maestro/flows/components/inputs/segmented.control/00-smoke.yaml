@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: segmented.control smoke
+tags:
+  - smoke
+  - component:segmented.control
+  - category:inputs
+properties:
+  junitClassname: segmented.control
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: segmented.control
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Day" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

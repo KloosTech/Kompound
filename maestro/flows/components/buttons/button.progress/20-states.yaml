@@ -1,0 +1,58 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.progress states
+tags:
+  - states
+  - component:button.progress
+  - category:buttons
+properties:
+  junitClassname: button.progress
+---
+# idle: the labels show and the buttons are enabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+      CONTROLS: "control=Idle%20(no%20progress)::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Upload report" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Short" }
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: "Upload report" }
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: "Short" }
+# running but clicks allowed: enabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+      CONTROLS: "control=Ignore%20clicks%20while%20running::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "40%" }
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: "40%" }
+# other progress
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+      CONTROLS: "control=Progress::0.75"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "75%" }
+# disabled while idle
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+      CONTROLS: "control=Enabled::false&control=Idle%20(no%20progress)::true"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Upload report" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

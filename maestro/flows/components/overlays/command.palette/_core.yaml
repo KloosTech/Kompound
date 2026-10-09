@@ -1,0 +1,38 @@
+# KCommandPalette opens with its commands, shortcuts, hints and the disabled one, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: command.palette
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open command palette" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing run yet" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open command palette" }
+- assertVisible: "New file"
+- assertVisible: "Open file"
+- assertVisible: "Save file"
+- assertVisible: "Export as PDF"
+- assertVisible: "Ctrl.N"
+- assertVisible: "Writes the current document"
+- tapOn:
+    point: "50%,8%"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing run yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

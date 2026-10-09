@@ -1,0 +1,38 @@
+# KAccordion: the first panel starts open, the others closed; the badge and the single KExpandable show, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Shipping" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Returns" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "New" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Warranty" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Free for orders above 50 euros.*" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Send items back within 30 days.*" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Two years on all devices." }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "A single KExpandable" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: slide.confirm smoke
+tags:
+  - smoke
+  - component:slide.confirm
+  - category:inputs
+properties:
+  junitClassname: slide.confirm
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slide.confirm
+- runFlow: ../../../_lib/assert-no-crash.yaml

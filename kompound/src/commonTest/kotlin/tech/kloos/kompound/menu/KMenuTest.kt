@@ -53,6 +53,20 @@ class KMenuTest {
     }
 
     @Test
+    fun selectedActionItemExposesSelectedStateAndPlainOnesDoNot() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                KMenu(true, {}) {
+                    KMenuItem("Marked", {}, selected = true, showCheck = true)
+                    KMenuItem("Plain", {})
+                }
+            }
+        }
+        assertEquals(true, onNodeWithText("Marked").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Selected))
+        assertEquals(null, onNodeWithText("Plain").fetchSemanticsNode().config.getOrNull(SemanticsProperties.Selected))
+    }
+
+    @Test
     fun selectableItemsExposeSelectedStateAndDrawACheck() = runComposeUiTest {
         setContent {
             MaterialTheme(s) {

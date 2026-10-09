@@ -1,0 +1,22 @@
+{
+  "mirror": {
+    "chart.simple": "data axes keep their direction in RTL",
+    "code.view": "code is always left to right",
+    "graph.engine": "the node canvas is not mirrored",
+    "graph.links": "the node canvas is not mirrored",
+    "graph.logic": "the node canvas is not mirrored",
+    "graph.nodes": "the node canvas is not mirrored",
+    "graph.triggers": "the node canvas is not mirrored",
+    "progress.indicators": "circular progress is animated and keeps its sweep direction"
+  },
+  "contrast": {
+    "skeleton.loading": "placeholders are decorative and low contrast on purpose",
+    "graph.nodes": "canvas grid and wire hints",
+    "graph.logic": "canvas grid and wire hints",
+    "graph.engine": "canvas grid and wire hints",
+    "color.picker": "swatches show arbitrary colours"
+  },
+  "clip": {
+    "theme.presets": "the dark preset swatch is full width on purpose"
+  }
+}

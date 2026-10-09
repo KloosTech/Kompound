@@ -1,0 +1,15 @@
+# The toggle in the demo's preview whose label is LABEL is shown and not checked (an indeterminate checkbox counts as not checked).
+# `checked: false` together with `containsChild` never matches in Maestro 2.11, so this is "label visible, no checked container around it";
+# assert-checked proves the selector does match a checked one.
+# env: LABEL
+appId: tech.kloos.kompound.catalog.maestro
+---
+- assertVisible:
+    text: "${LABEL}"
+    above:
+      id: "harness:controls"
+- assertNotVisible:
+    checked: true
+    containsChild: "${LABEL}"
+    above:
+      id: "harness:controls"

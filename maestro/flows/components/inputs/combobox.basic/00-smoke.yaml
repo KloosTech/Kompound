@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: combobox.basic smoke
+tags:
+  - smoke
+  - component:combobox.basic
+  - category:inputs
+properties:
+  junitClassname: combobox.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: combobox.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

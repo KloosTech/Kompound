@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.icon interact
+tags:
+  - interact
+  - component:button.icon
+  - category:buttons
+properties:
+  junitClassname: button.icon
+---
+- runFlow: _interact.yaml

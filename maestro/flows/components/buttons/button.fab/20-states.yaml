@@ -1,0 +1,34 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.fab states
+tags:
+  - states
+  - component:button.fab
+  - category:buttons
+properties:
+  junitClassname: button.fab
+---
+# extended: icon and text
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.fab
+      CONTROLS: "control=Extended::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Create" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Create" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Create" }
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.fab
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Create" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

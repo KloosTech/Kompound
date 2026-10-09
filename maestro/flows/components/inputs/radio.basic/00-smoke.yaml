@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: radio.basic smoke
+tags:
+  - smoke
+  - component:radio.basic
+  - category:inputs
+properties:
+  junitClassname: radio.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: radio.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Medium" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

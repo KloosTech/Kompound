@@ -1,0 +1,54 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dropdown.single states
+tags:
+  - states
+  - component:dropdown.single
+  - category:inputs
+properties:
+  junitClassname: dropdown.single
+---
+# error: the supporting text shows
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+      CONTROLS: "control=Error::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Please choose a fruit" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Choose a fruit" }
+- assertVisible: "Apple"
+- tapOn:
+    text: "Apple"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Apple" }
+# disabled: the list does not open
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Choose a fruit" }
+- assertNotVisible: "Banana"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a fruit" }
+# no label
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+      CONTROLS: "control=Label::"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Fruit" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a fruit" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

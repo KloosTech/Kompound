@@ -1,0 +1,37 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: state.error states
+tags:
+  - states
+  - component:state.error
+  - category:feedback
+properties:
+  junitClassname: state.error
+---
+# no retry
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "en" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.error
+      CONTROLS: "control=Retry%20button::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Could not load messages" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Try again" }
+# no description
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.error
+      CONTROLS: "control=Description::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Could not load messages" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Check your connection.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

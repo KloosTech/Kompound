@@ -1,0 +1,23 @@
+# The shake demo shows its field and button, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Wrong code." }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1234" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Shake" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: segmented.control interact
+tags:
+  - interact
+  - component:segmented.control
+  - category:inputs
+properties:
+  junitClassname: segmented.control
+---
+- runFlow: _interact.yaml

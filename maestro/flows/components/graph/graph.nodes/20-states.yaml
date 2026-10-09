@@ -1,0 +1,37 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.nodes states
+tags:
+  - states
+  - component:graph.nodes
+  - category:graph
+properties:
+  junitClassname: graph.nodes
+---
+# overlays, grid, snapping and guides off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      CONTROLS: "control=Dotted%20grid::false&control=Snap%20nodes%20to%20grid::false&control=Alignment%20guides::false&control=Minimap%20and%20controls::false"
+- assertVisible: "Fit"
+# wire shapes
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      CONTROLS: "control=Wire%20shape::Straight"
+- assertVisible: "Fit"
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      CONTROLS: "control=Wire%20shape::Step"
+- assertVisible: "Fit"
+# animated wires
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      CONTROLS: "control=Animated%20wires::true"
+- assertVisible: "Fit"
+- runFlow: ../../../_lib/assert-no-crash.yaml

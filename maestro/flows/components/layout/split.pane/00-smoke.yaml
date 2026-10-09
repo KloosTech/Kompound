@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: split.pane smoke
+tags:
+  - smoke
+  - component:split.pane
+  - category:layout
+properties:
+  junitClassname: split.pane
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+- runFlow: ../../../_lib/assert-no-crash.yaml

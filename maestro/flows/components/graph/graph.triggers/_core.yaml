@@ -1,0 +1,17 @@
+# The trigger demo shows its webhook buttons, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.triggers
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible: "Send webhook"
+- assertVisible: "Send 5 at once"
+- runFlow: ../../../_lib/assert-no-crash.yaml

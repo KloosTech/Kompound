@@ -1,0 +1,65 @@
+# KActionMenu: items report their action; closeOnClick=false keeps the menu open; back closes it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.actions
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- tapOn:
+    text: "Sync now"
+    retryTapIfNoChange: false
+- assertNotVisible: "Sort by"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Sync now" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- tapOn:
+    text: "Dark mode"
+    retryTapIfNoChange: false
+- assertVisible: "Sort by"
+- assertVisible:
+    checked: true
+    containsChild: "Dark mode"
+- tapOn:
+    text: "Dark mode"
+    retryTapIfNoChange: false
+- assertVisible: "Sort by"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Dark mode off" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- tapOn:
+    text: "Sort by"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "Date"
+    retryTapIfNoChange: false
+- assertNotVisible: "Sort by"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Sort by date" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "More actions" }
+- tapOn:
+    text: "Delete all"
+    retryTapIfNoChange: false
+- assertNotVisible: "Sort by"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Delete all" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

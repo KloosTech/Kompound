@@ -1,0 +1,23 @@
+# KCheckbox renders its initial state in whatever environment the caller opens it in (assertions only).
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional, see _lib/open-demo.yaml)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/assert-enabled.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

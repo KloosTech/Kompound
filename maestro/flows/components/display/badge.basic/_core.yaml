@@ -1,0 +1,38 @@
+# KBadge shows its text and one badge per tone, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "12" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "All tones" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Neutral" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Primary" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Error" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Success" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Warning" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Info" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

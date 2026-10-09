@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: template.fields smoke
+tags:
+  - smoke
+  - component:template.fields
+  - category:inputs
+properties:
+  junitClassname: template.fields
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,28 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: chart.simple states
+tags:
+  - states
+  - component:chart.simple
+  - category:data
+properties:
+  junitClassname: chart.simple
+---
+# stacked bars, no smoothing, no fill
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chart.simple
+      CONTROLS: "control=Stacked%20bars::true&control=Smooth::false&control=Fill::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Visits" }
+# not interactive
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: chart.simple
+      CONTROLS: "control=Interactive::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Visits" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

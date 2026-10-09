@@ -1,0 +1,32 @@
+# KStepList shows the four steps with details, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Download update" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "0:12" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Install" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "0:30 left" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Verify" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Restart" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

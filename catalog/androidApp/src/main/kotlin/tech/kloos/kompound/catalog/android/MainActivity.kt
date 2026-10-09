@@ -2,6 +2,7 @@ package tech.kloos.kompound.catalog.android
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,6 +29,9 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // a form with a password-like field makes the system offer to save it (Google Password Manager), a dialog that covers the app and
+        // blocks every later UI test step: the test build opts the whole window out of autofill
+        if (BuildConfig.HARNESS) window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         enableEdgeToEdge()
         launch = harnessLaunch(intent)
         setContent {

@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -25,6 +28,7 @@ import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -70,8 +74,11 @@ class KSplitPaneTest {
         assertTrue(state.fraction > 0.6f, "dragged right: ${state.fraction}")
         onNodeWithContentDescription("Resize panes").performTouchInput { swipe(center, center + Offset(-2000f, 0f), durationMillis = 200) }
         waitForIdle()
-        assertEquals(0f, state.fraction, "the fraction itself is clamped to 0..1")
-        assertTrue(size("first").width >= 120, "but the pane keeps its minimum: ${size("first").width}")
+        assertEquals(0.24f, state.fraction, 0.01f, "the fraction stops at what the first pane can take (120 of 500)")
+        assertTrue(size("first").width >= 120, "the pane keeps its minimum: ${size("first").width}")
+        onNodeWithContentDescription("Resize panes").performTouchInput { swipe(center, center + Offset(50f, 0f), durationMillis = 200) }
+        waitForIdle()
+        assertTrue(state.fraction > 0.27f, "dragging back moves the divider at once (50 px less the touch slop), there is no dead distance to win back: ${state.fraction}")
         state.fraction = 1f
         waitForIdle()
         assertTrue(size("second").width >= 100, "second keeps its minimum: ${size("second").width}")
@@ -92,12 +99,12 @@ class KSplitPaneTest {
         assertEquals(0.46f, state.fraction, 0.001f)
         divider.performKeyInput { pressKey(Key.MoveEnd) }
         waitForIdle()
-        assertEquals(1f, state.fraction)
+        assertEquals(0.84f, state.fraction, 0.001f, "End: the second pane keeps its 80dp")
         divider.performKeyInput { pressKey(Key.MoveHome) }
         waitForIdle()
-        assertEquals(0f, state.fraction)
+        assertEquals(0.16f, state.fraction, 0.001f, "Home: the first pane keeps its 80dp")
         val config = divider.fetchSemanticsNode().config
-        assertEquals("0%", config.getOrNull(SemanticsProperties.StateDescription))
+        assertEquals("16%", config.getOrNull(SemanticsProperties.StateDescription))
         divider.performSemanticsAction(SemanticsActions.SetProgress) { it(0.3f) }
         waitForIdle()
         assertEquals(0.3f, state.fraction, 0.001f)
@@ -126,5 +133,27 @@ class KSplitPaneTest {
         val scope = SaverScope { true }
         val saved = with(saver) { scope.save(KSplitPaneState(0.37f)) }
         assertEquals(0.37f, saver.restore(saved!!)!!.fraction)
+    }
+
+    @Test
+    fun inRightToLeftTheFirstPaneIsOnTheRightAndTheRightArrowShrinksIt() = runComposeUiTest {
+        val state = KSplitPaneState(0.5f)
+        setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                MaterialTheme(scheme) {
+                    Box(Modifier.size(508.dp, 308.dp)) {
+                        KSplitPane(first = { Box(Modifier.fillMaxSize().testTag("first")) }, second = { Box(Modifier.fillMaxSize().testTag("second")) }, state = state)
+                    }
+                }
+            }
+        }
+        waitForIdle()
+        val firstX = onNodeWithTag("first").fetchSemanticsNode().positionInRoot.x
+        val secondX = onNodeWithTag("second").fetchSemanticsNode().positionInRoot.x
+        assertTrue(firstX > secondX, "first pane starts on the right: $firstX vs $secondX")
+        onNodeWithContentDescription("Resize panes").requestFocus()
+        onNodeWithContentDescription("Resize panes").performKeyInput { pressKey(Key.DirectionRight) }
+        waitForIdle()
+        assertTrue(state.fraction < 0.5f, "the divider moved right, so the first pane (on the right) got smaller: ${state.fraction}")
     }
 }

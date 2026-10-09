@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tag.input interact
+tags:
+  - interact
+  - component:tag.input
+  - category:inputs
+properties:
+  junitClassname: tag.input
+---
+- runFlow: _interact.yaml

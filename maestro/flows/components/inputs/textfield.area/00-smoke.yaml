@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.area smoke
+tags:
+  - smoke
+  - component:textfield.area
+  - category:inputs
+properties:
+  junitClassname: textfield.area
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.area
+- runFlow: ../../../_lib/assert-no-crash.yaml

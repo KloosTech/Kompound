@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.icon smoke
+tags:
+  - smoke
+  - component:button.icon
+  - category:buttons
+properties:
+  junitClassname: button.icon
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.icon
+- runFlow: ../../../_lib/assert-no-crash.yaml

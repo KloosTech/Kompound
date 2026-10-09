@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: badge.basic smoke
+tags:
+  - smoke
+  - component:badge.basic
+  - category:display
+properties:
+  junitClassname: badge.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: badge.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

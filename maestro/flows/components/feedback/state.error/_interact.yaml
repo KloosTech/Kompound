@@ -1,0 +1,22 @@
+# KErrorState: the retry button is tappable and stays.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.error
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.tryAgain}" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Could not load messages" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

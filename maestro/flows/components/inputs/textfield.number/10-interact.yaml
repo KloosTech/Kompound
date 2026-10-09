@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.number interact
+tags:
+  - interact
+  - component:textfield.number
+  - category:inputs
+properties:
+  junitClassname: textfield.number
+---
+- runFlow: _interact.yaml

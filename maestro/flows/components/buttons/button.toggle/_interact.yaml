@@ -1,0 +1,38 @@
+# KToggleButton: each tap flips it and its content.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.toggle
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Off" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "On" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "On" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "On" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Off" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Off" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Off" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "On" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

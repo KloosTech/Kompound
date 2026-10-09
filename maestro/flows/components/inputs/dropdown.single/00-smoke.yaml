@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dropdown.single smoke
+tags:
+  - smoke
+  - component:dropdown.single
+  - category:inputs
+properties:
+  junitClassname: dropdown.single
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a fruit" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

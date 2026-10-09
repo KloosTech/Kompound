@@ -1,0 +1,31 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: skeleton.loading states
+tags:
+  - states
+  - component:skeleton.loading
+  - category:feedback
+properties:
+  junitClassname: skeleton.loading
+---
+# loaded content replaces the placeholders
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: skeleton.loading
+      CONTROLS: "control=Loading::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Wrote the first published algorithm.*" }
+# not animated, more lines
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: skeleton.loading
+      CONTROLS: "control=Animated::false&control=Text%20lines::6"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Ada Lovelace" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

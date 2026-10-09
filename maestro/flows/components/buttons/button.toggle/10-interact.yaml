@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.toggle interact
+tags:
+  - interact
+  - component:button.toggle
+  - category:buttons
+properties:
+  junitClassname: button.toggle
+---
+- runFlow: _interact.yaml

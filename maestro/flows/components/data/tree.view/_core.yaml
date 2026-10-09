@@ -1,0 +1,44 @@
+# KTreeView shows the expanded root with its four folders, the collapsed second root and no selection, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tree.view
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "src" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "docs" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir0" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir1" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir2" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "dir3" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Selected: none" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.collapse}" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.expand}" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

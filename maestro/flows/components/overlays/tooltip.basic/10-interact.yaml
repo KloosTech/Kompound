@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: tooltip.basic interact
+tags:
+  - interact
+  - component:tooltip.basic
+  - category:overlays
+properties:
+  junitClassname: tooltip.basic
+---
+- runFlow: _interact.yaml

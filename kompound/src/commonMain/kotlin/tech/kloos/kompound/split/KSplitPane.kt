@@ -41,8 +41,10 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.theme.KompoundTheme
 import kotlin.math.roundToInt
@@ -96,8 +98,9 @@ public fun KSplitPane(
 ) {
     val horizontal = orientation == Orientation.Horizontal
     val thickness = 8.dp
-    // The pixels the panes share, written by the layout and read by the divider to turn a drag distance into a fraction.
-    val space = remember { FloatArray(1) { 1f } }
+    // Written by the layout, read by the divider: [0] the pixels the panes share, [1] and [2] the smallest and largest size the first
+    // pane can have. A drag turns its distance into a fraction of [0] and stays inside [1]..[2], so the divider never runs ahead of the finger.
+    val space = remember { floatArrayOf(1f, 0f, 1f) }
     Layout(
         modifier = modifier,
         content = {
@@ -113,6 +116,8 @@ public fun KSplitPane(
         space[0] = shared.toFloat().coerceAtLeast(1f)
         val lo = minFirst.roundToPx().coerceAtMost(shared)
         val hi = (shared - minSecond.roundToPx()).coerceAtLeast(lo)
+        space[1] = lo.toFloat()
+        space[2] = hi.toFloat()
         val firstSize = (shared * state.fraction).roundToInt().coerceIn(lo, hi)
         val secondSize = shared - firstSize
         fun box(main: Int) = if (horizontal) Constraints.fixed(main, cross) else Constraints.fixed(cross, main)
@@ -120,7 +125,7 @@ public fun KSplitPane(
         val d = measurables[1].measure(box(bar))
         val b = measurables[2].measure(box(secondSize))
         layout(if (horizontal) total else cross, if (horizontal) cross else total) {
-            if (horizontal) { a.place(0, 0); d.place(firstSize, 0); b.place(firstSize + bar, 0) }
+            if (horizontal) { a.placeRelative(0, 0); d.placeRelative(firstSize, 0); b.placeRelative(firstSize + bar, 0) }
             else { a.place(0, 0); d.place(0, firstSize); b.place(0, firstSize + bar) }
         }
     }
@@ -128,6 +133,8 @@ public fun KSplitPane(
 
 @Composable
 private fun Divider(state: KSplitPaneState, horizontal: Boolean, description: String, space: FloatArray) {
+    // the first pane is on the right in RTL: a distance to the right shrinks it
+    val mirror = if (horizontal && LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
     val source = remember { MutableInteractionSource() }
     val hovered by source.collectIsHoveredAsState()
     val focused by source.collectIsFocusedAsState()
@@ -140,27 +147,27 @@ private fun Divider(state: KSplitPaneState, horizontal: Boolean, description: St
             .focusable(interactionSource = source)
             .semantics {
                 contentDescription = description
-                stateDescription = "${(state.fraction * 100).roundToInt()}%"
-                progressBarRangeInfo = ProgressBarRangeInfo(state.fraction, 0f..1f, 24)
-                setProgress { target -> state.fraction = target.coerceIn(0f, 1f); true }
+                stateDescription = "${(space.clamp(state.fraction) * 100).roundToInt()}%"
+                progressBarRangeInfo = ProgressBarRangeInfo(space.clamp(state.fraction), 0f..1f, 24)
+                setProgress { target -> state.fraction = space.clamp(target); true }
             }
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
                 val step = 0.04f
                 when (event.key) {
-                    if (horizontal) Key.DirectionLeft else Key.DirectionUp -> state.fraction = (state.fraction - step).coerceIn(0f, 1f)
-                    if (horizontal) Key.DirectionRight else Key.DirectionDown -> state.fraction = (state.fraction + step).coerceIn(0f, 1f)
-                    Key.MoveHome -> state.fraction = 0f
-                    Key.MoveEnd -> state.fraction = 1f
+                    if (horizontal) Key.DirectionLeft else Key.DirectionUp -> state.fraction = space.clamp(space.clamp(state.fraction) - step * (if (horizontal) mirror else 1f))
+                    if (horizontal) Key.DirectionRight else Key.DirectionDown -> state.fraction = space.clamp(space.clamp(state.fraction) + step * (if (horizontal) mirror else 1f))
+                    Key.MoveHome -> state.fraction = space.clamp(0f)
+                    Key.MoveEnd -> state.fraction = space.clamp(1f)
                     else -> return@onKeyEvent false
                 }
                 true
             }
-            .pointerInput(horizontal) {
+            .pointerInput(horizontal, mirror) {
                 detectDragGestures { change, drag ->
                     change.consume()
-                    val delta = if (horizontal) drag.x else drag.y
-                    state.fraction = (state.fraction + delta / space[0]).coerceIn(0f, 1f)
+                    val delta = if (horizontal) drag.x * mirror else drag.y
+                    state.fraction = space.clamp(space.clamp(state.fraction) + delta / space[0])
                 }
             }
             .drawBehind {
@@ -170,3 +177,6 @@ private fun Divider(state: KSplitPaneState, horizontal: Boolean, description: St
             },
     )
 }
+
+/** [fraction] limited to what the first pane can actually take (see the layout of [KSplitPane]). */
+private fun FloatArray.clamp(fraction: Float): Float = fraction.coerceIn(this[1] / this[0], this[2] / this[0])

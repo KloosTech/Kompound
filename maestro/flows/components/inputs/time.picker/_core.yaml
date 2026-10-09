@@ -1,0 +1,32 @@
+# KTimePicker shows its time, the steppers and the field, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: time.picker
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: 09:30" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Starts at" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose a time" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.hour} \\+" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.minute} -" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

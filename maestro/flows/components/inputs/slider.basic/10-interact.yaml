@@ -1,0 +1,33 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: slider.basic interact
+tags:
+  - interact
+  - component:slider.basic
+  - category:inputs
+properties:
+  junitClassname: slider.basic
+---
+# The track runs the other way in RTL, so this flow runs in the default environment only.
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: slider.basic
+- tapOn:
+    point: "88%,20%"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Value: (8[0-9]|9[0-9]|100)" }
+- tapOn:
+    point: "12%,20%"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Value: ([0-9]|1[0-9]|2[0-9])" }
+- swipe:
+    start: 12%, 20%
+    end: 60%, 20%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Value: (4[0-9]|5[0-9]|6[0-9])" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,47 @@
+# KMultiDropdown: the list stays open while options are toggled, the field summarises the result.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.multi
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Apple, Cherry" }
+- tapOn:
+    text: "Banana"
+    retryTapIfNoChange: false
+- assertVisible: "Fig"
+- assertVisible:
+    checked: true
+    containsChild: "Banana"
+- tapOn:
+    text: "Apple"
+    retryTapIfNoChange: false
+- assertNotVisible:
+    checked: true
+    containsChild: "Apple"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Banana, Cherry" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Banana, Cherry" }
+- tapOn:
+    text: "Banana"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "Cherry"
+    retryTapIfNoChange: false
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Choose fruits" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

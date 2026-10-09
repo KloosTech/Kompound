@@ -1,6 +1,10 @@
 package tech.kloos.kompound.tooltip
 
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.positionChange
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -93,7 +97,23 @@ public fun KTooltip(
     Box(
         modifier
             .hoverable(source, enabled)
-            .pointerInput(enabled) { if (enabled) detectTapGestures(onLongPress = { pressCount++ }) },
+            .pointerInput(enabled) {
+                // observed on the initial pass and never consumed: a clickable anchor (a button) takes the press first,
+                // so a detector that waits for an unconsumed press would never see the long press
+                if (enabled) awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    var moved = 0f
+                    val held = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                        while (true) {
+                            val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull false
+                            moved += change.positionChange().getDistance()
+                            if (!change.pressed || moved > viewConfiguration.touchSlop) return@withTimeoutOrNull false
+                        }
+                        @Suppress("UNREACHABLE_CODE") true
+                    }
+                    if (held == null) pressCount++
+                }
+            },
     ) {
         content()
         if (enabled && (hoverVisible || pressVisible)) {

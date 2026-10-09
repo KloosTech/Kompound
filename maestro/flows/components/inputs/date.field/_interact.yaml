@@ -1,0 +1,43 @@
+# KDateField: the calendar opens, Cancel keeps the field empty, a chosen day and OK fill it.
+# The calendar's own texts follow the device language; Kompound's OK and Cancel follow the harness language.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick a date" }
+- assertVisible: "${output.s.cancel}"
+- assertVisible: "${output.s.ok}"
+- tapOn:
+    text: "${output.s.cancel}"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Pick a date" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Pick a date" }
+- tapOn:
+    text: "(.*[^0-9])?15([^0-9].*)?"
+    retryTapIfNoChange: false
+- tapOn:
+    text: "${output.s.ok}"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*15.*" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Pick a date" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

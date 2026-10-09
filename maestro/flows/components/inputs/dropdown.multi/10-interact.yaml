@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dropdown.multi interact
+tags:
+  - interact
+  - component:dropdown.multi
+  - category:inputs
+properties:
+  junitClassname: dropdown.multi
+---
+- runFlow: _interact.yaml

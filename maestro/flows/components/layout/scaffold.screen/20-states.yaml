@@ -1,0 +1,40 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: scaffold.screen states
+tags:
+  - states
+  - component:scaffold.screen
+  - category:layout
+properties:
+  junitClassname: scaffold.screen
+---
+# bare scaffold
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: scaffold.screen
+      CONTROLS: "control=Navigation%20icon::false&control=Action%20icons::false&control=Floating%20action%20button::false&control=Bottom%20bar::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Back" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Favourite" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Create" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Bottom bar slot" }
+# other title
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: scaffold.screen
+      CONTROLS: "control=Title::Drafts"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Drafts" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,30 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: split.pane interact
+tags:
+  - interact
+  - component:split.pane
+  - category:layout
+properties:
+  junitClassname: split.pane
+---
+# The divider is found by position (it has no text), so this flow runs in the default environment only.
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: split.pane
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "First pane .35%." }
+- swipe:
+    start: 38%, 31%
+    end: 70%, 31%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "First pane .([5-7][0-9])%." }
+- swipe:
+    start: 68%, 31%
+    end: 15%, 31%
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "First pane .([2-3][0-9])%." }
+- runFlow: ../../../_lib/assert-no-crash.yaml

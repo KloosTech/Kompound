@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: theme.tokens smoke
+tags:
+  - smoke
+  - component:theme.tokens
+  - category:foundations
+properties:
+  junitClassname: theme.tokens
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.tokens
+- runFlow: ../../../_lib/assert-no-crash.yaml

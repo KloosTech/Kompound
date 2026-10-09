@@ -1,0 +1,23 @@
+# KSearchBar shows its placeholder and the hint line, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.search}" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Press search on the keyboard" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

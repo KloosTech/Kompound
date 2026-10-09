@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.logic interact
+tags:
+  - interact
+  - component:graph.logic
+  - category:graph
+properties:
+  junitClassname: graph.logic
+---
+- runFlow: _interact.yaml

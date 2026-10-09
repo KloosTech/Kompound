@@ -1,0 +1,48 @@
+# KDropdown: a choice replaces the placeholder and is marked in the list; another choice replaces it; back keeps it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dropdown.single
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Choose a fruit" }
+- tapOn:
+    text: "Cherry"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Cherry" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Cherry" }
+- assertVisible:
+    checked: true
+    containsChild: "Cherry"
+- assertNotVisible:
+    checked: true
+    containsChild: "Apple"
+- tapOn:
+    text: "Fig"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Fig" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Fig" }
+- assertVisible:
+    checked: true
+    containsChild: "Fig"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Fig" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

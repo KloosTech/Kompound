@@ -1,0 +1,60 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: sheet.bottom states
+tags:
+  - states
+  - component:sheet.bottom
+  - category:overlays
+properties:
+  junitClassname: sheet.bottom
+---
+# no close button, no footer, no title
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+      CONTROLS: "control=Close%20button::false&control=Action%20footer::false&control=Title::"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open" }
+- assertVisible: "Ada Lovelace"
+- assertNotVisible: "Done"
+- assertNotVisible: "Share with"
+- back
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+# always a dialog (wide form), also on a phone
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+      CONTROLS: "control=Form::Always%20dialog"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open" }
+- assertVisible: "Share with"
+- assertVisible: "Done"
+- tapOn:
+    text: "Alan Turing"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+# always a sheet
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: sheet.bottom
+      CONTROLS: "control=Form::Always%20sheet"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Open" }
+- assertVisible: "Share with"
+- assertVisible: "Done"
+- tapOn:
+    text: "Done"
+    retryTapIfNoChange: false
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Open" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

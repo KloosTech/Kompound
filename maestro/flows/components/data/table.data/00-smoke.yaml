@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: table.data smoke
+tags:
+  - smoke
+  - component:table.data
+  - category:data
+properties:
+  junitClassname: table.data
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+- runFlow: ../../../_lib/assert-no-crash.yaml

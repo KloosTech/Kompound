@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: template.fields interact
+tags:
+  - interact
+  - component:template.fields
+  - category:inputs
+properties:
+  junitClassname: template.fields
+---
+- runFlow: _interact.yaml

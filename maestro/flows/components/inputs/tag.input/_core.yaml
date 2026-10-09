@@ -1,0 +1,23 @@
+# KTagInput shows its label, the first tag, the placeholder and the summary line, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: tag.input
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Topics" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "kotlin" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "1 tag.s.: kotlin" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

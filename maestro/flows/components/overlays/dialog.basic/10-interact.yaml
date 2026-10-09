@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dialog.basic interact
+tags:
+  - interact
+  - component:dialog.basic
+  - category:overlays
+properties:
+  junitClassname: dialog.basic
+---
+- runFlow: _interact.yaml

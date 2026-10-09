@@ -46,7 +46,7 @@ import tech.kloos.kompound.theme.KompoundTheme
  */
 @Composable
 fun HarnessEnvironment(launch: HarnessLaunch, content: @Composable () -> Unit) {
-    val settings = ThemeSettings(mode = if (launch.dark) ThemeMode.Dark else ThemeMode.Light)
+    val settings = ThemeSettings(hue = launch.hue, saturation = launch.saturation, roundness = launch.roundness, mode = if (launch.dark) ThemeMode.Dark else ThemeMode.Light)
     val base = LocalDensity.current
     val density = when (launch.density) { "compact" -> KDensity.Compact; "spacious" -> KDensity.Spacious; else -> KDensity.Comfortable }
     CompositionLocalProvider(
@@ -54,7 +54,8 @@ fun HarnessEnvironment(launch: HarnessLaunch, content: @Composable () -> Unit) {
         LocalDensity provides Density(base.density, launch.fontScale),
     ) {
         KompoundTheme(
-            colorScheme = settings.colorScheme(launch.dark), shapes = settings.shapes(),
+            colorScheme = launch.chaos?.let { ChaosTheme.colorScheme(it, launch.dark) } ?: settings.colorScheme(launch.dark),
+            shapes = launch.chaos?.let { ChaosTheme.shapes(it) } ?: settings.shapes(),
             strings = KompoundStrings.forLanguageTag(launch.lang), density = density,
             content = content,
         )

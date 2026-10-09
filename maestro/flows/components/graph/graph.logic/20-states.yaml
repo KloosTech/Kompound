@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.logic states
+tags:
+  - states
+  - component:graph.logic
+  - category:graph
+properties:
+  junitClassname: graph.logic
+---
+# dotted grid off
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.logic
+      CONTROLS: "control=Run%20the%20clock::false&control=Animated%20true%20wires::false&control=Dotted%20grid::false"
+- assertVisible: "1 true"
+- runFlow: ../../../_lib/assert-no-crash.yaml

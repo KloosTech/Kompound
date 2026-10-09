@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: accordion.basic interact
+tags:
+  - interact
+  - component:accordion.basic
+  - category:layout
+properties:
+  junitClassname: accordion.basic
+---
+- runFlow: _interact.yaml

@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: date.field smoke
+tags:
+  - smoke
+  - component:date.field
+  - category:inputs
+properties:
+  junitClassname: date.field
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: date.field
+- runFlow: ../../../_lib/assert-no-crash.yaml

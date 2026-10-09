@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: code.view smoke
+tags:
+  - smoke
+  - component:code.view
+  - category:display
+properties:
+  junitClassname: code.view
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+- runFlow: ../../../_lib/assert-no-crash.yaml

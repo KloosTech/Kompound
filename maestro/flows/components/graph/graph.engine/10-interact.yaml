@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.engine interact
+tags:
+  - interact
+  - component:graph.engine
+  - category:graph
+properties:
+  junitClassname: graph.engine
+---
+- runFlow: _interact.yaml

@@ -1,0 +1,53 @@
+# KDataTable: tapping a row selects it, a header sorts, select all selects every row.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: table.data
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Rows::40"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Person 2" }
+- runFlow:
+    file: ../../../_lib/assert-row-checked.yaml
+    env: { LABEL: "Person 2" }
+- runFlow:
+    file: ../../../_lib/assert-row-unchecked.yaml
+    env: { LABEL: "Person 1" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Person 2" }
+- runFlow:
+    file: ../../../_lib/assert-row-unchecked.yaml
+    env: { LABEL: "Person 2" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Name" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 1" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Name" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 9" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Person 8" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.selectAll}" }
+- runFlow:
+    file: ../../../_lib/assert-row-checked.yaml
+    env: { LABEL: "Person 9" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

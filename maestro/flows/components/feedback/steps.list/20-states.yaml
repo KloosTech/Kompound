@@ -1,0 +1,43 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: steps.list states
+tags:
+  - states
+  - component:steps.list
+  - category:feedback
+properties:
+  junitClassname: steps.list
+---
+# step 2 done: its time left is gone
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+      CONTROLS: "control=Step%202::Done"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Install" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "0:30 left" }
+# everything waiting
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+      CONTROLS: "control=Step%201::Waiting&control=Step%202::Waiting"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Download update" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "0:30 left" }
+# step 3 indeterminate
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: steps.list
+      CONTROLS: "control=Step%203%20indeterminate::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Verify" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

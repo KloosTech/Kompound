@@ -1,0 +1,46 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: switch.basic states
+tags:
+  - states
+  - component:switch.basic
+  - category:inputs
+properties:
+  junitClassname: switch.basic
+---
+# disabled: both switches are disabled and a tap changes nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: switch.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Wi-Fi" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Bluetooth" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Bluetooth" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Bluetooth" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Wi-Fi" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Wi-Fi" }
+# no label: the label text is gone
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: switch.basic
+      CONTROLS: "control=Label::false"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Wi-Fi" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Bluetooth" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

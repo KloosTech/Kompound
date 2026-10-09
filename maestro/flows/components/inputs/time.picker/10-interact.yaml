@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: time.picker interact
+tags:
+  - interact
+  - component:time.picker
+  - category:inputs
+properties:
+  junitClassname: time.picker
+---
+- runFlow: _interact.yaml

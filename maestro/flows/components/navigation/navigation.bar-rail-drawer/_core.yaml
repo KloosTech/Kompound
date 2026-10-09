@@ -1,0 +1,36 @@
+# The bar shows its four destinations with the badge on the inbox, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: navigation.bar-rail-drawer
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+      CONTROLS: "control=Component::Bar"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Screen: home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Home" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Inbox" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "People" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Settings" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "4" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Arrow keys.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

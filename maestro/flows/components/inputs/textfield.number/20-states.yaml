@@ -1,0 +1,64 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: textfield.number states
+tags:
+  - states
+  - component:textfield.number
+  - category:inputs
+properties:
+  junitClassname: textfield.number
+---
+# decimal point allowed
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+      CONTROLS: "control=Allow%20decimal::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quantity" }
+- inputText: "1.5"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Parsed: 1.5" }
+- hideKeyboard
+# minus sign allowed
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+      CONTROLS: "control=Allow%20negative::true"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quantity" }
+- inputText: "-4"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Parsed: -4.0" }
+- hideKeyboard
+# without both: a point and a minus are dropped
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quantity" }
+- inputText: "-1.5"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Parsed: 15.0" }
+- hideKeyboard
+# disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: textfield.number
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Quantity" }
+- inputText: "7"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Parsed: 7.0" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

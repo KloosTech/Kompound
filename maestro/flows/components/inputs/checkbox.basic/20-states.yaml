@@ -1,0 +1,46 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: checkbox.basic states
+tags:
+  - states
+  - component:checkbox.basic
+  - category:inputs
+properties:
+  junitClassname: checkbox.basic
+---
+# disabled: both boxes are disabled and a tap changes nothing
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Select all (tri-state)" }
+- runFlow:
+    file: ../../../_lib/assert-unchecked.yaml
+    env: { LABEL: "Select all (tri-state)" }
+# no label: the label text is gone
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: checkbox.basic
+      CONTROLS: "control=Label::false"
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Receive updates" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Select all (tri-state)" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

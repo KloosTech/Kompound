@@ -44,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.text.KText
@@ -82,7 +84,9 @@ public fun KSegmentedControl(
     remember { KompoundStyles.ensureEnabled() }
     val containerState = remember { MutableStyleState(null) }
     val indicatorState = rememberUpdatedStyleState(null) { it.isEnabled = enabled }
-    // Position and width of every segment inside the row; the pill animates between them.
+    // Position (from the left edge) and width of every segment inside the row; the pill animates between them.
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    var rowWidth by remember { mutableIntStateOf(0) }
     val lefts = remember(options.size) { IntArray(options.size) }
     val widths = remember(options.size) { IntArray(options.size) }
     var placed by remember(options.size) { mutableIntStateOf(0) }
@@ -109,7 +113,9 @@ public fun KSegmentedControl(
                         .layout { measurable, constraints ->
                             val w = width.value.roundToInt().coerceAtLeast(0)
                             val placeable = measurable.measure(constraints.copy(minWidth = w, maxWidth = w))
-                            layout(0, 0) { placeable.place(left.value.roundToInt(), 0) }
+                            // the box is laid out at the start edge (the right one in RTL); move it to the segment's absolute position
+                            val anchor = if (rtl) rowWidth - w else 0
+                            layout(w, placeable.height) { placeable.place(left.value.roundToInt() - anchor, 0) }
                         }
                         .fillMaxHeight()
                         .styleable(indicatorState, KSegmentedControlDefaults.indicatorStyle(), indicatorStyle),
@@ -127,8 +133,9 @@ public fun KSegmentedControl(
                         modifier = Modifier
                             .weight(1f)
                             .onPlaced { coordinates ->
-                                val x = coordinates.positionInParent().x.roundToInt()
                                 val w = coordinates.size.width
+                                val x = coordinates.positionInParent().x.roundToInt()
+                                rowWidth = coordinates.parentCoordinates?.size?.width ?: 0
                                 if (lefts[index] != x || widths[index] != w) { lefts[index] = x; widths[index] = w; placed++ }
                             }
                             .hoverable(source, enabled)

@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: graph.triggers interact
+tags:
+  - interact
+  - component:graph.triggers
+  - category:graph
+properties:
+  junitClassname: graph.triggers
+---
+- runFlow: _interact.yaml

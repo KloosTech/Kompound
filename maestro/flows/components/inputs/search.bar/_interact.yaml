@@ -1,0 +1,41 @@
+# KSearchBar: typing fills the field and shows a clear button; the keyboard's search key submits; clear empties it.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: search.bar
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.search}" }
+- inputText: "kotlin"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "kotlin" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.clearSearch}" }
+- pressKey: Enter
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Searched for: kotlin" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "${output.s.clearSearch}" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "kotlin" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.search}" }
+- hideKeyboard
+- runFlow: ../../../_lib/assert-no-crash.yaml

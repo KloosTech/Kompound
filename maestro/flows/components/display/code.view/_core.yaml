@@ -1,0 +1,20 @@
+# KCode shows the sample with line numbers, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: code.view
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*A chip that never changes height.*" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: ".*@Composable.*" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

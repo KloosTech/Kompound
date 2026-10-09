@@ -1,0 +1,32 @@
+# KColorPicker and KColorField show the colour, the swatches and the hex field, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runScript:
+    file: ../../../_lib/strings.js
+    env: { LANG: "${LANG}" }
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: color.picker
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Picked: #6750A4" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Accent colour" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "#E53935" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "#212121" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "${output.s.hexColor}" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

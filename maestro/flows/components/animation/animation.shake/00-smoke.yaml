@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: animation.shake smoke
+tags:
+  - smoke
+  - component:animation.shake
+  - category:animation
+properties:
+  junitClassname: animation.shake
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: animation.shake
+- runFlow: ../../../_lib/assert-no-crash.yaml

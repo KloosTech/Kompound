@@ -49,6 +49,28 @@ class HarnessTest {
     }
 
     @Test
+    fun theThemeOptionsAreReadAndChecked() {
+        val l = HarnessLaunch.parse("kompound://demo/x?hue=120&saturation=0.9&roundness=0&chaos=42")!!
+        assertEquals(120f, l.hue)
+        assertEquals(0.9f, l.saturation)
+        assertEquals(0f, l.roundness)
+        assertEquals(42L, l.chaos)
+        val bad = HarnessLaunch.parse("kompound://demo/x?hue=999&saturation=7&roundness=-1&chaos=abc")!!
+        assertEquals(360f, bad.hue)
+        assertEquals(1f, bad.saturation)
+        assertEquals(0f, bad.roundness)
+        assertNull(bad.chaos)
+    }
+
+    @Test
+    fun theChaosThemeIsTheSameForTheSameSeedAndDiffersBetweenSeedsAndModes() {
+        assertEquals(ChaosTheme.colorScheme(5, false).primary, ChaosTheme.colorScheme(5, false).primary)
+        assertEquals(ChaosTheme.shapes(5).medium, ChaosTheme.shapes(5).medium)
+        assertTrue(ChaosTheme.colorScheme(5, false).primary != ChaosTheme.colorScheme(6, false).primary)
+        assertTrue(ChaosTheme.colorScheme(5, false).primary != ChaosTheme.colorScheme(5, true).primary)
+    }
+
+    @Test
     fun valuesAreCheckedAndPercentDecodedAsUtf8() {
         assertEquals(3f, HarnessLaunch.parse("kompound://demo/x?font=9")!!.fontScale, "clamped")
         assertEquals(0.5f, HarnessLaunch.parse("kompound://demo/x?font=0")!!.fontScale)

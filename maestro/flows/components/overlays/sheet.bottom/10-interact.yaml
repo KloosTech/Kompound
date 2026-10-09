@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: sheet.bottom interact
+tags:
+  - interact
+  - component:sheet.bottom
+  - category:overlays
+properties:
+  junitClassname: sheet.bottom
+---
+- runFlow: _interact.yaml

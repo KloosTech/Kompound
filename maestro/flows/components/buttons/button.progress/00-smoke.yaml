@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: button.progress smoke
+tags:
+  - smoke
+  - component:button.progress
+  - category:buttons
+properties:
+  junitClassname: button.progress
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: button.progress
+- runFlow: ../../../_lib/assert-no-crash.yaml

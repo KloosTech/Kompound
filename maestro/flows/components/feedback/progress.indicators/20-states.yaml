@@ -1,0 +1,31 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: progress.indicators states
+tags:
+  - states
+  - component:progress.indicators
+  - category:feedback
+properties:
+  junitClassname: progress.indicators
+---
+# indeterminate
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: progress.indicators
+      CONTROLS: "control=Indeterminate::true"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Linear" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Circular" }
+# other value
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: progress.indicators
+      CONTROLS: "control=Progress::1"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Linear" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

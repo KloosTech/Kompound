@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: accordion.basic smoke
+tags:
+  - smoke
+  - component:accordion.basic
+  - category:layout
+properties:
+  junitClassname: accordion.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: accordion.basic
+- runFlow: ../../../_lib/assert-no-crash.yaml

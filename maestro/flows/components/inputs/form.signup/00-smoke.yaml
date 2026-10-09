@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: form.signup smoke
+tags:
+  - smoke
+  - component:form.signup
+  - category:inputs
+properties:
+  junitClassname: form.signup
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: form.signup
+- runFlow: ../../../_lib/assert-no-crash.yaml

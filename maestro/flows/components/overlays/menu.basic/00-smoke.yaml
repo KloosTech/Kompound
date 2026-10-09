@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: menu.basic smoke
+tags:
+  - smoke
+  - component:menu.basic
+  - category:overlays
+properties:
+  junitClassname: menu.basic
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: menu.basic
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Nothing picked yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

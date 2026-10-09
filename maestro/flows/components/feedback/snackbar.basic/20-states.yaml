@@ -1,0 +1,58 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: snackbar.basic states
+tags:
+  - states
+  - component:snackbar.basic
+  - category:feedback
+properties:
+  junitClassname: snackbar.basic
+---
+# no action button: no Undo, the snackbar still dismisses itself
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+      CONTROLS: "control=Action%20button::false"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Message sent" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Undo" }
+- extendedWaitUntil:
+    visible: "Result: Dismissed"
+    timeout: 12000
+# indefinite: stays until its action is used
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+      CONTROLS: "control=Duration::Indefinite"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Undo" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Result: ActionPerformed" }
+# error tone and another message
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: snackbar.basic
+      CONTROLS: "control=Tone::Error&control=Message::Upload%20failed"
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Show snackbar" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Upload failed" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

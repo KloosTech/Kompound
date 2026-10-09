@@ -1,0 +1,38 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: template.fields states
+tags:
+  - states
+  - component:template.fields
+  - category:inputs
+properties:
+  junitClassname: template.fields
+---
+# fields unknown: the editors still render and nothing is offered
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+      CONTROLS: "control=Fields%20known::false"
+- assertVisible: "URL"
+- scrollUntilVisible:
+    element: "Sort by .one path."
+    timeout: 15000
+- assertVisible: "owner.email"
+# the data is invalid JSON: the text area says so
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: template.fields
+- tapOn:
+    text: ".*Fix the login.*Users cannot sign.*"
+    retryTapIfNoChange: false
+# a typed quote breaks the JSON wherever the caret sits
+- inputText: '"'
+- assertVisible: "Not valid JSON"
+# the page was scrolled down: bring the top (and with it harness:ready) back before the final crash check
+- scrollUntilVisible:
+    element:
+      id: "harness:ready"
+    direction: UP
+    timeout: 15000
+- runFlow: ../../../_lib/assert-no-crash.yaml

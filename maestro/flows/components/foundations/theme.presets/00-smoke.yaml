@@ -1,0 +1,14 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: theme.presets smoke
+tags:
+  - smoke
+  - component:theme.presets
+  - category:foundations
+properties:
+  junitClassname: theme.presets
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: theme.presets
+- runFlow: ../../../_lib/assert-no-crash.yaml

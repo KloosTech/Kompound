@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: date.field interact
+tags:
+  - interact
+  - component:date.field
+  - category:inputs
+properties:
+  junitClassname: date.field
+---
+- runFlow: _interact.yaml

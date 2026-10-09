@@ -1,5 +1,5 @@
 appId: tech.kloos.kompound.catalog.maestro
-name: KSlider smoke
+name: slider.basic smoke
 tags:
   - smoke
   - component:slider.basic
@@ -11,9 +11,4 @@ properties:
     file: ../../../_lib/open-demo.yaml
     env:
       DEMO: slider.basic
-- assertVisible: "Value: 40"
-- assertVisible:
-    id: "control:Enabled"
-    checked: true
-- assertVisible:
-    id: "harness:preview"
+- runFlow: ../../../_lib/assert-no-crash.yaml

@@ -1,0 +1,29 @@
+# The graph editor shows its toolbar, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+# This page is longer than the screen: the controls card is out of view, so selectors are not scoped above it.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible: "\\+ Number"
+- assertVisible: "\\+ Add"
+- assertVisible: "\\+ Multiply"
+- assertVisible: "\\+ Display"
+- assertVisible: "Undo"
+- assertVisible: "Redo"
+- assertVisible: "Subgraph"
+- assertVisible: "Open up"
+- assertVisible: "Group"
+- assertVisible: "Ungroup"
+- assertVisible: "Duplicate"
+- assertVisible: "Arrange"
+- assertVisible: "Fit"
+- assertVisible: "Delete"
+- runFlow: ../../../_lib/assert-no-crash.yaml

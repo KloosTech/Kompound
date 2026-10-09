@@ -1,0 +1,10 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: checkbox.basic interact
+tags:
+  - interact
+  - component:checkbox.basic
+  - category:inputs
+properties:
+  junitClassname: checkbox.basic
+---
+- runFlow: _interact.yaml

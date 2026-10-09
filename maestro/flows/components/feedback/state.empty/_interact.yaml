@@ -1,0 +1,19 @@
+# KEmptyState: the action is tappable and stays.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.empty
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-tap.yaml
+    env: { TEXT: "Write a message" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "No messages yet" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

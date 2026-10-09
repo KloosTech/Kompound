@@ -1,0 +1,43 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: state.empty states
+tags:
+  - states
+  - component:state.empty
+  - category:feedback
+properties:
+  junitClassname: state.empty
+---
+# no description
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.empty
+      CONTROLS: "control=Description::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "No messages yet" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "When someone writes to you.*" }
+# no action
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.empty
+      CONTROLS: "control=Action::false"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "No messages yet" }
+- runFlow:
+    file: ../../../_lib/preview-not-see.yaml
+    env: { TEXT: "Write a message" }
+# no illustration, other title
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: state.empty
+      CONTROLS: "control=Illustration::false&control=Title::Inbox%20zero"
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Inbox zero" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

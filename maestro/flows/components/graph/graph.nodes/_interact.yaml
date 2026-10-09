@@ -1,0 +1,52 @@
+# The graph editor: adding a node enables Undo, Undo disables it again, selection-dependent buttons are off without a selection.
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: graph.nodes
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- assertVisible:
+    enabled: false
+    containsChild: "Undo"
+- assertVisible:
+    enabled: false
+    containsChild: "Redo"
+- assertVisible:
+    enabled: false
+    containsChild: "Delete"
+- assertVisible:
+    enabled: false
+    containsChild: "Duplicate"
+- tapOn:
+    text: "\\+ Number"
+    retryTapIfNoChange: false
+- assertVisible: "Undo"
+- assertNotVisible:
+    enabled: false
+    containsChild: "Undo"
+- tapOn:
+    text: "Undo"
+    retryTapIfNoChange: false
+- assertVisible:
+    enabled: false
+    containsChild: "Undo"
+- assertVisible: "Redo"
+- assertNotVisible:
+    enabled: false
+    containsChild: "Redo"
+- tapOn:
+    text: "Redo"
+    retryTapIfNoChange: false
+- assertVisible: "Undo"
+- assertNotVisible:
+    enabled: false
+    containsChild: "Undo"
+- tapOn:
+    text: "Fit"
+    retryTapIfNoChange: false
+- runFlow: ../../../_lib/assert-no-crash.yaml

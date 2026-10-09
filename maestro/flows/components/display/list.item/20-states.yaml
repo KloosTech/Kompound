@@ -1,0 +1,31 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: list.item states
+tags:
+  - states
+  - component:list.item
+  - category:display
+properties:
+  junitClassname: list.item
+---
+# disabled: rows are disabled
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: list.item
+      CONTROLS: "control=Enabled::false"
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Grace Hopper" }
+- runFlow:
+    file: ../../../_lib/assert-disabled.yaml
+    env: { LABEL: "Alan Turing" }
+# selectable: the first row starts selected
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: list.item
+      CONTROLS: "control=Selectable%20rows::true"
+- runFlow:
+    file: ../../../_lib/assert-checked.yaml
+    env: { LABEL: "Ada Lovelace" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

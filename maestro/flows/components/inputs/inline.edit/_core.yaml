@@ -1,0 +1,26 @@
+# KInlineEdit shows the title as text and the note placeholder, in the caller's environment.
+# env: THEME, FONT, RTL, DENSITY, LANG (all optional)
+appId: tech.kloos.kompound.catalog.maestro
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: inline.edit
+      THEME: ${THEME}
+      FONT: ${FONT}
+      RTL: ${RTL}
+      DENSITY: ${DENSITY}
+      LANG: ${LANG}
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Title" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Quarterly report" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Note (multi-line)" }
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Add a note" }
+- runFlow: ../../../_lib/assert-no-crash.yaml
