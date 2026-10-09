@@ -18,6 +18,16 @@ Matrix per demo (edit `scripts/gen-visual-flows.sh`, run it again): light, dark,
 | `align` | leading edges of stacked elements 1.3 to 4 dp apart (only with `--align`, noisy) | info |
 | `regress` | pixel diff against `--baseline <dir>` (`--update-baseline` stores the current shots) | error |
 
+## Style fuzzing
+
+```
+maestro/scripts/gen-fuzz-flows.sh [--seeds 8] [--base 1000]   # writes 50-fuzz.yaml per demo (generated, tag fuzz)
+maestro/scripts/maestro.sh --fuzz [--component <demo-id>]
+python3 maestro/visual/analyze.py build/maestro/artifacts       # clipping is checked on fuzz shots; contrast and mirror are not
+```
+
+Every seed is one environment: dark or light, LTR or RTL (25 %), font 1.0 to 2.0, density, and a theme that is either derived (random hue, saturation and corner radius, a plausible brand) or `chaos=<seed>` (every Material colour role and every corner radius random, no contrast guarantee: `ChaosTheme`). The deep link also takes `hue`, `saturation`, `roundness` and `chaos`. The same `--base` gives the same environments, so a failure is reproducible from the seed in its screenshot name (`..._fuzz1003.png`). What the flows catch: crashes (`assert-no-crash`), a demo that no longer opens, content running off the screen. Chaos themes cannot look good, so nothing about looks is asserted.
+
 ## Layer 2: vision model (Ollama on the 3090, `192.168.1.8:11434`)
 
 ```

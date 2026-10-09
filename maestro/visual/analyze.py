@@ -26,7 +26,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-NAME = re.compile(r"visual__(?P<demo>.+?)__(?P<theme>[a-z]+)_(?P<dir>ltr|rtl)_f(?P<font>[0-9.]+)_(?P<density>[a-z]+)_(?P<lang>[a-z]+)\.png$")
+NAME = re.compile(r"visual__(?P<demo>.+?)__(?P<theme>[a-z]+)_(?P<dir>ltr|rtl)_f(?P<font>[0-9.]+)_(?P<density>[a-z]+)_(?P<lang>[a-z]+)(?:_fuzz(?P<fuzz>[0-9]+))?\.png$")
 TOP, BOTTOM = 130, 90          # px cut off for the status bar and the gesture bar (reference phone, 1080x2412)
 INK = 24                       # channel difference from the page colour that counts as drawn
 GAP_PX = 24                    # a horizontal gap this wide ends an element
@@ -227,7 +227,8 @@ def main():
         bg = page_color(cont)
         ink = ink_mask(cont, bg)
         boxes = elements(ink)
-        fs = check_clip(cont, bg, ink, dp) + check_contrast(cont, bg, boxes, dp) + (check_align(boxes, meta["dir"] == "rtl", dp, a.shape[1]) if args.align else [])
+        fuzz = meta["fuzz"] is not None      # random themes: contrast and mirror do not apply, clipping does
+        fs = check_clip(cont, bg, ink, dp) + ([] if fuzz else check_contrast(cont, bg, boxes, dp)) + (check_align(boxes, meta["dir"] == "rtl", dp, a.shape[1]) if args.align else [])
         if args.baseline:
             base = Path(args.baseline) / meta["demo"] / name
             if args.update_baseline:
@@ -242,12 +243,12 @@ def main():
             annotate(img.copy(), fs, out_dir / "annotated" / name)
         findings += fs
         content[name] = ink
-        by_demo[meta["demo"]][(meta["theme"], meta["dir"], meta["font"], meta["density"])] = name
+        by_demo[meta["demo"]][(meta["theme"], meta["dir"], meta["font"], meta["density"], meta["fuzz"])] = name
 
     for demo, d in by_demo.items():
         if demo in expected.get("mirror", {}):
             continue
-        l, r = d.get(("light", "ltr", "1.0", "comfortable")), d.get(("light", "rtl", "1.0", "comfortable"))
+        l, r = d.get(("light", "ltr", "1.0", "comfortable", None)), d.get(("light", "rtl", "1.0", "comfortable", None))
         if l and r:
             for f in check_mirror(content[l], content[r], out_dir, demo):
                 f.update(demo=demo, shot=r)
