@@ -77,6 +77,7 @@ The node graph framework (editor canvas, execution engine, inspector; experiment
 | Compose Multiplatform | 1.12.1 or newer (`foundation` 1.12 contains the Styles API) |
 | Android | minSdk 24, compileSdk 37 |
 | iOS | 15+ (`iosArm64`, `iosSimulatorArm64`) |
+| macOS (native) | `macosArm64` (Apple Silicon; consumers need `org.jetbrains.compose.experimental.macos.enabled=true`) |
 | Desktop | JVM 11+ |
 | Web | `wasmJs` and `js` (IR, browser) |
 

@@ -64,7 +64,7 @@ jobs:
           path: "**/build/reports/tests"
 
   apple:
-    name: iOS (macOS)
+    name: iOS and macOS native (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,13 +75,15 @@ jobs:
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-      - name: iOS tests and link
+      - name: iOS and macOS native tests and link
         run: >
           ./gradlew
           :kompound:iosSimulatorArm64Test
           :kompound-graph:iosSimulatorArm64Test
           :catalog:shared:iosSimulatorArm64Test
           compileKotlinIosArm64
+          :kompound:macosArm64Test
+          :kompound-graph:macosArm64Test
           --stacktrace
       - name: Build iOS catalog app (simulator)
         run: |
