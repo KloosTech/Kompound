@@ -33,6 +33,7 @@ public class KDropTargetState<T> internal constructor(
     internal var dropAnimationEnabled: Boolean,
 
     internal var canDrop: Boolean,
+    internal var landOnDroppedItem: Boolean = false,
 
     internal var onDrop: (state: KDraggedItemState<T>) -> Unit,
     internal var onDragEnter: (state: KDraggedItemState<T>) -> Unit,

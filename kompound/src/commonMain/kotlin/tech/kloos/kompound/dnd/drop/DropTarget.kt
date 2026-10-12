@@ -45,6 +45,8 @@ import tech.kloos.kompound.dnd.drag.KDraggedItemState
  * @param dropOffset An additional offset applied to the drop animation position.
  * @param dropAnimationEnabled Whether the drop animation is enabled. When false,
  * the dragged item disappears immediately on drop without animating to the target.
+ * @param landOnDroppedItem When true, [onDrop] is called as soon as the item is released and the drag shadow then glides to where the
+ * dragged item itself ends up once the app has moved it (its composable keeps its key), instead of gliding to the target and jumping.
  * @param canDrop Whether this target currently accepts drops. When false, the target
  * is excluded from hover detection — dragged items cannot hover over it or be dropped on it.
  * This is a Compose-evaluated boolean, so it can read state (e.g., `state.draggedItem?.data`)
@@ -66,6 +68,7 @@ public fun <T> Modifier.kDropTarget(
     dropOffset: Offset = Offset.Zero,
     dropAnimationEnabled: Boolean = true,
     canDrop: Boolean = true,
+    landOnDroppedItem: Boolean = false,
     onDrop: (state: KDraggedItemState<T>) -> Unit = {},
     onDragEnter: (state: KDraggedItemState<T>) -> Unit = {},
     onDragExit: (state: KDraggedItemState<T>) -> Unit = {},
@@ -78,6 +81,7 @@ public fun <T> Modifier.kDropTarget(
         dropOffset = dropOffset,
         dropAnimationEnabled = dropAnimationEnabled,
         canDrop = canDrop,
+        landOnDroppedItem = landOnDroppedItem,
         onDrop = onDrop,
         onDragEnter = onDragEnter,
         onDragExit = onDragExit,
@@ -91,6 +95,7 @@ private data class DropTargetNodeElement<T>(
     val dropOffset: Offset,
     val dropAnimationEnabled: Boolean,
     val canDrop: Boolean,
+    val landOnDroppedItem: Boolean,
     val onDrop: (state: KDraggedItemState<T>) -> Unit,
     val onDragEnter: (state: KDraggedItemState<T>) -> Unit,
     val onDragExit: (state: KDraggedItemState<T>) -> Unit,
@@ -106,6 +111,7 @@ private data class DropTargetNodeElement<T>(
                 dropOffset = dropOffset,
                 dropAnimationEnabled = dropAnimationEnabled,
                 canDrop = canDrop,
+                landOnDroppedItem = landOnDroppedItem,
                 onDrop = onDrop,
                 onDragEnter = onDragEnter,
                 onDragExit = onDragExit,
@@ -126,6 +132,7 @@ private data class DropTargetNodeElement<T>(
         targetState.dropOffset = dropOffset
         targetState.dropAnimationEnabled = dropAnimationEnabled
         targetState.canDrop = canDrop
+        targetState.landOnDroppedItem = landOnDroppedItem
         targetState.onDrop = onDrop
         targetState.onDragEnter = onDragEnter
         targetState.onDragExit = onDragExit

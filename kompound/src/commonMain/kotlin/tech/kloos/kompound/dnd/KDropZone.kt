@@ -124,7 +124,7 @@ public fun <T> KDropZone(
     styleState.isSelected = hovered
     Box(
         modifier = modifier
-            .kDropTarget(key = key, state = state, canDrop = canDrop, dropAnimationEnabled = true, onDrop = { onDrop(it.data) })
+            .kDropTarget(key = key, state = state, canDrop = canDrop, landOnDroppedItem = true, onDrop = { onDrop(it.data) })
             .styleable(styleState, KDropZoneDefaults.style(), style),
     ) {
         content(hovered)

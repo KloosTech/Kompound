@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
@@ -562,9 +563,17 @@ public class KDragAndDropState<T>(
         val dropTarget = hoveredDropTargetKey?.let { dropTargetMap[it] }?.takeIf { it.canDrop }
         if (dropTarget == null) exitHoveredDropTarget(draggedItem)
 
+        val landOnItem = dropTarget?.landOnDroppedItem == true
+        var dropDelivered = false
+        val deliverDrop = {
+            if (!dropDelivered) {
+                dropDelivered = true
+                dropTarget?.onDrop?.invoke(draggedItem)
+            }
+        }
         runDrop(
             onFinish = {
-                dropTarget?.onDrop?.invoke(draggedItem)
+                deliverDrop()
                 dispatchDragEnd(currentDraggableItem, draggedItem)
             },
         ) {
@@ -572,6 +581,11 @@ public class KDragAndDropState<T>(
                 animateDropPosition(currentDraggableItem.dropAnimationSpec) {
                     ghostReturnTopLeft(currentDraggableItem)
                 }
+            } else if (landOnItem) {
+                // The app moves the item in onDrop; the ghost follows the item to its new place
+                deliverDrop()
+                withFrameNanos { }
+                settleOnOwnItem(currentDraggableItem)
             } else if (dropTarget.dropAnimationEnabled) {
                 animateDropOnTarget(dropTarget, currentDraggableItem)
             }
