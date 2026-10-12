@@ -17,6 +17,7 @@ include(
     ":showcase",
     ":catalog:shared",
     ":catalog:desktopApp",
+    ":catalog:macosApp",
     ":catalog:androidApp",
     ":catalog:webApp",
 )
