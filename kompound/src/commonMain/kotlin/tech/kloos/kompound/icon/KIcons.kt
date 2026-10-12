@@ -24,5 +24,6 @@ public object KIcons {
     public val ChevronUp: ImageVector get() = KompoundIcons.ChevronUp
     public val Clock: ImageVector get() = KompoundIcons.Clock
     public val Palette: ImageVector get() = KompoundIcons.Palette
+    public val DragHandle: ImageVector get() = KompoundIcons.DragHandle
     public val Calendar: ImageVector get() = KompoundIcons.Calendar
 }

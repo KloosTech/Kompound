@@ -87,6 +87,11 @@ public data class KompoundStrings(
     val resultLabel: String = "Result",
     /** Announcement of a sparkline or chart: `"Chart, 12 values from 3 to 9"`. */
     val chartSummary: (count: Int, min: String, max: String) -> String = { count, min, max -> "Chart, $count values from $min to $max" },
+    val dragHandle: String = "Drag handle",
+    val moveUp: String = "Move up",
+    val moveDown: String = "Move down",
+    /** Announcement after an item was reordered: `"Position 2 of 5"`. */
+    val itemPosition: (position: Int, count: Int) -> String = { p, n -> "Position $p of $n" },
 ) {
     /** Every plain-text field by name, for tests that check a bundle is complete. */
     internal fun texts(): Map<String, String> = linkedMapOf(
@@ -102,6 +107,7 @@ public data class KompoundStrings(
         "hue" to hue, "saturation" to saturation, "brightness" to brightness, "opacity" to opacity, "hexColor" to hexColor,
         "required" to required, "submit" to submit, "submitting" to submitting, "invalidValue" to invalidValue, "addTag" to addTag,
         "removeNamed" to removeNamed("X"), "formErrors" to formErrors(2), "tooShort" to tooShort(3), "invalidEmail" to invalidEmail, "submitFailed" to submitFailed, "code" to code, "fieldMode" to fieldMode, "valueMode" to valueMode, "templateMode" to templateMode, "unknownField" to unknownField("x"), "noFieldsKnown" to noFieldsKnown, "resultLabel" to resultLabel, "chartSummary" to chartSummary(3, "1", "2"),
+        "dragHandle" to dragHandle, "moveUp" to moveUp, "moveDown" to moveDown, "itemPosition" to itemPosition(2, 5),
     )
 
     public companion object {
@@ -126,6 +132,7 @@ public data class KompoundStrings(
             invalidEmail = "Gültige E-Mail-Adresse eingeben", submitFailed = "Senden nicht möglich", code = "Code",
             fieldMode = "Feld", valueMode = "Wert", templateMode = "Vorlage", unknownField = { "Unbekanntes Feld \"$it\"" }, noFieldsKnown = "Noch keine Felder bekannt", resultLabel = "Ergebnis",
             chartSummary = { count, min, max -> "Diagramm, $count Werte von $min bis $max" },
+            dragHandle = "Ziehgriff", moveUp = "Nach oben", moveDown = "Nach unten", itemPosition = { p, n -> "Position $p von $n" },
         )
 
         /** French. */
@@ -146,6 +153,7 @@ public data class KompoundStrings(
             invalidEmail = "Saisissez une adresse e-mail valide", submitFailed = "Envoi impossible", code = "Code",
             fieldMode = "Champ", valueMode = "Valeur", templateMode = "Modèle", unknownField = { "Champ inconnu « $it »" }, noFieldsKnown = "Aucun champ connu pour l'instant", resultLabel = "Résultat",
             chartSummary = { count, min, max -> "Graphique, $count valeurs de $min à $max" },
+            dragHandle = "Poignée de déplacement", moveUp = "Monter", moveDown = "Descendre", itemPosition = { p, n -> "Position $p sur $n" },
         )
 
         /** Spanish. */
@@ -166,6 +174,7 @@ public data class KompoundStrings(
             invalidEmail = "Introduce un correo electrónico válido", submitFailed = "No se pudo enviar", code = "Código",
             fieldMode = "Campo", valueMode = "Valor", templateMode = "Plantilla", unknownField = { "Campo desconocido \"$it\"" }, noFieldsKnown = "Aún no se conocen campos", resultLabel = "Resultado",
             chartSummary = { count, min, max -> "Gráfico, $count valores de $min a $max" },
+            dragHandle = "Control de arrastre", moveUp = "Subir", moveDown = "Bajar", itemPosition = { p, n -> "Posición $p de $n" },
         )
 
         /** Italian. */
@@ -186,6 +195,7 @@ public data class KompoundStrings(
             invalidEmail = "Inserisci un indirizzo e-mail valido", submitFailed = "Invio non riuscito", code = "Codice",
             fieldMode = "Campo", valueMode = "Valore", templateMode = "Modello", unknownField = { "Campo sconosciuto \"$it\"" }, noFieldsKnown = "Nessun campo noto per ora", resultLabel = "Risultato",
             chartSummary = { count, min, max -> "Grafico, $count valori da $min a $max" },
+            dragHandle = "Maniglia di trascinamento", moveUp = "Sposta su", moveDown = "Sposta giù", itemPosition = { p, n -> "Posizione $p di $n" },
         )
 
         /** The bundle for a BCP 47 [languageTag] (`"de"`, `"de-AT"`, `"fr_CA"`); [English] for languages without one. */

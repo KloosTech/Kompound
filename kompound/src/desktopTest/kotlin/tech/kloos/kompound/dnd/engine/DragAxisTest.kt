@@ -1,0 +1,329 @@
+/*
+ * Copyright 2023, Mohamed Ben Rejeb and the Compose Dnd project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package tech.kloos.kompound.dnd
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.unit.dp
+import tech.kloos.kompound.dnd.drag.KDragAxis
+import tech.kloos.kompound.dnd.drag.KDraggableItem
+import tech.kloos.kompound.dnd.drop.kDropTarget
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalTestApi::class)
+class DragAxisTest {
+
+    private fun TouchInjectionScope.simulateDrag(
+        start: Offset,
+        end: Offset,
+        steps: Int = 20,
+        stepDelayMs: Long = 16,
+    ) {
+        down(start)
+        val dx = (end.x - start.x) / steps
+        val dy = (end.y - start.y) / steps
+        for (i in 1..steps) {
+            advanceEventTime(stepDelayMs)
+            moveTo(Offset(start.x + dx * i, start.y + dy * i))
+        }
+        up()
+    }
+
+    @Test
+    fun horizontalAxis_dropsOnHorizontalTarget() = runComposeUiTest {
+        var droppedOnRight = false
+
+        setContent {
+            val state = rememberKDragAndDropState<Int>()
+
+            KDragAndDropContainer(
+                state = state,
+                modifier = Modifier.size(400.dp),
+            ) {
+                Row {
+                    KDraggableItem(
+                        state = state,
+                        key = "item",
+                        data = 1,
+                        dragAxis = KDragAxis.Horizontal,
+                        modifier = Modifier
+                            .width(100.dp)
+                            .fillMaxHeight()
+                            .testTag("draggable"),
+                    ) {
+                        Box(Modifier.width(100.dp).fillMaxHeight())
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .fillMaxHeight()
+                            .kDropTarget(
+                                key = "right-target",
+                                state = state,
+                                onDrop = { droppedOnRight = true },
+                            )
+                    )
+                }
+            }
+        }
+
+        // Drag diagonally — but axis lock means only horizontal movement counts
+        onNodeWithTag("draggable").performTouchInput {
+            simulateDrag(
+                start = center,
+                end = Offset(center.x + 250f, center.y + 200f),
+            )
+        }
+
+        waitForIdle()
+        assertTrue(droppedOnRight, "Should drop on the right target (horizontal movement)")
+    }
+
+    @Test
+    fun horizontalAxis_doesNotDropOnVerticalTarget() = runComposeUiTest {
+        var droppedOnBottom = false
+
+        setContent {
+            val state = rememberKDragAndDropState<Int>()
+
+            KDragAndDropContainer(
+                state = state,
+                modifier = Modifier.size(600.dp),
+            ) {
+                Column {
+                    KDraggableItem(
+                        state = state,
+                        key = "item",
+                        data = 1,
+                        dragAxis = KDragAxis.Horizontal,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .testTag("draggable"),
+                    ) {
+                        Box(Modifier.fillMaxWidth().height(100.dp))
+                    }
+
+                    // Spacer to separate item from target vertically
+                    Box(Modifier.fillMaxWidth().height(100.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .kDropTarget(
+                                key = "bottom-target",
+                                state = state,
+                                onDrop = { droppedOnBottom = true },
+                            )
+                    )
+                }
+            }
+        }
+
+        // Drag straight down — horizontal lock zeroes vertical, so no intersection with bottom target
+        onNodeWithTag("draggable").performTouchInput {
+            simulateDrag(
+                start = center,
+                end = Offset(center.x, center.y + 400f),
+            )
+        }
+
+        waitForIdle()
+        assertFalse(droppedOnBottom, "Should NOT drop on bottom target with horizontal axis lock")
+    }
+
+    @Test
+    fun verticalAxis_dropsOnVerticalTarget() = runComposeUiTest {
+        var droppedOnBottom = false
+
+        setContent {
+            val state = rememberKDragAndDropState<Int>()
+
+            KDragAndDropContainer(
+                state = state,
+                modifier = Modifier.size(400.dp),
+            ) {
+                Column {
+                    KDraggableItem(
+                        state = state,
+                        key = "item",
+                        data = 1,
+                        dragAxis = KDragAxis.Vertical,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .testTag("draggable"),
+                    ) {
+                        Box(Modifier.fillMaxWidth().height(100.dp))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .kDropTarget(
+                                key = "bottom-target",
+                                state = state,
+                                onDrop = { droppedOnBottom = true },
+                            )
+                    )
+                }
+            }
+        }
+
+        // Drag diagonally — vertical lock means only vertical movement counts
+        onNodeWithTag("draggable").performTouchInput {
+            simulateDrag(
+                start = center,
+                end = Offset(center.x + 200f, center.y + 300f),
+            )
+        }
+
+        waitForIdle()
+        assertTrue(droppedOnBottom, "Should drop on bottom target (vertical movement)")
+    }
+
+    @Test
+    fun verticalAxis_doesNotDropOnHorizontalTarget() = runComposeUiTest {
+        var droppedOnRight = false
+
+        setContent {
+            val state = rememberKDragAndDropState<Int>()
+
+            KDragAndDropContainer(
+                state = state,
+                modifier = Modifier.size(600.dp),
+            ) {
+                Row {
+                    KDraggableItem(
+                        state = state,
+                        key = "item",
+                        data = 1,
+                        dragAxis = KDragAxis.Vertical,
+                        modifier = Modifier
+                            .width(100.dp)
+                            .fillMaxHeight()
+                            .testTag("draggable"),
+                    ) {
+                        Box(Modifier.width(100.dp).fillMaxHeight())
+                    }
+
+                    // Spacer to separate item from target horizontally
+                    Box(Modifier.width(100.dp).fillMaxHeight())
+
+                    Box(
+                        modifier = Modifier
+                            .width(200.dp)
+                            .fillMaxHeight()
+                            .kDropTarget(
+                                key = "right-target",
+                                state = state,
+                                onDrop = { droppedOnRight = true },
+                            )
+                    )
+                }
+            }
+        }
+
+        // Drag straight right — vertical lock zeroes horizontal, so no intersection
+        onNodeWithTag("draggable").performTouchInput {
+            simulateDrag(
+                start = center,
+                end = Offset(center.x + 400f, center.y),
+            )
+        }
+
+        waitForIdle()
+        assertFalse(droppedOnRight, "Should NOT drop on right target with vertical axis lock")
+    }
+
+    @Test
+    fun verticalAxis_dropAnimationKeepsToTheAxis() = runComposeUiTest {
+        lateinit var state: KDragAndDropState<Int>
+        var dropped = false
+
+        setContent {
+            state = rememberKDragAndDropState()
+
+            KDragAndDropContainer(
+                state = state,
+                modifier = Modifier.size(400.dp).testTag("container"),
+            ) {
+                Column {
+                    KDraggableItem(
+                        state = state,
+                        key = "item",
+                        data = 1,
+                        dragAxis = KDragAxis.Vertical,
+                        modifier = Modifier.size(100.dp),
+                    ) {
+                        Box(Modifier.size(100.dp))
+                    }
+                    Box(Modifier.fillMaxWidth().height(100.dp))
+                    // A row as wide as the container: its center is far to the right of the item
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .kDropTarget(key = "row", state = state, onDrop = { dropped = true }),
+                    )
+                }
+            }
+        }
+        waitForIdle()
+
+        mainClock.autoAdvance = false
+        onNodeWithTag("container").performTouchInput {
+            down(Offset(50f, 50f))
+            repeat(10) { moveBy(Offset(0f, 18f)) }
+            up()
+        }
+
+        val ghostX = mutableListOf<Float>()
+        var lastGhostY = Float.NaN
+        var frames = 0
+        while (state.draggedItem != null && frames < 120) {
+            ghostX += state.dragPosition.value.x
+            lastGhostY = state.dragPosition.value.y
+            mainClock.advanceTimeBy(16)
+            frames++
+        }
+
+        assertTrue(dropped, "The item should have been dropped on the row")
+        assertTrue(ghostX.size > 3, "The drop should be animated, took ${ghostX.size} frames")
+        assertTrue(ghostX.all { it == 0f }, "A vertical drag must not slide sideways on drop: $ghostX")
+        assertEquals(200f, lastGhostY, 0.5f, "The item should land level with the row")
+    }
+}

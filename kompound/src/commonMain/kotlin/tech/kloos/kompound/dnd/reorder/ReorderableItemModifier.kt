@@ -1,0 +1,123 @@
+/*
+ * Copyright 2023, Mohamed Ben Rejeb and the Compose Dnd project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package tech.kloos.kompound.dnd.reorder
+
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import tech.kloos.kompound.dnd.KDragAndDropState
+import tech.kloos.kompound.dnd.drag.KDragAxis
+import tech.kloos.kompound.dnd.drag.KDraggedItemState
+import tech.kloos.kompound.dnd.drag.KDropStrategy
+import tech.kloos.kompound.dnd.drag.kDraggableItem
+import tech.kloos.kompound.dnd.drop.kDropTarget
+
+/**
+ * Mark this composable as a reorderable item (both draggable and a drop target).
+ *
+ * This is a modifier-based alternative to [KReorderableItem] that reduces boilerplate.
+ * It combines [draggableItem] and [dropTarget] into a single modifier.
+ *
+ * Reorder the backing list in [onDragEnter]: the dragged item then takes the
+ * hovered item's slot while the drag continues. Add `Modifier.animateItem()`
+ * *before* this modifier in lazy layouts for smooth displacement and drops.
+ *
+ * To check if the item is currently being dragged, use [KDragAndDropState.isDragging]:
+ * ```
+ * val isDragging = state.isDragging(key)
+ * ```
+ *
+ * @param key Unique key for this item.
+ * @param data Data passed to callbacks.
+ * @param state The drag and drop state.
+ * @param enabled Whether drag is enabled for this item.
+ * @param dragAfterLongPress If true, drag starts after long press; otherwise after press + slop.
+ * @param requireFirstDownUnconsumed If true, first down event must be unconsumed.
+ * @param dropTargets List of drop target keys this item can be dropped on. Empty = any target.
+ * @param dropStrategy Strategy to determine which drop target receives the item.
+ * @param dragAxis Constrain movement to [KDragAxis.Free], [KDragAxis.Horizontal], or [KDragAxis.Vertical].
+ * @param hasDragHandle If true, drag is initiated from a drag handle modifier instead of the whole item.
+ * @param zIndex Z-index of the drop target for overlap resolution.
+ * @param dropAnimationSpec Animation spec for position on drop.
+ * @param dropAlignment Alignment of the dropped item within the target.
+ * @param dropOffset Offset applied to the dropped item position.
+ * @param dropAnimationEnabled Whether the drop animation is enabled.
+ * @param canDrop Whether this item currently accepts other items as a drop target. When false,
+ * dragged items pass over it without hovering it, so it is never swapped — useful for pinned
+ * or locked items (combine with `enabled = false` to also prevent dragging it).
+ * @param onDrop Called when an item is dropped onto this target.
+ * @param onDragEnter Called when an item is dragged over this target. Reorder the list here.
+ * @param onDragExit Called when an item is dragged out of this target.
+ * @param onDragStart Called when a drag of this item starts.
+ * @param onDragEnd Called once the drag of this item is over, after the drop or return
+ * animation. A good place to persist the new order.
+ * @param draggableContent Content rendered as the drag shadow/overlay while dragging.
+ */
+public fun <T> Modifier.kReorderableItem(
+    key: Any,
+    data: T,
+    state: KDragAndDropState<T>,
+    enabled: Boolean = true,
+    dragAfterLongPress: Boolean = state.dragAfterLongPress,
+    requireFirstDownUnconsumed: Boolean = state.requireFirstDownUnconsumed,
+    dropTargets: List<Any> = emptyList(),
+    dropStrategy: KDropStrategy = KDropStrategy.Surface,
+    dragAxis: KDragAxis = KDragAxis.Free,
+    hasDragHandle: Boolean = false,
+    zIndex: Float = 0f,
+    dropAnimationSpec: AnimationSpec<Offset> = SpringSpec(),
+    dropAlignment: Alignment = Alignment.Center,
+    dropOffset: Offset = Offset.Zero,
+    dropAnimationEnabled: Boolean = true,
+    canDrop: Boolean = true,
+    onDrop: (state: KDraggedItemState<T>) -> Unit = {},
+    onDragEnter: (state: KDraggedItemState<T>) -> Unit = {},
+    onDragExit: (state: KDraggedItemState<T>) -> Unit = {},
+    onDragStart: (state: KDraggedItemState<T>) -> Unit = {},
+    onDragEnd: (state: KDraggedItemState<T>) -> Unit = {},
+    draggableContent: @Composable () -> Unit,
+): Modifier =
+    this
+        .kDraggableItem(
+            key = key,
+            data = data,
+            state = state,
+            enabled = enabled,
+            dragAfterLongPress = dragAfterLongPress,
+            requireFirstDownUnconsumed = requireFirstDownUnconsumed,
+            dropTargets = dropTargets,
+            dropStrategy = dropStrategy,
+            dragAxis = dragAxis,
+            hasDragHandle = hasDragHandle,
+            dropAnimationSpec = dropAnimationSpec,
+            onDragStart = onDragStart,
+            onDragEnd = onDragEnd,
+            draggableContent = draggableContent,
+        ).kDropTarget(
+            key = key,
+            state = state,
+            zIndex = zIndex,
+            dropAlignment = dropAlignment,
+            dropOffset = dropOffset,
+            dropAnimationEnabled = dropAnimationEnabled,
+            canDrop = canDrop,
+            onDrop = onDrop,
+            onDragEnter = onDragEnter,
+            onDragExit = onDragExit,
+        )

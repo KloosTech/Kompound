@@ -1,0 +1,12 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.reorderable interact
+tags:
+  - interact
+  - component:dnd.reorderable
+  - category:layout
+  - todo
+properties:
+  junitClassname: dnd.reorderable
+---
+- runFlow: _core.yaml
+# TODO: the rest of the behaviour of the demo

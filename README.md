@@ -30,7 +30,7 @@ or grab the Android APK and desktop installers from the [Releases](https://githu
 | **Display** | `KBadge`, `KAvatar`, `KListItem`, `KLinearProgress`, `KCircularProgress`, `KEmptyState`, `KErrorState` |
 | **Forms** | `KForm`, `KFormState`, `rememberKField`, `KFormTextField`, `KFormField`, `KFieldGroup`, `KSubmitButton`, `KValidators` |
 | **Data** | `KDataTable` (sortable, selectable, virtualized), `KTreeView` (virtualized, WAI-ARIA keys), `KSparkline`, `KLineChart`, `KBarChart` |
-| **Layout** | `KScaffold`, `KTopBar`, `KSplitPane` |
+| **Layout** | `KScaffold`, `KTopBar`, `KSplitPane`, `KReorderableColumn`, `KDropZone` |
 | **Navigation** | `KTabRow`, `KNavigationBar`, `KNavigationRail`, `KNavigationDrawer`, `KModalNavigationDrawer` |
 | **Node graph** (`kompound-graph`) | `KNodeGraph`, `KNode`, groups and subgraphs, auto layout, JSON, `GraphEngine` (suspending nodes, traces, pins), `KNodeInspector` |
 | **Overlays and feedback** | `KDialog`, `KAlertDialog`, `KBottomSheet` (adaptive), `KSnackbar`, `KTooltip`, `KContextMenuArea`, `KCommandPalette` (Ctrl+K), `KSkeleton` (shimmer placeholders) |

@@ -1,0 +1,25 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.reorderable environments
+tags:
+  - env
+  - component:dnd.reorderable
+  - category:layout
+  - todo
+properties:
+  junitClassname: dnd.reorderable
+---
+- runFlow:
+    file: _core.yaml
+    env: { THEME: dark }
+- runFlow:
+    file: _core.yaml
+    env: { RTL: "true" }
+- runFlow:
+    file: _core.yaml
+    env: { FONT: "2.0" }
+- runFlow:
+    file: _core.yaml
+    env: { DENSITY: compact }
+- runFlow:
+    file: _core.yaml
+    env: { LANG: de }

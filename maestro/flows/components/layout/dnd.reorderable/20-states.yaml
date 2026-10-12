@@ -1,0 +1,21 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.reorderable states
+tags:
+  - states
+  - component:dnd.reorderable
+  - category:layout
+  - todo
+properties:
+  junitClassname: dnd.reorderable
+---
+# TODO: disabled, error, empty, loading, long text. Preset controls with CONTROLS (url-encoded, Name::value):
+#   - runFlow: { file: ../../../_lib/open-demo.yaml, env: { DEMO: dnd.reorderable, CONTROLS: "control=Enabled::false" } }
+# Controls of this demo:
+#   choiceControl("Layout", Layout.entries, Layout.Column
+#   boolControl("Drag handle", true
+#   boolControl("Enabled", true
+#   boolControl("Drag after long press", false
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dnd.reorderable

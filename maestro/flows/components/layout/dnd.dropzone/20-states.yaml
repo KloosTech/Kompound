@@ -1,0 +1,19 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.dropzone states
+tags:
+  - states
+  - component:dnd.dropzone
+  - category:layout
+  - todo
+properties:
+  junitClassname: dnd.dropzone
+---
+# TODO: disabled, error, empty, loading, long text. Preset controls with CONTROLS (url-encoded, Name::value):
+#   - runFlow: { file: ../../../_lib/open-demo.yaml, env: { DEMO: dnd.dropzone, CONTROLS: "control=Enabled::false" } }
+# Controls of this demo:
+#   boolControl("Done accepts only reviewed cards", false
+#   boolControl("Drag after long press", false
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dnd.dropzone

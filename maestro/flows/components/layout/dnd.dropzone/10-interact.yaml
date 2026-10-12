@@ -1,0 +1,12 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.dropzone interact
+tags:
+  - interact
+  - component:dnd.dropzone
+  - category:layout
+  - todo
+properties:
+  junitClassname: dnd.dropzone
+---
+- runFlow: _core.yaml
+# TODO: the rest of the behaviour of the demo

@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.dropzone smoke
+tags:
+  - smoke
+  - component:dnd.dropzone
+  - category:layout
+properties:
+  junitClassname: dnd.dropzone
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dnd.dropzone
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "To do" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

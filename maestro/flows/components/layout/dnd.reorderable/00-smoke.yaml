@@ -1,0 +1,17 @@
+appId: tech.kloos.kompound.catalog.maestro
+name: dnd.reorderable smoke
+tags:
+  - smoke
+  - component:dnd.reorderable
+  - category:layout
+properties:
+  junitClassname: dnd.reorderable
+---
+- runFlow:
+    file: ../../../_lib/open-demo.yaml
+    env:
+      DEMO: dnd.reorderable
+- runFlow:
+    file: ../../../_lib/preview-see.yaml
+    env: { TEXT: "Drag a row by its handle" }
+- runFlow: ../../../_lib/assert-no-crash.yaml

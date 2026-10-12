@@ -1,0 +1,114 @@
+/*
+ * Copyright 2023, Mohamed Ben Rejeb and the Compose Dnd project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package tech.kloos.kompound.dnd.scroll
+
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Modifier
+import tech.kloos.kompound.dnd.KDragAndDropState
+
+/**
+ * Pins the scroll position of a [LazyListState] during an active drag.
+ *
+ * When items with different sizes swap positions, Compose's key-based scroll anchoring
+ * adjusts the viewport to compensate for the size change, causing a visual jump.
+ * This modifier uses [LazyListState.requestScrollToItem] to override anchoring
+ * **before** layout runs, eliminating the jump entirely (zero-frame fix).
+ *
+ * Use this modifier on any [LazyColumn][androidx.compose.foundation.lazy.LazyColumn] or
+ * [LazyRow][androidx.compose.foundation.lazy.LazyRow] that supports reordering.
+ * [dragAutoScroll] already includes this behavior, so you do **not** need both.
+ *
+ * @param state The drag and drop state to observe.
+ * @param lazyListState The lazy list state whose scroll position should be pinned.
+ */
+@Composable
+public fun <T> Modifier.kDragScrollPin(
+    state: KDragAndDropState<T>,
+    lazyListState: LazyListState,
+): Modifier =
+    pinScrollBeforeHoverChange(state, lazyListState) {
+        lazyListState.requestScrollToItem(
+            lazyListState.firstVisibleItemIndex,
+            lazyListState.firstVisibleItemScrollOffset,
+        )
+    }
+
+/**
+ * Pins the scroll position of a [LazyGridState] during an active drag.
+ *
+ * Grid equivalent of [dragScrollPin] for [LazyListState].
+ * [dragAutoScroll] already includes this behavior, so you do **not** need both.
+ *
+ * @param state The drag and drop state to observe.
+ * @param lazyGridState The lazy grid state whose scroll position should be pinned.
+ */
+@Composable
+public fun <T> Modifier.kDragScrollPin(
+    state: KDragAndDropState<T>,
+    lazyGridState: LazyGridState,
+): Modifier =
+    pinScrollBeforeHoverChange(state, lazyGridState) {
+        lazyGridState.requestScrollToItem(
+            lazyGridState.firstVisibleItemIndex,
+            lazyGridState.firstVisibleItemScrollOffset,
+        )
+    }
+
+/**
+ * Pins the scroll position of a [LazyStaggeredGridState] during an active drag.
+ *
+ * Staggered grid equivalent of [dragScrollPin] for [LazyListState].
+ * [dragAutoScroll] already includes this behavior, so you do **not** need both.
+ *
+ * @param state The drag and drop state to observe.
+ * @param lazyStaggeredGridState The lazy staggered grid state whose scroll position should be pinned.
+ */
+@Composable
+public fun <T> Modifier.kDragScrollPin(
+    state: KDragAndDropState<T>,
+    lazyStaggeredGridState: LazyStaggeredGridState,
+): Modifier =
+    pinScrollBeforeHoverChange(state, lazyStaggeredGridState) {
+        lazyStaggeredGridState.requestScrollToItem(
+            lazyStaggeredGridState.firstVisibleItemIndex,
+            lazyStaggeredGridState.firstVisibleItemScrollOffset,
+        )
+    }
+
+/**
+ * Register [pin] to run synchronously **before** onDragEnter/onDragExit fire, so
+ * the lazy layout uses the pinned position for the next layout pass instead of
+ * key-based anchoring — no 1-frame jump.
+ */
+@Composable
+private fun <T> Modifier.pinScrollBeforeHoverChange(
+    state: KDragAndDropState<T>,
+    lazyState: Any,
+    pin: () -> Unit,
+): Modifier {
+    DisposableEffect(state, lazyState) {
+        state.onBeforeHoverTargetChange.add(pin)
+        onDispose {
+            state.onBeforeHoverTargetChange.remove(pin)
+        }
+    }
+
+    return this
+}

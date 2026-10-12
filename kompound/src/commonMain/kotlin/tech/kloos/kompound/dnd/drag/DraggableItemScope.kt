@@ -1,0 +1,89 @@
+/*
+ * Copyright 2023, Mohamed Ben Rejeb and the Compose Dnd project contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package tech.kloos.kompound.dnd.drag
+
+import androidx.compose.ui.Modifier
+import tech.kloos.kompound.dnd.KDragAndDropState
+
+/**
+ * Draggable item scope
+ *
+ * @property key The key used to identify the item.
+ * @property isDragging True if the item is currently being dragged.
+ */
+public interface KDraggableItemScope {
+    public val key: Any
+    public val isDragging: Boolean
+
+    /**
+     * Mark this composable as the drag handle for the item.
+     * When a drag handle is used, only the handle region initiates drag — the rest of the item
+     * remains interactive (clickable, scrollable, etc.).
+     *
+     * @param enabled Whether the drag handle is active.
+     * @param dragAfterLongPress If true, drag starts after long press on the handle.
+     * @param requireFirstDownUnconsumed If true, the first down event must be unconsumed.
+     */
+    public fun Modifier.kDragHandle(
+        enabled: Boolean = true,
+        dragAfterLongPress: Boolean = false,
+        requireFirstDownUnconsumed: Boolean = false,
+    ): Modifier
+}
+
+internal class DraggableItemScopeImpl<T>(
+    val state: KDragAndDropState<T>,
+    override val key: Any,
+) : KDraggableItemScope,
+    DragHandleOwner {
+    override val isDragging: Boolean
+        get() = state.draggedItem?.key == key
+
+    private val handleCounter = DragHandleCounter()
+
+    override val hasDragHandle: Boolean
+        get() = handleCounter.hasDragHandle
+
+    override fun Modifier.kDragHandle(
+        enabled: Boolean,
+        dragAfterLongPress: Boolean,
+        requireFirstDownUnconsumed: Boolean,
+    ): Modifier =
+        this
+            .dragHandleRegistration(handleCounter)
+            .then(
+                DragHandleModifier(
+                    key = key,
+                    state = state,
+                    enabled = enabled,
+                    dragAfterLongPress = dragAfterLongPress,
+                    requireFirstDownUnconsumed = requireFirstDownUnconsumed,
+                ),
+            )
+}
+
+internal class DraggableItemScopeShadowImpl(
+    override val key: Any,
+) : KDraggableItemScope {
+    override val isDragging: Boolean
+        get() = false
+
+    override fun Modifier.kDragHandle(
+        enabled: Boolean,
+        dragAfterLongPress: Boolean,
+        requireFirstDownUnconsumed: Boolean,
+    ): Modifier = this
+}
