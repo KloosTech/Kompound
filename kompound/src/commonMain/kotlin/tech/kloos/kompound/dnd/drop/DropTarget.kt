@@ -47,6 +47,8 @@ import tech.kloos.kompound.dnd.drag.KDraggedItemState
  * the dragged item disappears immediately on drop without animating to the target.
  * @param landOnDroppedItem When true, [onDrop] is called as soon as the item is released and the drag shadow then glides to where the
  * dragged item itself ends up once the app has moved it (its composable keeps its key), instead of gliding to the target and jumping.
+ * @param ignoreSelf When true (default), [onDragEnter] and [onDragExit] are not called for the item's own slot (a reorderable item is a
+ * drop target for itself), so callbacks never see their own data. [onDrop] is still called.
  * @param canDrop Whether this target currently accepts drops. When false, the target
  * is excluded from hover detection — dragged items cannot hover over it or be dropped on it.
  * This is a Compose-evaluated boolean, so it can read state (e.g., `state.draggedItem?.data`)
@@ -69,6 +71,7 @@ public fun <T> Modifier.kDropTarget(
     dropAnimationEnabled: Boolean = true,
     canDrop: Boolean = true,
     landOnDroppedItem: Boolean = false,
+    ignoreSelf: Boolean = true,
     onDrop: (state: KDraggedItemState<T>) -> Unit = {},
     onDragEnter: (state: KDraggedItemState<T>) -> Unit = {},
     onDragExit: (state: KDraggedItemState<T>) -> Unit = {},
@@ -82,6 +85,7 @@ public fun <T> Modifier.kDropTarget(
         dropAnimationEnabled = dropAnimationEnabled,
         canDrop = canDrop,
         landOnDroppedItem = landOnDroppedItem,
+        ignoreSelf = ignoreSelf,
         onDrop = onDrop,
         onDragEnter = onDragEnter,
         onDragExit = onDragExit,
@@ -96,10 +100,16 @@ private data class DropTargetNodeElement<T>(
     val dropAnimationEnabled: Boolean,
     val canDrop: Boolean,
     val landOnDroppedItem: Boolean,
+    val ignoreSelf: Boolean,
     val onDrop: (state: KDraggedItemState<T>) -> Unit,
     val onDragEnter: (state: KDraggedItemState<T>) -> Unit,
     val onDragExit: (state: KDraggedItemState<T>) -> Unit,
 ) : ModifierNodeElement<DropTargetNode<T>>() {
+    private val enter: (KDraggedItemState<T>) -> Unit
+        get() = if (ignoreSelf) { dragged -> if (dragged.key != key) onDragEnter(dragged) } else onDragEnter
+    private val exit: (KDraggedItemState<T>) -> Unit
+        get() = if (ignoreSelf) { dragged -> if (dragged.key != key) onDragExit(dragged) } else onDragExit
+
     override fun create(): DropTargetNode<T> =
         DropTargetNode(
             dropTargetState = KDropTargetState(
@@ -113,8 +123,8 @@ private data class DropTargetNodeElement<T>(
                 canDrop = canDrop,
                 landOnDroppedItem = landOnDroppedItem,
                 onDrop = onDrop,
-                onDragEnter = onDragEnter,
-                onDragExit = onDragExit,
+                onDragEnter = enter,
+                onDragExit = exit,
             ),
             state = state,
         )
@@ -134,8 +144,8 @@ private data class DropTargetNodeElement<T>(
         targetState.canDrop = canDrop
         targetState.landOnDroppedItem = landOnDroppedItem
         targetState.onDrop = onDrop
-        targetState.onDragEnter = onDragEnter
-        targetState.onDragExit = onDragExit
+        targetState.onDragEnter = enter
+        targetState.onDragExit = exit
 
         if (oldKey != key || oldState != state) {
             node.moveRegistration(oldKey, oldState)
@@ -151,6 +161,7 @@ private data class DropTargetNodeElement<T>(
         properties["dropOffset"] = dropOffset
         properties["dropAnimationEnabled"] = dropAnimationEnabled
         properties["canDrop"] = canDrop
+        properties["ignoreSelf"] = ignoreSelf
         properties["onDrop"] = onDrop
         properties["onDragEnter"] = onDragEnter
         properties["onDragExit"] = onDragExit
@@ -239,3 +250,29 @@ private class DropTargetNode<T>(
         state.removeDropTarget(key, dropTargetState)
     }
 }
+
+/**
+ * A catch-all drop target for the gaps and empty space of a list, so a drop that lands between items (or in an empty list) still
+ * reaches [onDrop] instead of the shadow flying back. It sits below the items (`zIndex = -1`), so an item under the pointer still wins;
+ * put it on the list or its container.
+ *
+ * @param key Unique key of the fallback target.
+ * @param state The drag and drop state.
+ * @param canDrop Whether the fallback currently accepts drops.
+ * @param landOnDroppedItem See [kDropTarget]; true by default here because the app moves the item in [onDrop].
+ * @param onDrop Called when an item is dropped on the empty space.
+ */
+public fun <T> Modifier.kDropTargetFallback(
+    key: Any,
+    state: KDragAndDropState<T>,
+    canDrop: Boolean = true,
+    landOnDroppedItem: Boolean = true,
+    onDrop: (state: KDraggedItemState<T>) -> Unit,
+): Modifier = kDropTarget(
+    key = key,
+    state = state,
+    zIndex = -1f,
+    canDrop = canDrop,
+    landOnDroppedItem = landOnDroppedItem,
+    onDrop = onDrop,
+)

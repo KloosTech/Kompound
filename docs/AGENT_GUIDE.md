@@ -51,7 +51,7 @@ kotlin {
 }
 ```
 
-Requirements: Kotlin 2.4.20+, Compose Multiplatform 1.12.1+, Android minSdk 24, iOS 15+, JVM 11+. Targets published: android, desktop (jvm), iosArm64, iosSimulatorArm64, `macosArm64` (Compose macOS is experimental: consumers set `org.jetbrains.compose.experimental.macos.enabled=true`), `wasmJs` and `js` (from `0.1.0-alpha03`; a project created from the KMP wizard with a `js` target resolves).
+Requirements: Kotlin 2.4.20+, Compose Multiplatform 1.12.1+, Gradle 9.8.0, AGP 9.4.1 (built-in Kotlin, no `org.jetbrains.kotlin.android` plugin), Android minSdk 24 and **compileSdk 37**, iOS 15+, JVM 11+. Keep `material3` at the version Compose Multiplatform ships (1.9.0 for 1.12.1): a newer alpha compiles but crashes at runtime (`AbstractMethodError ... applyStyle(CustomStyleScope)`). With a local or snapshot build restrict `mavenLocal { content { includeGroup("tech.kloos.kompound") } }`. The `tech.kloos.kompound` Gradle plugin is only needed for components with a `style:` parameter, not for the drag and drop engine modifiers. Targets published: android, desktop (jvm), iosArm64, iosSimulatorArm64, `macosArm64` (Compose macOS is experimental: consumers set `org.jetbrains.compose.experimental.macos.enabled=true`), `wasmJs` and `js` (from `0.1.0-alpha03`; a project created from the KMP wizard with a `js` target resolves).
 
 Minimal app:
 
@@ -220,6 +220,32 @@ KScaffold(snackbarHost = { KSnackbarHost(host) }) { padding ->
         modifier = Modifier.padding(padding)) { KText("Save") }
 }
 ```
+
+### Drag and drop engine (`tech.kloos.kompound.dnd`)
+
+Ready-made: `KReorderableColumn/Row/LazyColumn` (one list), `KDraggable` + `KDropZone` (move between zones). Underneath is the engine; use it directly for custom boards.
+
+```kotlin
+val dnd = rememberKDragAndDropState<Card>(reorderHysteresisDistance = 20.dp)
+KDragAndDropContainer(dnd) {                       // owns the gesture and draws the drag shadow
+    LazyColumn(Modifier.kDragAutoScroll(dnd, listState)   // edge scrolling
+        .kDropTargetFallback(key = "col-$id", state = dnd) { moveToEnd(it.data, id) }) {   // drops in gaps / empty list
+        items(cards, key = { it.id }) { card ->
+            Box(Modifier.kReorderableItem(
+                key = card.id, data = card, state = dnd,
+                landOnDroppedItem = true,          // the app moves the card in onDragEnter/onDrop; the shadow follows it
+                onDragEnter = { held -> move(held.data, before = card) },   // not called for the item's own slot (ignoreSelf = true)
+                draggableContent = { CardView(card, Modifier.width(columnWidth)) },   // the shadow has NO size of its own: give it one
+            ))
+        }
+    }
+}
+```
+
+- **Callback timing.** `onDragEnter`/`onDragExit`: while held over a target. `onDrop` (drop target): after the drop animation lands, except with `dropAnimationEnabled = false` or `landOnDroppedItem = true` where it runs at release. `onDragEnd` (dragged item): once per drag, after everything; persist the order here.
+- **Cross-list recipe.** Share one `KDragAndDropState`; each list's items are `kReorderableItem`s whose `onDragEnter` removes the held item from every list and inserts it before this item; each list also has a `kDropTargetFallback` that appends (and handles empty lists). `KReorderableColumn(state = shared)` is per-list and reports only its own new order.
+- **Hysteresis.** `reorderHysteresisDistance` (default 8.dp) is how far the held item must travel past a neighbour before they swap; for tall cards use a larger value (about a fifth of the item height) so lists do not flip back and forth.
+- **Shadow size.** `draggableContent` is laid out without constraints from the source item; set its width/height yourself. `KDraggable` and `KReorderable*` do it for you.
 
 ## 6. Patterns
 

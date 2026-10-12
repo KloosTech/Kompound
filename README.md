@@ -75,11 +75,18 @@ The node graph framework (editor canvas, execution engine, inspector; experiment
 |---|---|
 | Kotlin | 2.4.20 or newer (the library is compiled with 2.4.20) |
 | Compose Multiplatform | 1.12.1 or newer (`foundation` 1.12 contains the Styles API) |
-| Android | minSdk 24, compileSdk 37 |
+| Android | minSdk 24, **compileSdk 37** (an app that depends on Kompound needs it too, else `checkDebugAarMetadata` fails) |
+| Android Gradle Plugin | 9.4.1 (built-in Kotlin: no separate `org.jetbrains.kotlin.android` plugin) |
+| Gradle | 9.8.0 |
+| Material 3 | the version Compose Multiplatform 1.12.1 ships (1.9.0). Do not pin a newer `material3` (an alpha crashes at runtime with `AbstractMethodError ... applyStyle(CustomStyleScope)`) |
 | iOS | 15+ (`iosArm64`, `iosSimulatorArm64`) |
 | macOS (native) | `macosArm64` (Apple Silicon; consumers need `org.jetbrains.compose.experimental.macos.enabled=true`) |
 | Desktop | JVM 11+ |
 | Web | `wasmJs` and `js` (IR, browser) |
+
+Using a local or snapshot build: restrict `mavenLocal()` so it cannot shadow other libraries,
+`mavenLocal { content { includeGroup("tech.kloos.kompound") } }`. The `tech.kloos.kompound` Gradle plugin is only needed to opt in to
+the Styles API for components with a `style:` parameter; the drag and drop engine modifiers work without it.
 
 Kompound depends only on Compose Multiplatform (runtime, foundation, ui, animation, Material 3 for theme tokens and the
 date picker calendar). No other third-party libraries.

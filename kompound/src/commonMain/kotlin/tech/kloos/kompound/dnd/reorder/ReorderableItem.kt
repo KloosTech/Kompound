@@ -54,6 +54,8 @@ import tech.kloos.kompound.dnd.drop.kDropTarget
  * @param dropAnimationEnabled Whether the drop animation is enabled.
  * @param canDrop Whether this item currently accepts other items as a drop target. When false,
  * dragged items pass over it without hovering it, so it is never swapped.
+ * @param landOnDroppedItem See `kDropTarget`: call `onDrop` on release and glide the shadow to where the app moved the item (cross-list moves).
+ * @param ignoreSelf Do not call `onDragEnter` / `onDragExit` for this item's own slot (default true).
  * @param onDrop The action to perform when an item is dropped onto the target.
  * Accepts the dragged item state as a parameter.
  * @param onDragEnter The action to perform when an item is dragged over the target.
@@ -83,6 +85,8 @@ public fun <T> KReorderableItem(
     dropOffset: Offset = Offset.Zero,
     dropAnimationEnabled: Boolean = true,
     canDrop: Boolean = true,
+    landOnDroppedItem: Boolean = false,
+    ignoreSelf: Boolean = true,
     onDrop: (state: KDraggedItemState<T>) -> Unit = {},
     onDragEnter: (state: KDraggedItemState<T>) -> Unit = {},
     onDragExit: (state: KDraggedItemState<T>) -> Unit = {},
@@ -134,6 +138,8 @@ public fun <T> KReorderableItem(
                 dropOffset = dropOffset,
                 dropAnimationEnabled = dropAnimationEnabled,
                 canDrop = canDrop,
+                landOnDroppedItem = landOnDroppedItem,
+                ignoreSelf = ignoreSelf,
                 onDrop = onDrop,
                 onDragEnter = onDragEnter,
                 onDragExit = onDragExit,
