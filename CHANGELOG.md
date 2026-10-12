@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Drag and drop (`tech.kloos.kompound.dnd`): `KReorderableColumn`, `KReorderableRow`, `KReorderableLazyColumn` (handle, Alt+arrow keyboard moves, Move up/down screen-reader actions, auto-scroll), `KDragHandle`, `KDraggable`, `KDropZone`, `KReorderableDefaults`, `KDropZoneDefaults`; the engine underneath is a port of [compose-dnd](https://github.com/MohamedRejeb/compose-dnd) (Apache-2.0, see THIRD_PARTY_NOTICES) with the `K` prefix (`KDragAndDropContainer`, `rememberKDragAndDropState`, `KDraggableItem`, `KReorderableItem`, `Modifier.kDropTarget` / `kDragHandle` / `kDragAutoScroll` / `kDragScrollPin`), so it runs on every target including `macosArm64`. New `KIcons.DragHandle`; strings `dragHandle`, `moveUp`, `moveDown`, `itemPosition`. New demos "KReorderableColumn" and "KDraggable and KDropZone".
+- Fixed: `KSearchBar` grew taller when text appeared (the 48dp clear button did not fit the field's 56dp); it now uses the small icon button.
 - `KDraggable(onItemOver, accepts)`: items inside zones reorder live and move between zones (the dimmed slot shows where the card lands); the board demo uses it.
 - `KDropZone`: the dropped card now glides straight to its new place (`kDropTarget(landOnDroppedItem = true)`: `onDrop` fires on release and the drag shadow follows the moved item) instead of gliding to the zone centre and jumping.
 - Native macOS catalog app `:catalog:macosApp` (`./gradlew :catalog:macosApp:runDebugExecutableMacosArm64`).

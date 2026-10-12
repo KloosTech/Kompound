@@ -39,6 +39,17 @@ class KSearchBarTest {
     }
 
     @Test
+    fun theBarKeepsItsHeightWhenTheClearButtonAppears() = runComposeUiTest {
+        var query by mutableStateOf("")
+        setContent { MaterialTheme(s) { KSearchBar(query, { query = it }, modifier = Modifier.testTag("bar")) } }
+        waitForIdle()
+        val empty = onNodeWithTag("bar").fetchSemanticsNode().size.height
+        query = "abc"
+        waitForIdle()
+        assertEquals(empty, onNodeWithTag("bar").fetchSemanticsNode().size.height)
+    }
+
+    @Test
     fun clearButtonExistsOnlyWithTextAndClears() = runComposeUiTest {
         var query by mutableStateOf("")
         setContent { MaterialTheme(s) { KSearchBar(query, { query = it }, clearContentDescription = "Clear") } }

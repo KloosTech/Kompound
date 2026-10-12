@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.buttons.KIconButton
+import tech.kloos.kompound.buttons.KIconButtonSize
 import tech.kloos.kompound.icon.KIcon
 import tech.kloos.kompound.internal.KompoundIcons
 import tech.kloos.kompound.textfield.KTextField
@@ -63,7 +64,7 @@ public fun KSearchBar(
             {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (query.isNotEmpty()) {
-                        KIconButton(onClick = { onQueryChange("") }, contentDescription = clearContentDescription, enabled = enabled) {
+                        KIconButton(onClick = { onQueryChange("") }, contentDescription = clearContentDescription, enabled = enabled, size = KIconButtonSize.Small) {
                             KIcon(KompoundIcons.Close, contentDescription = null)
                         }
                     }
