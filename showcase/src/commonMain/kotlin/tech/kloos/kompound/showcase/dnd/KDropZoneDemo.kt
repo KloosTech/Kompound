@@ -64,8 +64,16 @@ fun DemoScope.KDropZoneDemo() {
             ),
         )
     }
-    fun move(card: Card, to: String) {
-        columns = columns.mapValues { (id, cards) -> if (id == to) cards.filter { it.id != card.id } + card else cards.filter { it.id != card.id } }
+    fun acceptedBy(column: String, card: Card) = column != "done" || !doneOnlyReviewed || card.title.startsWith("Reviewed")
+    /** Puts [card] in [column] before [before], or at the end. */
+    fun place(card: Card, column: String, before: Card? = null) {
+        columns = columns.mapValues { (id, cards) ->
+            val rest = cards.filter { it.id != card.id }
+            if (id != column) rest else {
+                val at = before?.let { b -> rest.indexOfFirst { it.id == b.id } }?.takeIf { it >= 0 } ?: rest.size
+                rest.take(at) + card + rest.drop(at)
+            }
+        }
     }
     val dnd = rememberKDragAndDropState<Card>(dragAfterLongPress = longPress)
     KDragAndDropContainer(dnd, Modifier.fillMaxWidth().padding(16.dp)) {
@@ -74,12 +82,15 @@ fun DemoScope.KDropZoneDemo() {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KText(title)
                     KDropZone(
-                        key = id, state = dnd, onDrop = { move(it, id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
-                        accepts = { card -> id != "done" || !doneOnlyReviewed || card.title.startsWith("Reviewed") },
+                        key = id, state = dnd, onDrop = { card -> if (columns.getValue(id).none { it.id == card.id }) place(card, id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
+                        accepts = { card -> acceptedBy(id, card) },
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             columns.getValue(id).forEach { card ->
-                                KDraggable(key = card.id, data = card, state = dnd, modifier = Modifier.fillMaxWidth()) { KText(card.title) }
+                                KDraggable(
+                                    key = card.id, data = card, state = dnd, modifier = Modifier.fillMaxWidth(),
+                                    onItemOver = { held -> place(held, id, before = card) }, accepts = { held -> acceptedBy(id, held) },
+                                ) { KText(card.title) }
                             }
                         }
                     }

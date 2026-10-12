@@ -24,6 +24,8 @@ import tech.kloos.kompound.dnd.drag.KDraggableItemScope
 import tech.kloos.kompound.dnd.drag.KDropStrategy
 import tech.kloos.kompound.dnd.drag.DraggableItemScopeShadowImpl
 import tech.kloos.kompound.dnd.drop.kDropTarget
+import tech.kloos.kompound.dnd.reorder.KReorderableItem
+import tech.kloos.kompound.dnd.reorder.ReorderableItemScopeShadowImpl
 import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.theme.LocalKContentColor
 
@@ -42,6 +44,10 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * @param dropTargets Keys of the zones this item may be dropped on; empty means any.
  * @param dropStrategy How the zone under the item is chosen when it overlaps several.
  * @param dragAxis Restricts the movement to one axis.
+ * @param onItemOver When set, the item is also a place to drop on: called with the data of another item held over it, so the app can
+ * insert that item at this item's position. That reorders live inside a zone and across zones (the dimmed slot of the held item
+ * moves to where it would land). Without it, items are only picked up.
+ * @param accepts With [onItemOver], whether the held item may be dropped here; evaluated while dragging.
  * @param style Overrides merged over [KReorderableDefaults.itemStyle].
  * @param content Content of the item; the scope exposes `isDragging` and `Modifier.kDragHandle()`.
  */
@@ -56,10 +62,33 @@ public fun <T> KDraggable(
     dropTargets: List<Any> = emptyList(),
     dropStrategy: KDropStrategy = KDropStrategy.Surface,
     dragAxis: KDragAxis = KDragAxis.Free,
+    onItemOver: ((T) -> Unit)? = null,
+    accepts: (T) -> Boolean = { true },
     style: Style = Style,
     content: @Composable KDraggableItemScope.() -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
+    if (onItemOver != null) {
+        @Suppress("UNCHECKED_CAST")
+        val canDrop = state.draggedItem?.let { it.key != key && accepts(it.data) } ?: true
+        KReorderableItem(
+            key = key,
+            data = data,
+            state = state,
+            modifier = modifier.alpha(if (state.isDragging(key)) KReorderableDefaults.SlotAlpha else 1f),
+            enabled = enabled,
+            dragAfterLongPress = dragAfterLongPress,
+            dropTargets = dropTargets,
+            dropStrategy = dropStrategy,
+            dragAxis = dragAxis,
+            canDrop = canDrop,
+            onDragEnter = { onItemOver(it.data) },
+            draggableContent = { DraggableFrame(dragged = true, enabled = enabled, style = style) { ReorderableItemScopeShadowImpl(key).content() } },
+        ) {
+            DraggableFrame(dragged = false, enabled = enabled, style = style) { content() }
+        }
+        return
+    }
     KDraggableItem(
         key = key,
         data = data,
