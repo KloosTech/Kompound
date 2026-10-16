@@ -21,7 +21,7 @@ import tech.kloos.kompound.progress.KCircularProgress
 import tech.kloos.kompound.theme.KompoundTheme
 
 /**
- * Button with four looks ([KButtonVariant]), styled through the Compose Styles API.
+ * Button with five looks ([KButtonVariant]), styled through the Compose Styles API.
  * Put [tech.kloos.kompound.text.KText] and [tech.kloos.kompound.icon.KIcon] in [content]; both pick up the
  * button's content colour. Leading and trailing icons are just more content.
  *

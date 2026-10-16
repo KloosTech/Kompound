@@ -24,6 +24,7 @@ public data class KompoundStrings(
     val edit: String = "Edit",
     val add: String = "Add",
     val remove: String = "Remove",
+    val copy: String = "Copy",
     val search: String = "Search",
     val clearSearch: String = "Clear search",
     val showPassword: String = "Show password",
@@ -95,7 +96,7 @@ public data class KompoundStrings(
 ) {
     /** Every plain-text field by name, for tests that check a bundle is complete. */
     internal fun texts(): Map<String, String> = linkedMapOf(
-        "ok" to ok, "cancel" to cancel, "close" to close, "save" to save, "edit" to edit, "add" to add, "remove" to remove, "search" to search,
+        "ok" to ok, "cancel" to cancel, "close" to close, "save" to save, "edit" to edit, "add" to add, "remove" to remove, "copy" to copy, "search" to search,
         "clearSearch" to clearSearch, "showPassword" to showPassword, "hidePassword" to hidePassword, "tryAgain" to tryAgain,
         "stepWaiting" to stepWaiting, "stepInProgress" to stepInProgress, "stepDone" to stepDone,
         "statusOnline" to statusOnline, "statusAway" to statusAway, "statusBusy" to statusBusy, "statusOffline" to statusOffline,
@@ -116,7 +117,7 @@ public data class KompoundStrings(
 
         /** German. */
         public val German: KompoundStrings = KompoundStrings(
-            ok = "OK", cancel = "Abbrechen", close = "Schließen", save = "Speichern", edit = "Bearbeiten", add = "Hinzufügen", remove = "Entfernen",
+            ok = "OK", cancel = "Abbrechen", close = "Schließen", save = "Speichern", edit = "Bearbeiten", add = "Hinzufügen", remove = "Entfernen", copy = "Kopieren",
             search = "Suchen", clearSearch = "Suche löschen", showPassword = "Passwort anzeigen", hidePassword = "Passwort verbergen", tryAgain = "Erneut versuchen",
             stepWaiting = "Wartet", stepInProgress = "In Arbeit", stepDone = "Fertig",
             statusOnline = "online", statusAway = "abwesend", statusBusy = "beschäftigt", statusOffline = "offline",
@@ -137,7 +138,7 @@ public data class KompoundStrings(
 
         /** French. */
         public val French: KompoundStrings = KompoundStrings(
-            ok = "OK", cancel = "Annuler", close = "Fermer", save = "Enregistrer", edit = "Modifier", add = "Ajouter", remove = "Supprimer",
+            ok = "OK", cancel = "Annuler", close = "Fermer", save = "Enregistrer", edit = "Modifier", add = "Ajouter", remove = "Supprimer", copy = "Copier",
             search = "Rechercher", clearSearch = "Effacer la recherche", showPassword = "Afficher le mot de passe", hidePassword = "Masquer le mot de passe", tryAgain = "Réessayer",
             stepWaiting = "En attente", stepInProgress = "En cours", stepDone = "Terminé",
             statusOnline = "en ligne", statusAway = "absent", statusBusy = "occupé", statusOffline = "hors ligne",
@@ -158,7 +159,7 @@ public data class KompoundStrings(
 
         /** Spanish. */
         public val Spanish: KompoundStrings = KompoundStrings(
-            ok = "Aceptar", cancel = "Cancelar", close = "Cerrar", save = "Guardar", edit = "Editar", add = "Añadir", remove = "Quitar",
+            ok = "Aceptar", cancel = "Cancelar", close = "Cerrar", save = "Guardar", edit = "Editar", add = "Añadir", remove = "Quitar", copy = "Copiar",
             search = "Buscar", clearSearch = "Borrar búsqueda", showPassword = "Mostrar contraseña", hidePassword = "Ocultar contraseña", tryAgain = "Reintentar",
             stepWaiting = "En espera", stepInProgress = "En curso", stepDone = "Hecho",
             statusOnline = "en línea", statusAway = "ausente", statusBusy = "ocupado", statusOffline = "desconectado",
@@ -179,7 +180,7 @@ public data class KompoundStrings(
 
         /** Italian. */
         public val Italian: KompoundStrings = KompoundStrings(
-            ok = "OK", cancel = "Annulla", close = "Chiudi", save = "Salva", edit = "Modifica", add = "Aggiungi", remove = "Rimuovi",
+            ok = "OK", cancel = "Annulla", close = "Chiudi", save = "Salva", edit = "Modifica", add = "Aggiungi", remove = "Rimuovi", copy = "Copia",
             search = "Cerca", clearSearch = "Cancella ricerca", showPassword = "Mostra password", hidePassword = "Nascondi password", tryAgain = "Riprova",
             stepWaiting = "In attesa", stepInProgress = "In corso", stepDone = "Fatto",
             statusOnline = "online", statusAway = "assente", statusBusy = "occupato", statusOffline = "offline",

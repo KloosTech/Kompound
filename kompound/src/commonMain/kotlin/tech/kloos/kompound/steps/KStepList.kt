@@ -78,6 +78,7 @@ public class KStepLabels(public val waiting: String = "Waiting", public val inPr
  * @param modifier Modifier applied to the outermost node.
  * @param labels Accessibility words for the states.
  * @param style Overrides merged over a transparent container.
+ * @param horizontal Lay the steps out side by side, equal width, for a compact header strip (titles are cut to one line).
  */
 @Composable
 public fun KStepList(
@@ -85,16 +86,23 @@ public fun KStepList(
     modifier: Modifier = Modifier,
     labels: KStepLabels = KStepLabels.localized(),
     style: Style = Style,
+    horizontal: Boolean = false,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val state = remember { MutableStyleState(null) }
-    Column(modifier.fillMaxWidth().styleable(state, style), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        steps.forEach { Step(it, labels) }
+    if (horizontal) {
+        Row(modifier.fillMaxWidth().styleable(state, style), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            steps.forEach { Step(it, labels, Modifier.weight(1f)) }
+        }
+    } else {
+        Column(modifier.fillMaxWidth().styleable(state, style), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            steps.forEach { Step(it, labels, Modifier.fillMaxWidth()) }
+        }
     }
 }
 
 @Composable
-private fun Step(step: KStep, labels: KStepLabels) {
+private fun Step(step: KStep, labels: KStepLabels, modifier: Modifier) {
     val c = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
     val k = KompoundTheme.tokens.colors
@@ -106,7 +114,7 @@ private fun Step(step: KStep, labels: KStepLabels) {
     val titleStyle = type.titleSmall.copy(color = if (step.state is KStepState.Waiting) c.onSurface else accent)
     val shown by animateFloatAsState(fraction, tween(300, easing = LinearEasing), label = "step")
     Column(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = step.title; stateDescription = description },
+        modifier.semantics(mergeDescendants = true) { contentDescription = step.title; stateDescription = description },
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         KLinearProgress(if (step.state is KStepState.InProgress && step.state.progress == null) null else shown, Modifier.fillMaxWidth(), color = accent)

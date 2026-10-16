@@ -46,6 +46,7 @@ import kotlin.math.roundToInt
  * @param modifier Modifier applied to the track.
  * @param style Overrides merged over [KProgressDefaults.trackStyle] (4dp pill, full width).
  * @param color Colour of the indicator; unspecified means `primary`.
+ * @param trackColor Colour of the track; unspecified means the style's (`surfaceContainerHighest`).
  */
 @Composable
 public fun KLinearProgress(
@@ -53,13 +54,14 @@ public fun KLinearProgress(
     modifier: Modifier = Modifier,
     style: Style = Style,
     color: Color = Color.Unspecified,
+    trackColor: Color = Color.Unspecified,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val state = remember { MutableStyleState(null) }
     val indicator = if (color == Color.Unspecified) MaterialTheme.colorScheme.primary else color
     val info = if (progress == null) ProgressBarRangeInfo.Indeterminate else ProgressBarRangeInfo(progress.coerceIn(0f, 1f), 0f..1f)
     Box(
-        modifier.semantics { progressBarRangeInfo = info }.styleable(state, KProgressDefaults.trackStyle(), style).clip(CircleShape),
+        modifier.semantics { progressBarRangeInfo = info }.styleable(state, KProgressDefaults.trackStyle(), trackOverride(trackColor), style).clip(CircleShape),
     ) {
         if (progress != null) {
             Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).fillMaxHeight().clip(CircleShape).background(indicator))
@@ -68,6 +70,10 @@ public fun KLinearProgress(
         }
     }
 }
+
+@Composable
+private fun trackOverride(trackColor: Color): Style =
+    if (trackColor == Color.Unspecified) Style else remember(trackColor) { Style { background(trackColor) } }
 
 @Composable
 private fun SlidingIndicator(color: Color) {

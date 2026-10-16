@@ -27,6 +27,9 @@ public enum class KButtonVariant {
 
     /** Low emphasis: transparent, no outline (the "standard" icon button). */
     Text,
+
+    /** High emphasis for dangerous actions (delete, discard): error container. */
+    Destructive,
 }
 
 /** Colours of one variant, resolved from the theme. Used by Style building and for icon tinting. */
@@ -50,6 +53,7 @@ internal fun buttonColors(variant: KButtonVariant, c: ColorScheme, l: KompoundSt
         KButtonVariant.Tonal -> ButtonColors(c.secondaryContainer, c.onSecondaryContainer, null, disabledContainer, disabledContent, null)
         KButtonVariant.Outlined -> ButtonColors(Color.Transparent, c.primary, c.outline, Color.Transparent, disabledContent, disabledContainer)
         KButtonVariant.Text -> ButtonColors(Color.Transparent, c.primary, null, Color.Transparent, disabledContent, null)
+        KButtonVariant.Destructive -> ButtonColors(c.error, c.onError, null, disabledContainer, disabledContent, null)
     }
 }
 

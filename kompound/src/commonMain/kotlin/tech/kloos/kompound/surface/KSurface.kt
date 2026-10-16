@@ -3,6 +3,7 @@ package tech.kloos.kompound.surface
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.style.MutableStyleState
 import androidx.compose.foundation.style.Style
 import androidx.compose.foundation.style.disabled
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.theme.LocalKContentColor
@@ -72,6 +74,28 @@ public fun KSurface(
         modifier.clickable(interactionSource = source, indication = null, enabled = enabled, role = role, onClick = onClick),
         state, style, contentColor, interactive = true, content,
     )
+}
+
+/**
+ * A [KSurface] with its content laid out in a padded column: the Material `Card { }` replacement.
+ *
+ * @param padding Space between the card edge and the content.
+ * @param verticalArrangement Arrangement of the children.
+ * @param onClick When set the card is clickable (see the clickable [KSurface]).
+ */
+@Composable
+public fun KCard(
+    modifier: Modifier = Modifier,
+    style: Style = Style,
+    padding: androidx.compose.ui.unit.Dp = 16.dp,
+    verticalArrangement: androidx.compose.foundation.layout.Arrangement.Vertical = androidx.compose.foundation.layout.Arrangement.Top,
+    onClick: (() -> Unit)? = null,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    val inner: @Composable () -> Unit = {
+        androidx.compose.foundation.layout.Column(Modifier.padding(padding), verticalArrangement = verticalArrangement, content = content)
+    }
+    if (onClick == null) KSurface(modifier, style, content = inner) else KSurface(onClick, modifier, style, content = inner)
 }
 
 @Composable

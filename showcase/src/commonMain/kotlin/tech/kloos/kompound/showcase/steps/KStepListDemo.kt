@@ -40,6 +40,7 @@ fun DemoScope.KStepListDemo() {
     val second = choiceControl("Step 2", listOf("In progress", "Done", "Waiting"))
     val progress = floatControl("Step 2 progress", 0f..1f, 0.4f)
     val unknown = boolControl("Step 3 indeterminate", false)
+    val horizontal = boolControl("Horizontal", false)
     fun state(name: String, p: Float?) = when (name) {
         "Done" -> KStepState.Done
         "In progress" -> KStepState.InProgress(p)
@@ -53,5 +54,6 @@ fun DemoScope.KStepListDemo() {
             KStep("Restart"),
         ),
         modifier = Modifier.padding(16.dp),
+        horizontal = horizontal,
     )
 }

@@ -50,8 +50,8 @@ class KThemePresetsTest {
 
     @Test
     fun presetsDifferAndSeedsMakeTheGivenPrimaryFamily() {
-        assertEquals(6, KThemePresets.all.map { it.name }.toSet().size)
-        assertEquals(6, KThemePresets.all.map { it.light.primary }.toSet().size, "every preset has its own primary")
+        assertEquals(7, KThemePresets.all.map { it.name }.toSet().size)
+        assertEquals(7, KThemePresets.all.map { it.light.primary }.toSet().size, "every preset has its own primary")
         val custom = KThemePresets.fromSeeds("Mine", primary = Color(0xFFD1581B))
         assertEquals("Mine", custom.name)
         assertNotEquals(custom.light.primary, custom.dark.primary)

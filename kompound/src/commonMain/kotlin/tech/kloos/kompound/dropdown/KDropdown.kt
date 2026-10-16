@@ -33,6 +33,7 @@ import tech.kloos.kompound.textfield.PickerField
  * @param enabled When false the dropdown cannot be opened.
  * @param style Overrides merged over [KDropdownDefaults.style] (the field container).
  * @param menuStyle Overrides merged over the menu's default style.
+ * @param onExpandedChange Called when the menu opens or closes (for example to refresh [options] each time it opens).
  */
 @Composable
 public fun <T> KDropdown(
@@ -48,19 +49,22 @@ public fun <T> KDropdown(
     enabled: Boolean = true,
     style: Style = Style,
     menuStyle: Style = Style,
+    onExpandedChange: ((Boolean) -> Unit)? = null,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expandedState by remember { mutableStateOf(false) }
+    val expanded = expandedState
+    fun setExpanded(value: Boolean) { expandedState = value; onExpandedChange?.invoke(value) }
     PickerField(
         modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText,
         isError = isError, enabled = enabled, style = Style(KDropdownDefaults.style(), style),
         displayText = selected?.let(optionLabel).orEmpty(),
-        open = expanded, onClick = { expanded = !expanded }, icon = KompoundIcons.ChevronDown, role = Role.DropdownList,
+        open = expanded, onClick = { setExpanded(!expanded) }, icon = KompoundIcons.ChevronDown, role = Role.DropdownList,
     ) { triggerWidth ->
-        KMenu(expanded, onDismissRequest = { expanded = false }, minWidth = triggerWidth, style = menuStyle) {
+        KMenu(expanded, onDismissRequest = { setExpanded(false) }, minWidth = triggerWidth, style = menuStyle) {
             options.forEach { option ->
                 KMenuItem(
                     text = optionLabel(option),
-                    onClick = { onSelect(option); expanded = false },
+                    onClick = { onSelect(option); setExpanded(false) },
                     selected = option == selected, showCheck = true, role = Role.RadioButton,
                 )
             }

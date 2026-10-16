@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -48,6 +49,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
+import tech.kloos.kompound.theme.KompoundTheme
+import tech.kloos.kompound.code.KCodeDefaults
+import tech.kloos.kompound.code.KCodeColors
+import tech.kloos.kompound.buttons.KButtonVariant
+import tech.kloos.kompound.buttons.KButton
+import androidx.compose.ui.platform.LocalClipboardManager
 import tech.kloos.kompound.code.KCode
 import tech.kloos.kompound.code.KCodeLanguage
 import tech.kloos.kompound.divider.KDivider
@@ -70,6 +77,13 @@ import tech.kloos.kompound.text.KText
  * @param selectable Whether text can be selected and copied.
  * @param style Overrides merged over [KMarkdownDefaults.style] (container look: padding, background, ...).
  * @param textStyle Body text style; headings and quotes derive from the theme's typography.
+ * @param showCodeCopy Show a copy button under every code block (the text is copied to the clipboard).
+ * @param codeColors Colours of code blocks (for example [KCodeColors.OneDark] for a dark block on any theme); `null` follows the theme.
+ * @param headingTextStyle Text style per heading level (1 to 6); by default the theme's headline styles with [textStyle]'s colour.
+ * @param codeBlock Replaces the built-in code block; receives the fence tag (`kotlin`, may be empty) and the code.
+ * @param hideFrontmatter Skip a leading YAML front matter block (`---` ... `---`), as Obsidian notes have.
+ * @param wikiLinks Render `[[Note]]` and `[[Note|alias]]` as links; [onLinkClick] gets `wikilink:` plus the percent-encoded target, decode it with
+ * [KMarkdownDefaults.wikiLinkTarget]. `![[embed]]` is shown as its name. Callouts (`> [!warning] Title`) are drawn as callouts regardless of this flag.
  */
 @Composable
 public fun KMarkdown(
@@ -79,14 +93,22 @@ public fun KMarkdown(
     selectable: Boolean = true,
     style: Style = Style,
     textStyle: TextStyle = KMarkdownDefaults.textStyle(),
+    showCodeCopy: Boolean = false,
+    codeColors: KCodeColors? = null,
+    codeBlock: (@Composable (language: String, code: String) -> Unit)? = null,
+    hideFrontmatter: Boolean = false,
+    wikiLinks: Boolean = false,
+    headingTextStyle: (@Composable (level: Int) -> TextStyle)? = null,
 ) {
     remember { KompoundStyles.ensureEnabled() }
-    val blocks = remember(markdown) { parseMarkdown(markdown) }
+    val blocks = remember(markdown, hideFrontmatter) { parseMarkdown(if (hideFrontmatter) stripFrontmatter(markdown) else markdown) }
     val uriHandler = LocalUriHandler.current
     val handler: (String) -> Unit = onLinkClick ?: { url -> runCatching { uriHandler.openUri(url) } }
     val currentHandler by rememberUpdatedState(handler)
     val look = KMarkdownDefaults.look()
-    val context = remember(look, textStyle) { MdContext(look, textStyle) { url -> currentHandler(url) } }
+    val context = remember(look, textStyle, showCodeCopy, codeColors, codeBlock, wikiLinks, headingTextStyle) {
+        MdContext(look, textStyle, { url -> currentHandler(url) }, showCodeCopy, codeColors, codeBlock, wikiLinks, headingTextStyle)
+    }
     val state = remember { MutableStyleState(null) }
     val content = @Composable {
         Column(
@@ -101,6 +123,13 @@ public fun KMarkdown(
 
 /** Defaults for [KMarkdown] and [KMarkdownField]. */
 public object KMarkdownDefaults {
+    /** Scheme of the links [KMarkdown] creates for `[[wiki links]]` (`wikiLinks = true`). */
+    public const val WikiLinkScheme: String = "wikilink:"
+
+    /** The note name behind a link made from `[[Note|alias]]` (the part before `|`), or `null` when [url] is not a wiki link. */
+    public fun wikiLinkTarget(url: String): String? =
+        if (url.startsWith(WikiLinkScheme)) url.removePrefix(WikiLinkScheme).replace("%20", " ").replace("%28", "(").replace("%29", ")").replace("%7C", "|") else null
+
     /** Container style: content colour for icons and other non-text content. */
     @Composable
     public fun style(): Style {
@@ -145,8 +174,54 @@ public object KMarkdownDefaults {
 internal class InlineLook(val link: Color, val codeBackground: Color, val code: Color, val marker: Color)
 
 @Immutable
-internal class MdContext(val look: InlineLook, val textStyle: TextStyle, val onLink: (String) -> Unit) {
-    fun inline(src: String): AnnotatedString = renderInline(src, look, onLink)
+internal class MdContext(
+    val look: InlineLook,
+    val textStyle: TextStyle,
+    val onLink: (String) -> Unit,
+    val showCodeCopy: Boolean = false,
+    val codeColors: KCodeColors? = null,
+    val codeBlock: (@Composable (language: String, code: String) -> Unit)? = null,
+    val wikiLinks: Boolean = false,
+    val headingTextStyle: (@Composable (level: Int) -> TextStyle)? = null,
+) {
+    fun inline(src: String): AnnotatedString = renderInline(preprocessInline(src, wikiLinks), look, onLink)
+    fun withTextStyle(style: TextStyle) = MdContext(look, style, onLink, showCodeCopy, codeColors, codeBlock, wikiLinks, headingTextStyle)
+}
+
+private val FrontmatterEnd = Regex("^---[ \\t]*$")
+private val BrRegex = Regex("<br\\s*/?>", RegexOption.IGNORE_CASE)
+private val CodeSpanRegex = Regex("`+[^`]*`+")
+private val WikiRegex = Regex("(!?)\\[\\[([^\\]|\\n]+)(?:\\|([^\\]\\n]+))?\\]\\]")
+
+/** Removes a leading `---` ... `---` block. */
+internal fun stripFrontmatter(markdown: String): String {
+    val lines = markdown.lines()
+    if (lines.isEmpty() || !FrontmatterEnd.matches(lines[0].trimEnd('\r'))) return markdown
+    val end = (1 until lines.size).firstOrNull { FrontmatterEnd.matches(lines[it].trimEnd('\r')) } ?: return markdown
+    return lines.drop(end + 1).joinToString("\n").trimStart('\n')
+}
+
+/** `<br>` becomes a hard break; with [wikiLinks] `[[a|b]]` becomes a link and `![[x]]` italic text. Code spans are left alone. */
+internal fun preprocessInline(src: String, wikiLinks: Boolean): String {
+    if (!src.contains("<") && !(wikiLinks && src.contains("[["))) return src
+    val out = StringBuilder()
+    var last = 0
+    fun transform(part: String): String {
+        var t = part.replace(BrRegex, "  \n")
+        if (wikiLinks) t = WikiRegex.replace(t) { m ->
+            val target = m.groupValues[2].trim()
+            val label = m.groupValues[3].ifBlank { target }
+            if (m.groupValues[1] == "!") "*${target}*"
+            else "[${label.replace("]", "\\]")}](${KMarkdownDefaults.WikiLinkScheme}${target.replace(" ", "%20").replace("(", "%28").replace(")", "%29").replace("|", "%7C")})"
+        }
+        return t
+    }
+    for (m in CodeSpanRegex.findAll(src)) {
+        out.append(transform(src.substring(last, m.range.first))).append(m.value)
+        last = m.range.last + 1
+    }
+    out.append(transform(src.substring(last)))
+    return out.toString()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -159,21 +234,38 @@ private fun MdBlocks(blocks: List<MdBlock>, ctx: MdContext, depth: Int) {
         when (block) {
             is MdBlock.Heading -> {
                 val text = remember(block.text, ctx) { ctx.inline(block.text) }
-                KText(text, textStyle = KMarkdownDefaults.headingTextStyle(block.level))
+                val heading = ctx.headingTextStyle?.invoke(block.level)
+                    ?: KMarkdownDefaults.headingTextStyle(block.level).let { if (ctx.textStyle.color.isSpecified) it.copy(color = ctx.textStyle.color) else it }
+                KText(text, textStyle = heading)
             }
             is MdBlock.Paragraph -> {
                 val text = remember(block.text, ctx) { ctx.inline(block.text) }
                 KText(text, textStyle = ctx.textStyle)
             }
-            is MdBlock.CodeBlock -> KCode(
-                code = block.code,
-                modifier = Modifier.fillMaxWidth(),
-                language = languageOf(block.language),
-                showLineNumbers = false,
-            )
+            is MdBlock.CodeBlock -> {
+                val custom = ctx.codeBlock
+                if (custom != null) custom(block.language, block.code)
+                else Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                    KCode(
+                        code = block.code,
+                        modifier = Modifier.fillMaxWidth(),
+                        language = KCodeLanguage.fromName(block.language),
+                        showLineNumbers = false,
+                        colors = ctx.codeColors ?: KCodeDefaults.colors(),
+                    )
+                    if (ctx.showCodeCopy) {
+                        val clipboard = LocalClipboardManager.current
+                        KButton(onClick = { clipboard.setText(AnnotatedString(block.code)) }, variant = KButtonVariant.Text) {
+                            KText(KompoundTheme.strings.copy)
+                        }
+                    }
+                }
+            }
             MdBlock.Rule -> KDivider(Modifier.padding(vertical = 4.dp))
             is MdBlock.Quote -> {
-                val quoteCtx = remember(ctx, scheme) { MdContext(ctx.look, ctx.textStyle.copy(color = scheme.onSurfaceVariant), ctx.onLink) }
+                val callout = remember(block) { parseCallout(block) }
+                if (callout != null) { MdCallout(callout, ctx, depth); return@forEach }
+                val quoteCtx = remember(ctx, scheme) { ctx.withTextStyle(ctx.textStyle.copy(color = scheme.onSurfaceVariant)) }
                 Row(Modifier.height(IntrinsicSize.Min)) {
                     Box(Modifier.fillMaxHeight().width(3.dp).clip(RoundedCornerShape(2.dp)).background(scheme.outlineVariant))
                     Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -196,6 +288,43 @@ private fun MdBlocks(blocks: List<MdBlock>, ctx: MdContext, depth: Int) {
             }
             is MdBlock.Table -> MdTable(block, ctx)
         }
+    }
+}
+
+private class Callout(val kind: String, val title: String, val blocks: List<MdBlock>)
+
+private val CalloutHead = Regex("^\\[!([A-Za-z]+)][+-]?[ \\t]*(.*)$")
+
+/** An Obsidian/GitHub callout: a quote whose first line is `[!kind] optional title`. */
+private fun parseCallout(quote: MdBlock.Quote): Callout? {
+    val first = quote.blocks.firstOrNull() as? MdBlock.Paragraph ?: return null
+    val lines = first.text.lines()
+    val m = CalloutHead.matchEntire(lines[0].trim()) ?: return null
+    val kind = m.groupValues[1].lowercase()
+    val title = m.groupValues[2].ifBlank { kind.replaceFirstChar { it.uppercase() } }
+    val rest = lines.drop(1).joinToString("\n").trim()
+    val blocks = (if (rest.isEmpty()) emptyList() else listOf<MdBlock>(MdBlock.Paragraph(rest))) + quote.blocks.drop(1)
+    return Callout(kind, title, blocks)
+}
+
+@Composable
+private fun MdCallout(callout: Callout, ctx: MdContext, depth: Int) {
+    val scheme = MaterialTheme.colorScheme
+    val tokens = KompoundTheme.tokens.colors
+    val (accent, container) = when (callout.kind) {
+        "warning", "caution", "attention" -> tokens.warning to tokens.warningContainer
+        "danger", "error", "bug", "failure", "fail", "missing" -> scheme.error to scheme.errorContainer
+        "tip", "success", "check", "done", "hint" -> tokens.success to tokens.successContainer
+        "info", "todo", "abstract", "summary", "tldr" -> tokens.info to tokens.infoContainer
+        else -> scheme.primary to scheme.primaryContainer
+    }
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(container.copy(alpha = 0.35f)).border(1.dp, accent.copy(alpha = 0.5f), shape).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        KText(callout.title, textStyle = ctx.textStyle.copy(color = accent, fontWeight = FontWeight.SemiBold))
+        MdBlocks(callout.blocks, ctx, depth + 1)
     }
 }
 
@@ -242,12 +371,6 @@ private fun MdTable(table: MdBlock.Table, ctx: MdContext) {
             }
         }
     }
-}
-
-private fun languageOf(info: String): KCodeLanguage = when (info.lowercase()) {
-    "kotlin", "kt", "kts" -> KCodeLanguage.Kotlin
-    "json" -> KCodeLanguage.Json
-    else -> KCodeLanguage.Plain
 }
 
 // ---------------------------------------------------------------------------------------------------------

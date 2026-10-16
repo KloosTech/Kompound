@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -70,6 +71,8 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * @param modifier Modifier applied to the menu surface.
  * @param minWidth Minimum width, typically the anchor's width; defaults to 112dp.
  * @param style Overrides merged over [KMenuDefaults.style].
+ * @param focusable When false the menu never takes focus, so a text field it is anchored to (a slash-command or
+ * mention list) keeps the caret and the keyboard; arrow-key navigation and Escape are then up to the caller.
  * @param content The items, usually [KMenuItem]s.
  */
 @Composable
@@ -79,6 +82,7 @@ public fun KMenu(
     modifier: Modifier = Modifier,
     minWidth: Dp = Dp.Unspecified,
     style: Style = Style,
+    focusable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (!expanded) return
@@ -89,16 +93,15 @@ public fun KMenu(
     Popup(
         popupPositionProvider = DropdownPositionProvider,
         onDismissRequest = onDismissRequest,
-        properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true),
+        properties = PopupProperties(focusable = focusable, dismissOnBackPress = true, dismissOnClickOutside = focusable),
     ) {
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+        if (focusable) LaunchedEffect(Unit) { focusRequester.requestFocus() }
         Column(
             modifier = modifier
                 .widthIn(min = if (minWidth == Dp.Unspecified) 112.dp else minWidth, max = 280.dp.coerceAtLeast(if (minWidth == Dp.Unspecified) 0.dp else minWidth))
                 .width(IntrinsicSize.Max)
                 .heightIn(max = 320.dp)
-                .focusRequester(focusRequester)
-                .focusable()
+                .then(if (focusable) Modifier.focusRequester(focusRequester).focusable() else Modifier)
                 .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when (event.key) {
@@ -129,6 +132,8 @@ public fun KMenu(
  * @param trailing Optional slot after the text.
  * @param supportingText Optional second line under the text, in the quieter supporting colour.
  * @param style Overrides merged over [KMenuDefaults.itemStyle].
+ * @param color Colour of this item's text and icons (a destructive entry, a highlighted match); unspecified keeps
+ * the default for the item's state. A disabled item stays dimmed.
  */
 @Composable
 public fun KMenuItem(
@@ -143,6 +148,7 @@ public fun KMenuItem(
     trailing: (@Composable () -> Unit)? = null,
     supportingText: String? = null,
     style: Style = Style,
+    color: Color = Color.Unspecified,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val source = remember { MutableInteractionSource() }
@@ -162,11 +168,11 @@ public fun KMenuItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CompositionLocalProvider(LocalKContentColor provides KMenuDefaults.contentColor(enabled, selected)) {
+        CompositionLocalProvider(LocalKContentColor provides (if (enabled) color.takeOrElse { KMenuDefaults.contentColor(enabled, selected) } else KMenuDefaults.contentColor(enabled, selected))) {
             leading?.invoke()
             // Takes all free width, so the check mark and the trailing slot sit at the end of the row.
             Column(Modifier.weight(1f)) {
-                KText(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                KText(text, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (enabled) color else Color.Unspecified)
                 if (supportingText != null) KText(supportingText, maxLines = 1, overflow = TextOverflow.Ellipsis, style = KMenuDefaults.supportingStyle())
             }
             if (showCheck && selected) KIcon(KompoundIcons.Check, contentDescription = null)

@@ -124,23 +124,30 @@ private fun parseBlocks(lines: List<String>): List<MdBlock> {
         if (line.contains('|') && i + 1 < lines.size && isTableSeparator(lines[i + 1])) {
             val header = splitCells(line)
             val separators = splitCells(lines[i + 1])
-            if (header.size == separators.size && header.size >= 1 && separators.size >= 1 && (header.size >= 2 || line.trim().startsWith("|"))) {
-                val aligns = separators.map {
-                    val t = it.trim()
+            // GFM wants the same number of cells in the header and the delimiter row; models often get this wrong
+            // (a missing or extra column), so a mismatch is tolerated when both rows clearly are table rows.
+            val tableLike = header.size == separators.size && (header.size >= 2 || line.trim().startsWith("|")) ||
+                header.size >= 2 && separators.size >= 2
+            if (tableLike) {
+                val rawRows = ArrayList<List<String>>()
+                var j = i + 2
+                while (j < lines.size && !isBlank(lines[j]) && lines[j].contains('|') && !startsBlock(lines[j])) {
+                    rawRows.add(splitCells(lines[j]))
+                    j++
+                }
+                // Columns: the widest of header, delimiter row and body rows; shorter rows are padded with empty cells.
+                val columns = maxOf(header.size, separators.size, rawRows.maxOfOrNull { it.size } ?: 0)
+                val aligns = List(columns) { col ->
+                    val t = separators.getOrNull(col)?.trim().orEmpty()
                     when {
-                        t.startsWith(":") && t.endsWith(":") -> MdAlign.Center
+                        t.startsWith(":") && t.endsWith(":") && t.length > 1 -> MdAlign.Center
                         t.endsWith(":") -> MdAlign.End
                         else -> MdAlign.Start
                     }
                 }
-                val rows = ArrayList<List<String>>()
-                var j = i + 2
-                while (j < lines.size && !isBlank(lines[j]) && lines[j].contains('|') && !startsBlock(lines[j])) {
-                    val cells = splitCells(lines[j])
-                    rows.add(List(header.size) { cells.getOrElse(it) { "" } })
-                    j++
-                }
-                out.add(MdBlock.Table(header, aligns, rows))
+                val rows = rawRows.map { cells -> List(columns) { cells.getOrElse(it) { "" } } }
+                val paddedHeader = List(columns) { header.getOrElse(it) { "" } }
+                out.add(MdBlock.Table(paddedHeader, aligns, rows))
                 i = j
                 continue
             }

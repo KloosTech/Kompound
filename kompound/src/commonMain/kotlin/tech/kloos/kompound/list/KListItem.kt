@@ -20,7 +20,10 @@ import androidx.compose.foundation.style.rememberUpdatedStyleState
 import androidx.compose.foundation.style.selected
 import androidx.compose.foundation.style.styleable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,6 +59,9 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * @param role Semantic role override; defaults to button (clickable) or radio button (selectable).
  * @param style Overrides merged over [KListItemDefaults.style].
  * @param interactionSource Feeds pressed/hovered/focused state into the style.
+ * @param trailingOnHover Actions (rename, delete, a menu button) shown after [trailing] only while the row is hovered,
+ * focused or selected. Pointer-less devices never hover, so keep the same actions reachable another way
+ * (a context menu, or show them when [selected]).
  */
 @Composable
 public fun KListItem(
@@ -72,6 +78,7 @@ public fun KListItem(
     role: Role? = null,
     style: Style = Style,
     interactionSource: MutableInteractionSource? = null,
+    trailingOnHover: (@Composable () -> Unit)? = null,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val source = interactionSource ?: remember { MutableInteractionSource() }
@@ -80,7 +87,7 @@ public fun KListItem(
         it.isSelected = selected == true
     }
     val interactive = onClick != null
-    var behaviour: Modifier = Modifier.hoverable(source, enabled && interactive)
+    var behaviour: Modifier = Modifier.hoverable(source, enabled && (interactive || trailingOnHover != null))
     if (onClick != null) {
         behaviour = behaviour.then(
             if (selected != null) {
@@ -106,6 +113,11 @@ public fun KListItem(
             if (bottom != null) bottom()
         }
         if (trailing != null) CompositionLocalProvider(LocalKContentColor provides quiet) { trailing() }
+        if (trailingOnHover != null) {
+            val hovered by source.collectIsHoveredAsState()
+            val focused by source.collectIsFocusedAsState()
+            if (hovered || focused || selected == true) CompositionLocalProvider(LocalKContentColor provides quiet) { trailingOnHover() }
+        }
     }
 }
 
@@ -125,6 +137,7 @@ public fun KListItem(
     role: Role? = null,
     style: Style = Style,
     interactionSource: MutableInteractionSource? = null,
+    trailingOnHover: (@Composable () -> Unit)? = null,
 ) {
     KListItem(
         headline = { KText(headline, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -132,7 +145,7 @@ public fun KListItem(
         supporting = supporting?.let { { KText(it, maxLines = 2, overflow = TextOverflow.Ellipsis) } },
         overline = overline?.let { { KText(it, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
         leading = leading, trailing = trailing, bottom = bottom, onClick = onClick, selected = selected,
-        enabled = enabled, role = role, style = style, interactionSource = interactionSource,
+        enabled = enabled, role = role, style = style, interactionSource = interactionSource, trailingOnHover = trailingOnHover,
     )
 }
 

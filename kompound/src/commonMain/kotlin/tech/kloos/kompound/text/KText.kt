@@ -11,6 +11,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -21,6 +22,9 @@ import tech.kloos.kompound.theme.LocalKContentColor
  * Text that takes part in the Styles API: it inherits `contentColor` and text properties from the
  * nearest styled parent (for example [tech.kloos.kompound.buttons.KButton]) and can be restyled via [style].
  * Material `Text` does not read these inherited properties.
+ *
+ * @param color Shorthand for a text colour; unspecified keeps the inherited content colour. Wins over [style] defaults
+ * and over the colour of a `textStyle`.
  */
 @Composable
 public fun KText(
@@ -29,14 +33,16 @@ public fun KText(
     style: Style = Style,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    color: Color = Color.Unspecified,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val state = remember { MutableStyleState(null) }
+    val effective = if (color.isSpecified) Style(style, Style { contentColor(color); textStyle(TextStyle(color = color)) }) else style
     // Keyed on the text: Compose's experimental inherited-text-style support loses the inherited style of an
     // existing text node when only its text changes (a changing title or label would fall back to the default
     // typography). A new node per text value inherits correctly at attach time.
     key(text) {
-        BasicText(text, modifier = modifier.styleable(state, style), maxLines = maxLines, overflow = overflow)
+        BasicText(text, modifier = modifier.styleable(state, effective), maxLines = maxLines, overflow = overflow)
     }
 }
 
@@ -52,9 +58,10 @@ public fun KText(
     style: Style = Style,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    color: Color = Color.Unspecified,
 ) {
     val base = remember(textStyle) { Style { textStyle(textStyle) } }
-    KText(text, modifier, Style(base, style), maxLines, overflow)
+    KText(text, modifier, Style(base, style), maxLines, overflow, color)
 }
 
 /** Ready-made text styles for [KText]. */

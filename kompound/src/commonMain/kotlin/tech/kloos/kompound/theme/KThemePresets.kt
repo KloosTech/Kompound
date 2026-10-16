@@ -29,6 +29,31 @@ public object KThemePresets {
     /** Neutral greys with one quiet blue accent: stays out of the way of data and code. */
     public val Graphite: KThemeSpec = fromSeeds("Graphite", primary = Color(0xFF4A5B70), secondary = Color(0xFF626B76), tertiary = Color(0xFF6B5F7A), neutralSaturation = 0.03f)
 
+    /** GitHub's own palette: near-black blue surfaces (#0D1117) with a bright blue accent in dark, Primer light greys in light. */
+    public val GitHubDark: KThemeSpec = KThemeSpec(
+        "GitHub",
+        lightColorScheme(
+            primary = Color(0xFF0969DA), onPrimary = Color.White, primaryContainer = Color(0xFFDDF4FF), onPrimaryContainer = Color(0xFF0A3069),
+            secondary = Color(0xFF57606A), onSecondary = Color.White, secondaryContainer = Color(0xFFEAEEF2), onSecondaryContainer = Color(0xFF24292F),
+            tertiary = Color(0xFF6639BA), onTertiary = Color.White, tertiaryContainer = Color(0xFFFBEFFF), onTertiaryContainer = Color(0xFF3B1B7A),
+            error = Color(0xFFCF222E), onError = Color.White, errorContainer = Color(0xFFFFEBE9), onErrorContainer = Color(0xFF82071E),
+            background = Color(0xFFFFFFFF), onBackground = Color(0xFF1F2328), surface = Color(0xFFF6F8FA), onSurface = Color(0xFF1F2328),
+            surfaceVariant = Color(0xFFEAEEF2), onSurfaceVariant = Color(0xFF59636E), outline = Color(0xFFD0D7DE), outlineVariant = Color(0xFFD8DEE4),
+            surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF6F8FA), surfaceContainer = Color(0xFFEFF2F5),
+            surfaceContainerHigh = Color(0xFFEAEEF2), surfaceContainerHighest = Color(0xFFE0E6EB),
+        ),
+        darkColorScheme(
+            primary = Color(0xFFA8C8FF), onPrimary = Color(0xFF003065), primaryContainer = Color(0xFF004591), onPrimaryContainer = Color(0xFFD5E3FF),
+            secondary = Color(0xFFBEC6DC), onSecondary = Color(0xFF283040), secondaryContainer = Color(0xFF3E4759), onSecondaryContainer = Color(0xFFDAE2F9),
+            tertiary = Color(0xFF9ECAFF), onTertiary = Color(0xFF002E61), tertiaryContainer = Color(0xFF004488), onTertiaryContainer = Color(0xFFD0E4FF),
+            error = Color(0xFFF85149), onError = Color(0xFF0D1117), errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
+            background = Color(0xFF0D1117), onBackground = Color(0xFFC9D1D9), surface = Color(0xFF161B22), onSurface = Color(0xFFC9D1D9),
+            surfaceVariant = Color(0xFF21262D), onSurfaceVariant = Color(0xFF8B949E), outline = Color(0xFF30363D), outlineVariant = Color(0xFF21262D),
+            surfaceContainerLowest = Color(0xFF010409), surfaceContainerLow = Color(0xFF0D1117), surfaceContainer = Color(0xFF161B22),
+            surfaceContainerHigh = Color(0xFF21262D), surfaceContainerHighest = Color(0xFF30363D),
+        ),
+    )
+
     /** Black, white and strong colours; text and controls reach a contrast of at least 7:1. */
     public val HighContrast: KThemeSpec = KThemeSpec(
         "High contrast",
@@ -55,7 +80,7 @@ public object KThemePresets {
     )
 
     /** Every preset, for a picker. */
-    public val all: List<KThemeSpec> = listOf(Default, Ocean, Forest, Sunset, Graphite, HighContrast)
+    public val all: List<KThemeSpec> = listOf(Default, Ocean, Forest, Sunset, Graphite, GitHubDark, HighContrast)
 
     /**
      * Builds a theme from three brand colours: [primary], [secondary] and [tertiary] become tonal palettes (the light scheme uses tone 40 for

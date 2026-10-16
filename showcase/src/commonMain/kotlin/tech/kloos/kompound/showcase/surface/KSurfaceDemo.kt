@@ -28,6 +28,9 @@ KSurface {
     KText("Plain surface")
 }
 
+// KCard: a surface with a padded Column (the Material Card { } replacement).
+KCard { KText("Title"); KText("Body") }
+
 // Clickable, with your own look through the Styles API. Read theme values outside the Style block.
 val container = MaterialTheme.colorScheme.primaryContainer
 KSurface(

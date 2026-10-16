@@ -28,12 +28,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import tech.kloos.kompound.KompoundStyles
@@ -95,8 +99,91 @@ public fun KTextField(
     interactionSource: MutableInteractionSource? = null,
     contentDescription: String? = null,
 ) {
-    remember { KompoundStyles.ensureEnabled() }
     val source = interactionSource ?: remember { MutableInteractionSource() }
+    KTextFieldLayout(
+        isEmpty = value.isEmpty(), length = value.length,
+        modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText, isError = isError,
+        enabled = enabled, singleLine = singleLine, maxLength = maxLength, leading = leading, trailing = trailing,
+        style = style, source = source, contentDescription = contentDescription,
+    ) { fieldModifier, textStyle, cursor, decoration ->
+        BasicTextField(
+            value = value,
+            onValueChange = { new -> onValueChange(if (maxLength != null) new.take(maxLength) else new) },
+            modifier = fieldModifier, enabled = enabled, readOnly = readOnly, textStyle = textStyle,
+            keyboardOptions = keyboardOptions, keyboardActions = keyboardActions, singleLine = singleLine,
+            minLines = minLines, maxLines = maxLines, visualTransformation = visualTransformation,
+            interactionSource = source, cursorBrush = cursor, decorationBox = decoration,
+        )
+    }
+}
+
+/**
+ * [KTextField] driven by a [TextFieldValue], for callers that need the cursor, selection or composition
+ * (insert at the caret, accept a suggestion, move the selection). With [maxLength] set, over-long text is cut.
+ */
+@Composable
+public fun KTextField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    placeholder: String? = null,
+    supportingText: String? = null,
+    isError: Boolean = false,
+    enabled: Boolean = true,
+    readOnly: Boolean = false,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    maxLength: Int? = null,
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    style: Style = Style,
+    interactionSource: MutableInteractionSource? = null,
+    contentDescription: String? = null,
+) {
+    val source = interactionSource ?: remember { MutableInteractionSource() }
+    KTextFieldLayout(
+        isEmpty = value.text.isEmpty(), length = value.text.length,
+        modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText, isError = isError,
+        enabled = enabled, singleLine = singleLine, maxLength = maxLength, leading = leading, trailing = trailing,
+        style = style, source = source, contentDescription = contentDescription,
+    ) { fieldModifier, textStyle, cursor, decoration ->
+        BasicTextField(
+            value = value,
+            onValueChange = { new -> onValueChange(if (maxLength != null && new.text.length > maxLength) new.copy(text = new.text.take(maxLength), selection = TextRange(minOf(new.selection.start, maxLength), minOf(new.selection.end, maxLength))) else new) },
+            modifier = fieldModifier, enabled = enabled, readOnly = readOnly, textStyle = textStyle,
+            keyboardOptions = keyboardOptions, keyboardActions = keyboardActions, singleLine = singleLine,
+            minLines = minLines, maxLines = maxLines, visualTransformation = visualTransformation,
+            interactionSource = source, cursorBrush = cursor, decorationBox = decoration,
+        )
+    }
+}
+
+@Composable
+private fun KTextFieldLayout(
+    isEmpty: Boolean,
+    length: Int,
+    modifier: Modifier,
+    label: String?,
+    placeholder: String?,
+    supportingText: String?,
+    isError: Boolean,
+    enabled: Boolean,
+    singleLine: Boolean,
+    maxLength: Int?,
+    leading: (@Composable () -> Unit)?,
+    trailing: (@Composable () -> Unit)?,
+    style: Style,
+    source: MutableInteractionSource,
+    contentDescription: String?,
+    field: @Composable (Modifier, TextStyle, Brush, @Composable (@Composable () -> Unit) -> Unit) -> Unit,
+) {
+    remember { KompoundStyles.ensureEnabled() }
+
     val state = rememberUpdatedStyleState(source) {
         it.isEnabled = enabled
         it.set(ErrorKey, isError)
@@ -118,37 +205,25 @@ public fun KTextField(
             CompositionLocalProvider(LocalKContentColor provides iconColor) {
                 leading?.invoke()
                 Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    BasicTextField(
-                        value = value,
-                        onValueChange = { new -> onValueChange(if (maxLength != null) new.take(maxLength) else new) },
-                        modifier = Modifier
+                    field(
+                        Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
                             .semantics {
                                 (contentDescription ?: label)?.let { this.contentDescription = it }
                                 if (isError) error(supportingText ?: "Invalid input")
                             },
-                        enabled = enabled,
-                        readOnly = readOnly,
-                        textStyle = KTextFieldDefaults.textStyle(enabled),
-                        keyboardOptions = keyboardOptions,
-                        keyboardActions = keyboardActions,
-                        singleLine = singleLine,
-                        minLines = minLines,
-                        maxLines = maxLines,
-                        visualTransformation = visualTransformation,
-                        interactionSource = source,
-                        cursorBrush = SolidColor(if (isError) scheme.error else scheme.primary),
-                        decorationBox = { inner ->
-                            // Centred so the placeholder lines up with the text and the caret even when their line boxes differ in height.
-                            Box(contentAlignment = Alignment.CenterStart) {
-                                if (value.isEmpty() && placeholder != null) {
-                                    KText(placeholder, style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1)
-                                }
-                                inner()
+                        KTextFieldDefaults.textStyle(enabled),
+                        SolidColor(if (isError) scheme.error else scheme.primary),
+                    ) { inner ->
+                        // Centred so the placeholder lines up with the text and the caret even when their line boxes differ in height.
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (isEmpty && placeholder != null) {
+                                KText(placeholder, style = KTextFieldDefaults.placeholderStyle(enabled), maxLines = 1)
                             }
-                        },
-                    )
+                            inner()
+                        }
+                    }
                 }
                 trailing?.invoke()
             }
@@ -157,7 +232,7 @@ public fun KTextField(
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 KText(supportingText.orEmpty(), Modifier.weight(1f), style = KTextFieldDefaults.supportingStyle(isError, enabled))
                 if (maxLength != null) {
-                    KText("${value.length}/$maxLength", style = KTextFieldDefaults.supportingStyle(isError = false, enabled = enabled))
+                    KText("$length/$maxLength", style = KTextFieldDefaults.supportingStyle(isError = false, enabled = enabled))
                 }
             }
         }
