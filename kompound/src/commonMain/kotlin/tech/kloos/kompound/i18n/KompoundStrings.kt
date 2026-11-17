@@ -33,6 +33,8 @@ public data class KompoundStrings(
     val stepWaiting: String = "Waiting",
     val stepInProgress: String = "In progress",
     val stepDone: String = "Done",
+    val statusFailed: String = "Failed",
+    val statusStopped: String = "Stopped",
     val statusOnline: String = "online",
     val statusAway: String = "away",
     val statusBusy: String = "busy",
@@ -98,7 +100,7 @@ public data class KompoundStrings(
     internal fun texts(): Map<String, String> = linkedMapOf(
         "ok" to ok, "cancel" to cancel, "close" to close, "save" to save, "edit" to edit, "add" to add, "remove" to remove, "copy" to copy, "search" to search,
         "clearSearch" to clearSearch, "showPassword" to showPassword, "hidePassword" to hidePassword, "tryAgain" to tryAgain,
-        "stepWaiting" to stepWaiting, "stepInProgress" to stepInProgress, "stepDone" to stepDone,
+        "stepWaiting" to stepWaiting, "stepInProgress" to stepInProgress, "stepDone" to stepDone, "statusFailed" to statusFailed, "statusStopped" to statusStopped,
         "statusOnline" to statusOnline, "statusAway" to statusAway, "statusBusy" to statusBusy, "statusOffline" to statusOffline,
         "expand" to expand, "collapse" to collapse, "expanded" to expanded, "collapsed" to collapsed, "loading" to loading, "noResults" to noResults, "noData" to noData,
         "previous" to previous, "next" to next, "today" to today, "openNavigation" to openNavigation, "closeNavigation" to closeNavigation,
@@ -119,7 +121,7 @@ public data class KompoundStrings(
         public val German: KompoundStrings = KompoundStrings(
             ok = "OK", cancel = "Abbrechen", close = "Schließen", save = "Speichern", edit = "Bearbeiten", add = "Hinzufügen", remove = "Entfernen", copy = "Kopieren",
             search = "Suchen", clearSearch = "Suche löschen", showPassword = "Passwort anzeigen", hidePassword = "Passwort verbergen", tryAgain = "Erneut versuchen",
-            stepWaiting = "Wartet", stepInProgress = "In Arbeit", stepDone = "Fertig",
+            stepWaiting = "Wartet", stepInProgress = "In Arbeit", stepDone = "Fertig", statusFailed = "Fehlgeschlagen", statusStopped = "Gestoppt",
             statusOnline = "online", statusAway = "abwesend", statusBusy = "beschäftigt", statusOffline = "offline",
             expand = "Aufklappen", collapse = "Zuklappen", expanded = "Aufgeklappt", collapsed = "Zugeklappt", loading = "Wird geladen", noResults = "Keine Ergebnisse", noData = "Keine Daten",
             previous = "Zurück", next = "Weiter", today = "Heute", openNavigation = "Navigationsmenü öffnen", closeNavigation = "Navigationsmenü schließen",
@@ -140,7 +142,7 @@ public data class KompoundStrings(
         public val French: KompoundStrings = KompoundStrings(
             ok = "OK", cancel = "Annuler", close = "Fermer", save = "Enregistrer", edit = "Modifier", add = "Ajouter", remove = "Supprimer", copy = "Copier",
             search = "Rechercher", clearSearch = "Effacer la recherche", showPassword = "Afficher le mot de passe", hidePassword = "Masquer le mot de passe", tryAgain = "Réessayer",
-            stepWaiting = "En attente", stepInProgress = "En cours", stepDone = "Terminé",
+            stepWaiting = "En attente", stepInProgress = "En cours", stepDone = "Terminé", statusFailed = "Échec", statusStopped = "Arrêté",
             statusOnline = "en ligne", statusAway = "absent", statusBusy = "occupé", statusOffline = "hors ligne",
             expand = "Développer", collapse = "Réduire", expanded = "Développé", collapsed = "Réduit", loading = "Chargement", noResults = "Aucun résultat", noData = "Aucune donnée",
             previous = "Précédent", next = "Suivant", today = "Aujourd'hui", openNavigation = "Ouvrir le menu de navigation", closeNavigation = "Fermer le menu de navigation",
@@ -161,7 +163,7 @@ public data class KompoundStrings(
         public val Spanish: KompoundStrings = KompoundStrings(
             ok = "Aceptar", cancel = "Cancelar", close = "Cerrar", save = "Guardar", edit = "Editar", add = "Añadir", remove = "Quitar", copy = "Copiar",
             search = "Buscar", clearSearch = "Borrar búsqueda", showPassword = "Mostrar contraseña", hidePassword = "Ocultar contraseña", tryAgain = "Reintentar",
-            stepWaiting = "En espera", stepInProgress = "En curso", stepDone = "Hecho",
+            stepWaiting = "En espera", stepInProgress = "En curso", stepDone = "Hecho", statusFailed = "Error", statusStopped = "Detenido",
             statusOnline = "en línea", statusAway = "ausente", statusBusy = "ocupado", statusOffline = "desconectado",
             expand = "Expandir", collapse = "Contraer", expanded = "Expandido", collapsed = "Contraído", loading = "Cargando", noResults = "Sin resultados", noData = "Sin datos",
             previous = "Anterior", next = "Siguiente", today = "Hoy", openNavigation = "Abrir menú de navegación", closeNavigation = "Cerrar menú de navegación",
@@ -182,7 +184,7 @@ public data class KompoundStrings(
         public val Italian: KompoundStrings = KompoundStrings(
             ok = "OK", cancel = "Annulla", close = "Chiudi", save = "Salva", edit = "Modifica", add = "Aggiungi", remove = "Rimuovi", copy = "Copia",
             search = "Cerca", clearSearch = "Cancella ricerca", showPassword = "Mostra password", hidePassword = "Nascondi password", tryAgain = "Riprova",
-            stepWaiting = "In attesa", stepInProgress = "In corso", stepDone = "Fatto",
+            stepWaiting = "In attesa", stepInProgress = "In corso", stepDone = "Fatto", statusFailed = "Non riuscito", statusStopped = "Interrotto",
             statusOnline = "online", statusAway = "assente", statusBusy = "occupato", statusOffline = "offline",
             expand = "Espandi", collapse = "Comprimi", expanded = "Espanso", collapsed = "Compresso", loading = "Caricamento", noResults = "Nessun risultato", noData = "Nessun dato",
             previous = "Precedente", next = "Successivo", today = "Oggi", openNavigation = "Apri il menu di navigazione", closeNavigation = "Chiudi il menu di navigazione",

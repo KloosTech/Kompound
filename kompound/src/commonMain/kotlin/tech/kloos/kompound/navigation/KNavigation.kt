@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.width
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -247,6 +249,9 @@ public fun KNavigationDrawer(
  * @param modifier Modifier applied to the container.
  * @param title Announced when the drawer opens (default: "Open navigation menu").
  * @param closeDescription Description of the scrim, which closes the drawer.
+ * @param onOpenRequest When set, dragging from the start edge of the screen pulls the drawer out and, past half way (or with a quick fling),
+ * calls this so you set [open] to true; the drawer follows the finger meanwhile. Dragging the open drawer back towards the start edge
+ * closes it through [onDismissRequest]. Leave `null` for a drawer that opens only through [open].
  * @param content The screen behind the drawer.
  */
 @Composable
@@ -257,14 +262,36 @@ public fun KModalNavigationDrawer(
     modifier: Modifier = Modifier,
     title: String = KompoundTheme.strings.openNavigation,
     closeDescription: String = KompoundTheme.strings.closeNavigation,
+    onOpenRequest: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val progress = remember { Animatable(if (open) 1f else 0f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+    val towardsEnd = if (rtl) -1f else 1f
     val duration = KompoundTheme.tokens.motion.durationMedium
     LaunchedEffect(open) { progress.animateTo(if (open) 1f else 0f, tween(duration)) }
     BoxWithConstraints(modifier) {
         content()
+        // Width the drawer will have, known before it is composed, so a drag from the edge can map finger distance to progress.
+        val estimate = with(androidx.compose.ui.platform.LocalDensity.current) { minOf(360.dp, maxWidth * 0.85f).toPx() }
+        if (!open && onOpenRequest != null) {
+            Box(
+                Modifier.align(Alignment.CenterStart).fillMaxHeight().width(20.dp).draggable(
+                    orientation = androidx.compose.foundation.gestures.Orientation.Horizontal,
+                    state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                        val next = (progress.value + delta * towardsEnd / estimate).coerceIn(0f, 1f)
+                        scope.launch { progress.snapTo(next) }
+                    },
+                    onDragStopped = { velocity ->
+                        val opens = progress.value >= 0.5f || velocity * towardsEnd > 1500f
+                        if (opens) onOpenRequest()
+                        scope.launch { progress.animateTo(if (opens) 1f else 0f, tween(duration)) }
+                    },
+                ),
+            )
+        }
         if (open || progress.value > 0f) {
             val focus = remember { FocusRequester() }
             val scrim = MaterialTheme.colorScheme.scrim
@@ -283,6 +310,18 @@ public fun KModalNavigationDrawer(
                     .onSizeChanged { drawerWidth = it.width }
                     .offset { IntOffset(((progress.value - 1f) * drawerWidth).roundToInt(), 0) }
                     .semantics { paneTitle = title }
+                    .then(
+                        if (onOpenRequest == null) Modifier else Modifier.draggable(
+                            orientation = androidx.compose.foundation.gestures.Orientation.Horizontal,
+                            state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                                if (open) scope.launch { progress.snapTo((progress.value + delta * towardsEnd / estimate).coerceIn(0f, 1f)) }
+                            },
+                            onDragStopped = { velocity ->
+                                val closes = progress.value < 0.5f || velocity * towardsEnd < -1500f
+                                if (closes) onDismissRequest() else scope.launch { progress.animateTo(1f, tween(duration)) }
+                            },
+                        ),
+                    )
                     .focusRequester(focus)
                     .focusable()
                     .onKeyEvent { event ->

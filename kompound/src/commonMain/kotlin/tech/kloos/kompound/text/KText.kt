@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import tech.kloos.kompound.KompoundStyles
@@ -95,11 +96,12 @@ public fun KText(
     textStyle: TextStyle = TextStyle.Default,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val state = remember { MutableStyleState(null) }
     val resolved = if (textStyle.color.isSpecified) textStyle else textStyle.copy(color = LocalKContentColor.current)
     key(text) {   // see the String overload
-        BasicText(text, modifier = modifier.styleable(state, style), style = resolved, maxLines = maxLines, overflow = overflow)
+        BasicText(text, modifier = modifier.styleable(state, style), style = resolved, maxLines = maxLines, overflow = overflow, onTextLayout = onTextLayout ?: {})
     }
 }

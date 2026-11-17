@@ -17,6 +17,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.geometry.Offset
 import tech.kloos.kompound.list.KListItem
@@ -224,5 +228,70 @@ class KMeterSettingsPreviewTest {
         }
         assertEquals(androidx.compose.ui.unit.LayoutDirection.Rtl, dir)
         assertEquals(tech.kloos.kompound.theme.KThemePresets.Default.dark.background, bg)
+    }
+}
+
+@OptIn(ExperimentalTestApi::class)
+class KSwipeStatusCodeTest {
+    private val s = ButtonTestScheme
+
+    @Test
+    fun swipePastThresholdFiresAndSpringsBack() = runComposeUiTest {
+        val fired = mutableListOf<tech.kloos.kompound.swipe.KSwipeSide>()
+        setContent {
+            MaterialTheme(s) {
+                Box(Modifier.width(200.dp)) {
+                    tech.kloos.kompound.swipe.KSwipeActions(
+                        onAction = { fired += it },
+                        startAction = tech.kloos.kompound.swipe.KSwipeAction("Delete", Color.Red, Color.White) { KText("D") },
+                        modifier = Modifier.testTag("row"),
+                    ) { Box(Modifier.width(200.dp).height(48.dp)) { KText("row") } }
+                }
+            }
+        }
+        onNodeWithTag("row").performTouchInput { swipeRight(startX = 5f, endX = 180f) }
+        waitForIdle()
+        assertEquals(listOf(tech.kloos.kompound.swipe.KSwipeSide.Start), fired)
+    }
+
+    @Test
+    fun shortSwipeDoesNothingAndSideWithoutActionIsLocked() = runComposeUiTest {
+        val fired = mutableListOf<tech.kloos.kompound.swipe.KSwipeSide>()
+        setContent {
+            MaterialTheme(s) {
+                Box(Modifier.width(200.dp)) {
+                    tech.kloos.kompound.swipe.KSwipeActions(
+                        onAction = { fired += it },
+                        startAction = tech.kloos.kompound.swipe.KSwipeAction("Delete", Color.Red, Color.White) { KText("D") },
+                        modifier = Modifier.testTag("row"),
+                    ) { Box(Modifier.width(200.dp).height(48.dp)) { KText("row") } }
+                }
+            }
+        }
+        onNodeWithTag("row").performTouchInput { swipeRight(startX = 5f, endX = 40f) }
+        waitForIdle()
+        onNodeWithTag("row").performTouchInput { swipeLeft(startX = 190f, endX = 10f) }
+        waitForIdle()
+        assertEquals(emptyList(), fired)
+    }
+
+    @Test
+    fun statusIconDescriptionsFollowTheStatus() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                androidx.compose.foundation.layout.Row {
+                    tech.kloos.kompound.state.KStatusIcon(tech.kloos.kompound.state.KStatus.Error, Modifier.testTag("e"))
+                    tech.kloos.kompound.state.KStatusIcon(tech.kloos.kompound.state.KStatus.Success, Modifier.testTag("s"), contentDescription = "OK!")
+                }
+            }
+        }
+        onNodeWithTag("e").assertContentDescriptionEquals("Failed")
+        onNodeWithTag("s").assertContentDescriptionEquals("OK!")
+    }
+
+    @Test
+    fun codeSoftWrapKeepsAllText() = runComposeUiTest {
+        setContent { MaterialTheme(s) { Box(Modifier.width(120.dp)) { tech.kloos.kompound.code.KCode("a long line ".repeat(10), softWrap = true) } } }
+        onNodeWithText("a long line ".repeat(10)).assertExists()
     }
 }

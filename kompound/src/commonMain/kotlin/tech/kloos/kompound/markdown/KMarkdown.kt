@@ -23,11 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalUriHandler
@@ -37,6 +43,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
@@ -48,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import tech.kloos.kompound.KompoundStyles
 import tech.kloos.kompound.theme.KompoundTheme
 import tech.kloos.kompound.code.KCodeDefaults
@@ -99,13 +107,19 @@ public fun KMarkdown(
     hideFrontmatter: Boolean = false,
     wikiLinks: Boolean = false,
     headingTextStyle: (@Composable (level: Int) -> TextStyle)? = null,
+    linkColor: Color? = null,
+    codeBackground: Color? = null,
+    codeColor: Color? = null,
 ) {
     remember { KompoundStyles.ensureEnabled() }
     val blocks = remember(markdown, hideFrontmatter) { parseMarkdown(if (hideFrontmatter) stripFrontmatter(markdown) else markdown) }
     val uriHandler = LocalUriHandler.current
     val handler: (String) -> Unit = onLinkClick ?: { url -> runCatching { uriHandler.openUri(url) } }
     val currentHandler by rememberUpdatedState(handler)
-    val look = KMarkdownDefaults.look()
+    // Inline code takes the body text color (the style is chosen for whatever the markdown sits on) and tints a chip with it,
+    // so the chip separates from a dark surface as well as from a light one.
+    val base = if (textStyle.color.isSpecified) textStyle.color else MaterialTheme.colorScheme.onSurface
+    val look = KMarkdownDefaults.look(linkColor, codeBackground ?: base.copy(alpha = CodeChipAlpha), codeColor ?: base)
     val context = remember(look, textStyle, showCodeCopy, codeColors, codeBlock, wikiLinks, headingTextStyle) {
         MdContext(look, textStyle, { url -> currentHandler(url) }, showCodeCopy, codeColors, codeBlock, wikiLinks, headingTextStyle)
     }
@@ -164,11 +178,16 @@ public object KMarkdownDefaults {
     }
 
     @Composable
-    internal fun look(): InlineLook {
+    internal fun look(linkColor: Color? = null, codeBackground: Color? = null, codeColor: Color? = null): InlineLook {
         val c = MaterialTheme.colorScheme
-        return remember(c) { InlineLook(link = c.primary, codeBackground = c.surfaceContainerHighest, code = c.onSurface, marker = c.onSurfaceVariant.copy(alpha = 0.7f)) }
+        return remember(c, linkColor, codeBackground, codeColor) { InlineLook(link = linkColor ?: c.primary, codeBackground = codeBackground ?: c.onSurface.copy(alpha = CodeChipAlpha), code = codeColor ?: c.onSurface, marker = c.onSurfaceVariant.copy(alpha = 0.7f)) }
     }
 }
+
+private const val CodeChipAlpha = 0.14f
+private const val CodeTag = "kompound.code"
+private const val CodePad = '\u2009'   // thin space: the chip's inner padding, drawn around by [MdText]
+private val CodeRadius = 6.dp
 
 @Immutable
 internal class InlineLook(val link: Color, val codeBackground: Color, val code: Color, val marker: Color)
@@ -236,11 +255,11 @@ private fun MdBlocks(blocks: List<MdBlock>, ctx: MdContext, depth: Int) {
                 val text = remember(block.text, ctx) { ctx.inline(block.text) }
                 val heading = ctx.headingTextStyle?.invoke(block.level)
                     ?: KMarkdownDefaults.headingTextStyle(block.level).let { if (ctx.textStyle.color.isSpecified) it.copy(color = ctx.textStyle.color) else it }
-                KText(text, textStyle = heading)
+                MdText(text, ctx, heading)
             }
             is MdBlock.Paragraph -> {
                 val text = remember(block.text, ctx) { ctx.inline(block.text) }
-                KText(text, textStyle = ctx.textStyle)
+                MdText(text, ctx, ctx.textStyle)
             }
             is MdBlock.CodeBlock -> {
                 val custom = ctx.codeBlock
@@ -289,6 +308,42 @@ private fun MdBlocks(blocks: List<MdBlock>, ctx: MdContext, depth: Int) {
             is MdBlock.Table -> MdTable(block, ctx)
         }
     }
+}
+
+/** Text with inline markdown: draws a rounded chip behind every code span, which a `SpanStyle` background cannot (it is always square). */
+@Composable
+private fun MdText(text: AnnotatedString, ctx: MdContext, textStyle: TextStyle, modifier: Modifier = Modifier) {
+    val spans = remember(text) { text.getStringAnnotations(CodeTag, 0, text.length) }
+    if (spans.isEmpty()) { KText(text, modifier, textStyle = textStyle); return }
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val color = ctx.look.codeBackground
+    KText(
+        text,
+        modifier.drawBehind {
+            val result = layout ?: return@drawBehind
+            val padX = 2.dp.toPx()
+            val padY = 2.dp.toPx()
+            val radius = CodeRadius.toPx()
+            for (span in spans) {
+                val end = span.end.coerceAtMost(result.layoutInput.text.length)
+                if (span.start >= end) continue
+                for (line in result.getLineForOffset(span.start)..result.getLineForOffset(end - 1)) {
+                    val from = maxOf(span.start, result.getLineStart(line))
+                    val to = minOf(end, result.getLineEnd(line))
+                    if (from >= to) continue
+                    val box = result.getPathForRange(from, to).getBounds()
+                    drawRoundRect(
+                        color,
+                        topLeft = Offset(box.left - padX, box.top + padY),
+                        size = Size(box.width + 2 * padX, (box.height - 2 * padY).coerceAtLeast(0f)),
+                        cornerRadius = CornerRadius(radius, radius),
+                    )
+                }
+            }
+        },
+        textStyle = textStyle,
+        onTextLayout = { layout = it },
+    )
 }
 
 private class Callout(val kind: String, val title: String, val blocks: List<MdBlock>)
@@ -361,13 +416,16 @@ private fun MdTable(table: MdBlock.Table, ctx: MdContext) {
         }
     }
     Column(Modifier.fillMaxWidth().clip(shape).border(1.dp, c.outlineVariant, shape)) {
-        Row(Modifier.fillMaxWidth().background(c.surfaceContainer)) {
-            for (col in 0 until columns) KText(remember(table, ctx) { cell(table.header[col], table.aligns[col], true) }, Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp), textStyle = ctx.textStyle)
+        // Tint with the caller's text color rather than a fixed surface: the text style is chosen for whatever
+        // the markdown sits on (a chat bubble, a card), so the header keeps the body's contrast in light and dark.
+        val headerBackground = if (ctx.textStyle.color.isSpecified) ctx.textStyle.color.copy(alpha = 0.14f) else c.surfaceContainer
+        Row(Modifier.fillMaxWidth().background(headerBackground)) {
+            for (col in 0 until columns) MdText(remember(table, ctx) { cell(table.header[col], table.aligns[col], true) }, ctx, ctx.textStyle, Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp))
         }
         table.rows.forEach { row ->
             KDivider()
             Row(Modifier.fillMaxWidth()) {
-                for (col in 0 until columns) KText(remember(row, ctx) { cell(row[col], table.aligns[col], false) }, Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp), textStyle = ctx.textStyle)
+                for (col in 0 until columns) MdText(remember(row, ctx) { cell(row[col], table.aligns[col], false) }, ctx, ctx.textStyle, Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 8.dp))
             }
         }
     }
@@ -401,8 +459,12 @@ private fun AnnotatedString.Builder.renderSpan(src: String, span: Span, look: In
         SpanKind.Bold -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { renderSpans(src, innerStart, innerEnd, span.children, look, onLink) }
         SpanKind.Italic -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { renderSpans(src, innerStart, innerEnd, span.children, look, onLink) }
         SpanKind.Strike -> withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) { renderSpans(src, innerStart, innerEnd, span.children, look, onLink) }
-        SpanKind.Code -> withStyle(SpanStyle(fontFamily = FontFamily.Monospace, background = look.codeBackground, color = look.code)) {
-            append(' '); appendPlain(src, innerStart, innerEnd); append(' ')
+        SpanKind.Code -> {
+            val start = length
+            withStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 0.92f.em, color = look.code)) {
+                append(CodePad); appendPlain(src, innerStart, innerEnd); append(CodePad)
+            }
+            addStringAnnotation(CodeTag, "", start, length)
         }
         SpanKind.Escape -> append(src[span.start + 1])
         SpanKind.HardBreak -> append('\n')

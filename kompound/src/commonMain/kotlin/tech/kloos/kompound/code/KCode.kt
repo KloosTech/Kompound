@@ -64,6 +64,8 @@ import tech.kloos.kompound.text.KText
  * @param focusRequester Request focus for the editor from outside.
  * @param contentDescription The accessibility name of the code (default: the localised word "Code"); screen readers then read the text itself.
  * @param diagnostics Problems to show: each range is underlined and tinted, and the messages are listed under the editor (and announced).
+ * @param softWrap Wrap long lines instead of scrolling sideways. The line-number gutter is hidden then, because it counts logical lines
+ * and would no longer line up with wrapped text.
  */
 @Composable
 public fun KCode(
@@ -77,9 +79,10 @@ public fun KCode(
     focusRequester: FocusRequester? = null,
     diagnostics: List<KCodeDiagnostic> = emptyList(),
     contentDescription: String? = null,
+    softWrap: Boolean = false,
 ) {
     val name = contentDescription ?: tech.kloos.kompound.theme.KompoundTheme.strings.code
-    KCodeFrame(code, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
+    KCodeFrame(code, modifier, language, showLineNumbers && !softWrap, colors, style, diagnostics, softWrap) { textStyle, transformation ->
         BasicTextField(
             value = code,
             onValueChange = { onCodeChange?.invoke(it) },
@@ -119,7 +122,7 @@ public fun KCode(
     contentDescription: String? = null,
 ) {
     val name = contentDescription ?: tech.kloos.kompound.theme.KompoundTheme.strings.code
-    KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style, diagnostics) { textStyle, transformation ->
+    KCodeFrame(value.text, modifier, language, showLineNumbers, colors, style, diagnostics, softWrap = false) { textStyle, transformation ->
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -149,6 +152,7 @@ private fun KCodeFrame(
     colors: KCodeColors,
     style: Style,
     diagnostics: List<KCodeDiagnostic>,
+    softWrap: Boolean,
     field: @Composable (textStyle: TextStyle, transformation: VisualTransformation) -> Unit,
 ) {
     remember { KompoundStyles.ensureEnabled() }
@@ -175,7 +179,7 @@ private fun KCodeFrame(
                     style = Style { textStyle(textStyle.copy(color = colors.gutter)) },
                 )
             }
-            Box(Modifier.weight(1f).horizontalScroll(rememberScrollState()).scrollsVertically()) {
+            Box(Modifier.weight(1f).then(if (softWrap) Modifier else Modifier.horizontalScroll(rememberScrollState())).scrollsVertically()) {
                 field(textStyle, transformation)
             }
         }

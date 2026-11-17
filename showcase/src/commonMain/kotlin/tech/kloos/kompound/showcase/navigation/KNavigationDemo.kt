@@ -54,7 +54,7 @@ KNavigationRail(items, selected, onSelect = { selected = it }, header = { KIconB
 // A drawer that slides over the screen; put a KNavigationDrawer inside.
 KModalNavigationDrawer(open, onDismissRequest = { open = false }, drawer = {
     KNavigationDrawer(items.map { KNavEntry.Item(it) } + KNavEntry.Divider, selected, onSelect = { selected = it; open = false })
-}) { Screen() }"""
+}, onOpenRequest = { open = true }) { Screen() }   // also opens by dragging from the start edge"""
 
 @KompoundDemo(
     id = "navigation.bar-rail-drawer",
@@ -102,6 +102,7 @@ fun DemoScope.KNavigationDemo() {
                 open, { open = false },
                 drawer = { KNavigationDrawer(items.map { KNavEntry.Item(it) }, selected, { selected = it; open = false }, header = { KText("My app", Modifier.padding(16.dp)) }) },
                 modifier = frame,
+                onOpenRequest = { open = true },
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KIconButton({ open = true }, "Open navigation menu") { KIcon(DemoIcons.Menu, null) }

@@ -37,7 +37,8 @@ class MarkdownInlineRenderTest {
     @Test
     fun markersAreRemovedAndStylesApplied() {
         val text = render("a **bold** *it* ~~gone~~ `code`")
-        assertEquals("a bold it gone  code ", text.text)
+        assertEquals("a bold it gone  code ", text.text)
+        assertEquals(1, text.getStringAnnotations("kompound.code", 0, text.length).size)
         fun styleAt(word: String) = text.spanStyles.filter { it.start <= text.text.indexOf(word) && it.end > text.text.indexOf(word) }.map { it.item }
         assertTrue(styleAt("bold").any { it.fontWeight == FontWeight.Bold })
         assertTrue(styleAt("it").any { it.fontStyle == FontStyle.Italic })
