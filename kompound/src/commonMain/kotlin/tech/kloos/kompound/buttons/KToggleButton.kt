@@ -60,7 +60,10 @@ public fun KToggleButton(
 
 /** Defaults for [KToggleButton]. */
 public object KToggleButtonDefaults {
-    /** Base style: the outlined look, switching to the filled look in the `checked` block. */
+    /**
+     * Base style: off is a tonal button (`surfaceContainerHighest` fill, `onSurface` label, outline) so it reads as an available choice and not as a dimmed
+     * control; on is the filled primary look in the `checked` block. Disabled is transparent and dimmed.
+     */
     @Composable
     public fun style(): Style {
         val c = MaterialTheme.colorScheme
@@ -69,9 +72,10 @@ public object KToggleButtonDefaults {
         val density = KompoundTheme.tokens.density
         return remember(c, type, l, density) {
             fun overlay(content: Color, alpha: Float, over: Color) = content.copy(alpha = alpha).compositeOver(over)
-            val off = c.primary
+            val off = c.onSurface
+            val offFill = c.surfaceContainerHighest
             Style {
-                background(Color.Transparent)
+                background(offFill)
                 contentColor(off)
                 textStyle(type.labelLarge.copy(color = off))
                 shape(CircleShape)
@@ -79,9 +83,9 @@ public object KToggleButtonDefaults {
                 borderColor(c.outline)
                 contentPadding(horizontal = density.space(24.dp), vertical = density.space(10.dp))
                 minHeight(density.height(40.dp))
-                hovered { background(overlay(off, l.hovered, Color.Transparent)) }
-                focused { background(overlay(off, l.focused, Color.Transparent)) }
-                pressed { background(overlay(off, l.pressed, Color.Transparent)) }
+                hovered { background(overlay(off, l.hovered, offFill)) }
+                focused { background(overlay(off, l.focused, offFill)) }
+                pressed { background(overlay(off, l.pressed, offFill)) }
                 checked {
                     background(c.primary)
                     contentColor(c.onPrimary)
@@ -109,7 +113,7 @@ public object KToggleButtonDefaults {
         return when {
             !enabled -> c.onSurface.copy(alpha = KompoundTheme.tokens.stateLayer.disabledContent)
             checked -> c.onPrimary
-            else -> c.primary
+            else -> c.onSurface
         }
     }
 }

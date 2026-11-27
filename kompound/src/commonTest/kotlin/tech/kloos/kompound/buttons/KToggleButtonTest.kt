@@ -44,7 +44,7 @@ class KToggleButtonTest {
     }
 
     @Test
-    fun checkedIsFilledAndUncheckedIsOutlined() = runComposeUiTest {
+    fun checkedIsFilledAndUncheckedIsTonal() = runComposeUiTest {
         setContent {
             MaterialTheme(s) {
                 Column {
@@ -56,10 +56,10 @@ class KToggleButtonTest {
         val on = onNodeWithTag("on").captureToImage()
         val off = onNodeWithTag("off").captureToImage()
         assertTrue(on.topCentre().near(s.primary), "checked container")
-        assertEquals(0f, off.topCentre().alpha, 0.01f)
+        assertTrue(off.topCentre().near(s.surfaceContainerHighest), "unchecked is a tonal fill, not transparent like a disabled button")
         assertTrue(off.containsColor(s.outline), "unchecked outline")
         assertTrue(on.containsColor(s.onPrimary), "checked icon colour")
-        assertTrue(off.containsColor(s.primary), "unchecked icon colour")
+        assertTrue(off.containsColor(s.onSurface), "unchecked icon colour")
     }
 
     @Test
