@@ -198,4 +198,24 @@ class KTextFieldTest {
         val centre = (rows.first() + rows.last()) / 2.0
         assertTrue(abs(centre - img.height / 2.0) <= 1.5, "placeholder text spans rows ${rows.first()}..${rows.last()} in a field ${img.height}px tall")
     }
+
+    @Test
+    fun oneLineMultiLineFieldCentresItsCaretInTheMinimumHeight() = runComposeUiTest {
+        val caret = Color(0xFFFF0000)
+        setContent { MaterialTheme(s.copy(primary = caret)) { KTextField("", {}, Modifier.testTag("f"), singleLine = false) } }
+        onNode(hasSetTextAction()).requestFocus()
+        repeat(40) {
+            mainClock.advanceTimeBy(100)
+            val img = onNodeWithTag("f").captureToImage().toPixelMap()
+            val rows = (6 until img.height - 6).filter { y ->
+                (10 until 60).any { x -> img[x, y].let { p -> p.red > 0.9f && p.green < 0.2f && p.blue < 0.2f } }
+            }
+            if (rows.isNotEmpty()) {
+                val centre = (rows.min() + rows.max()) / 2.0
+                assertTrue(abs(centre - img.height / 2.0) <= 2.0, "caret centre $centre is off the field centre ${img.height / 2.0}")
+                return@runComposeUiTest
+            }
+        }
+        throw AssertionError("the caret was never visible")
+    }
 }

@@ -103,7 +103,7 @@ public fun KTextField(
     KTextFieldLayout(
         isEmpty = value.isEmpty(), length = value.length,
         modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText, isError = isError,
-        enabled = enabled, singleLine = singleLine, maxLength = maxLength, leading = leading, trailing = trailing,
+        enabled = enabled, singleLine = singleLine, minLines = minLines, maxLength = maxLength, leading = leading, trailing = trailing,
         style = style, source = source, contentDescription = contentDescription,
     ) { fieldModifier, textStyle, cursor, decoration ->
         BasicTextField(
@@ -149,7 +149,7 @@ public fun KTextField(
     KTextFieldLayout(
         isEmpty = value.text.isEmpty(), length = value.text.length,
         modifier = modifier, label = label, placeholder = placeholder, supportingText = supportingText, isError = isError,
-        enabled = enabled, singleLine = singleLine, maxLength = maxLength, leading = leading, trailing = trailing,
+        enabled = enabled, singleLine = singleLine, minLines = minLines, maxLength = maxLength, leading = leading, trailing = trailing,
         style = style, source = source, contentDescription = contentDescription,
     ) { fieldModifier, textStyle, cursor, decoration ->
         BasicTextField(
@@ -174,6 +174,7 @@ private fun KTextFieldLayout(
     isError: Boolean,
     enabled: Boolean,
     singleLine: Boolean,
+    minLines: Int,
     maxLength: Int?,
     leading: (@Composable () -> Unit)?,
     trailing: (@Composable () -> Unit)?,
@@ -199,7 +200,9 @@ private fun KTextFieldLayout(
                 .fillMaxWidth()
                 .pointerInput(enabled) { if (enabled) detectTapGestures { focusRequester.requestFocus() } }
                 .styleable(state, KTextFieldDefaults.style(), style),
-            verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
+            // A wrapping field with room for only one line (the default minLines) is centred like a single-line one;
+            // it would otherwise sit at the top of the 56dp minimum height. Taller areas (minLines > 1) stay top-aligned.
+            verticalAlignment = if (singleLine || minLines <= 1) Alignment.CenterVertically else Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CompositionLocalProvider(LocalKContentColor provides iconColor) {
