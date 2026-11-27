@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,7 +55,8 @@ import tech.kloos.kompound.text.KText
  * @param onDismissRequest Called when the user asks to close the dialog.
  * @param modifier Modifier applied to the dialog surface.
  * @param title Optional title text, announced as a heading.
- * @param actions Optional footer, usually buttons; laid out at the end with 8dp between them.
+ * @param actions Optional footer, usually buttons; laid out at the end with 8dp between them. The footer wraps onto
+ * further lines when the buttons do not fit (long labels, large font sizes) instead of squeezing them.
  * @param fullScreen When true the dialog fills the window (no scrim, no rounded corners) and avoids
  * [contentWindowInsets].
  * @param showCloseButton Shows a close icon button next to the title.
@@ -64,12 +67,13 @@ import tech.kloos.kompound.text.KText
  * @param style Overrides merged over [KDialogDefaults.style].
  * @param content Body of the dialog; scrolls when taller than the window.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 public fun KDialog(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     title: String? = null,
-    actions: (@Composable RowScope.() -> Unit)? = null,
+    actions: (@Composable FlowRowScope.() -> Unit)? = null,
     fullScreen: Boolean = false,
     showCloseButton: Boolean = false,
     closeContentDescription: String = KompoundTheme.strings.close,
@@ -127,9 +131,16 @@ public fun KDialog(
                         }
                     }
                 }
-                Column(Modifier.weight(1f, fill = fullScreen).verticalScroll(rememberScrollState()), content = content)
+                // At large font sizes the title and footer grow; the body keeps a minimum height so it never collapses to nothing.
+                val bodyModifier = if (fullScreen) Modifier else Modifier.heightIn(min = KDialogDefaults.MinBodyHeight)
+                Column(Modifier.weight(1f, fill = fullScreen).then(bodyModifier).verticalScroll(rememberScrollState()), content = content)
                 if (actions != null) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically,
+                    ) {
                         actions()
                     }
                 }
@@ -179,6 +190,9 @@ public object KDialogDefaults {
 
     /** Largest height of a non-full-screen dialog as a fraction of the window. */
     public const val MaxHeightFraction: Float = 0.9f
+
+    /** Smallest height of the scrolling body of a non-full-screen dialog (kept even when title and footer grow with the font size). */
+    public val MinBodyHeight: Dp = 96.dp
 
     /** Gap between title, content and footer. */
     public val SectionSpacing: Dp = 16.dp

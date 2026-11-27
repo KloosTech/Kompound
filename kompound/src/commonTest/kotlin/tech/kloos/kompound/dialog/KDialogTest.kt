@@ -146,4 +146,28 @@ class KDialogTest {
         onNodeWithText("OK", useUnmergedTree = true).assertExists()
         onNodeWithText("Cancel", useUnmergedTree = true).assertDoesNotExist()
     }
+
+    @Test
+    fun footerWrapsInsteadOfSqueezingButtonsWhenTheyDoNotFit() = runComposeUiTest {
+        setContent {
+            MaterialTheme(s) {
+                KDialog(
+                    {}, Modifier.width(300.dp), title = "Connect",
+                    actions = {
+                        KButton(onClick = {}, Modifier.testTag("a")) { KText("Test connection") }
+                        KButton(onClick = {}, Modifier.testTag("b")) { KText("Cancel") }
+                        KButton(onClick = {}, Modifier.testTag("c")) { KText("Save changes") }
+                    },
+                ) { KText("Body") }
+            }
+        }
+        val single = onNodeWithTag("b").fetchSemanticsNode().size.height
+        listOf("a", "b", "c").forEach { tag ->
+            // A squeezed label wraps onto several lines and the button grows taller than a single-line one.
+            assertEquals(single, onNodeWithTag(tag).fetchSemanticsNode().size.height, "button $tag keeps a single line")
+        }
+        val a = onNodeWithTag("a").fetchSemanticsNode().boundsInRoot
+        val c = onNodeWithTag("c").fetchSemanticsNode().boundsInRoot
+        assertTrue(c.top >= a.bottom || c.left >= a.right, "buttons do not overlap")
+    }
 }

@@ -194,7 +194,7 @@ Exact parameters in the source file; this lists what each is for and the paramet
 ### Overlays and feedback
 | Composable | Use |
 |---|---|
-| `KDialog(onDismissRequest, title, actions: RowScope, fullScreen, showCloseButton, …) { content }` | general dialog |
+| `KDialog(onDismissRequest, title, actions: FlowRowScope (wraps), fullScreen, showCloseButton, …) { content }` | general dialog |
 | `KAlertDialog(onDismissRequest, title, message, confirmText, onConfirm, dismissText)` | confirm/cancel |
 | `KBottomSheet(onDismissRequest, title, actions, showCloseButton, …) { content }` | sheet on phones, dialog on wide windows |
 | `KSnackbarHost(hostState)` + `KSnackbarHostState().showSnackbar(message, actionLabel, tone, duration)` | `suspend`; returns `KSnackbarResult.ActionPerformed` or `Dismissed`. Put the host in `KScaffold(snackbarHost = …)` |
